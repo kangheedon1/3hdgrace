@@ -1,0 +1,858 @@
+{
+  "live_streaming": {
+    "count": 12,
+    "features": [
+      {
+        "id": "ls001",
+        "name": "고정 시청자 500명 유지",
+        "emoji": "👥",
+        "type": "viewer_management"
+      },
+      {
+        "id": "ls002",
+        "name": "조회수 반복 입장이탈",
+        "emoji": "🔄",
+        "type": "view_manipulation"
+      },
+      {
+        "id": "ls003",
+        "name": "라이브 방송 자동 시청",
+        "emoji": "📺",
+        "type": "auto_watch"
+      },
+      {
+        "id": "ls004",
+        "name": "동시시청자 유지",
+        "emoji": "🎯",
+        "type": "concurrent_viewers"
+      },
+      {
+        "id": "ls005",
+        "name": "조회수 시청자 동시 증가",
+        "emoji": "📈",
+        "type": "dual_boost"
+      },
+      {
+        "id": "ls006",
+        "name": "라이브 스트림 조회수 증가",
+        "emoji": "🎪",
+        "type": "view_boost"
+      },
+      {
+        "id": "ls007",
+        "name": "LIVE 고정 시청자 유지",
+        "emoji": "🟢",
+        "type": "persistent_viewers"
+      },
+      {
+        "id": "ls008",
+        "name": "Shorts 시청 최적화",
+        "emoji": "⚡",
+        "type": "shorts_optimization"
+      },
+      {
+        "id": "ls009",
+        "name": "댓글좋아요구독 자동화",
+        "emoji": "❤️",
+        "type": "engagement"
+      },
+      {
+        "id": "ls010",
+        "name": "키워드 1등 만들기",
+        "emoji": "🏆",
+        "type": "seo_boost"
+      },
+      {
+        "id": "ls011",
+        "name": "고정 시청자 시스템 ElitePlus",
+        "emoji": "💎",
+        "type": "elite_system"
+      },
+      {
+        "id": "ls012",
+        "name": "조회수 유입 알고리즘",
+        "emoji": "🌊",
+        "type": "traffic_algorithm"
+      }
+    ]
+  },
+  "shorts_videos": {
+    "count": 10,
+    "features": [
+      {
+        "id": "sv001",
+        "name": "Shorts 시청 최적화",
+        "emoji": "🟣",
+        "type": "optimization"
+      },
+      {
+        "id": "sv002",
+        "name": "모바일프록시 자동 전환",
+        "emoji": "📱",
+        "type": "mobile_proxy"
+      },
+      {
+        "id": "sv003",
+        "name": "고정 프록시 Google 계정 없이",
+        "emoji": "🔒",
+        "type": "proxy_management"
+      },
+      {
+        "id": "sv004",
+        "name": "IMEI 회전 프록시 설정",
+        "emoji": "📡",
+        "type": "imei_rotation"
+      },
+      {
+        "id": "sv005",
+        "name": "영상 반복 재생 알고리즘",
+        "emoji": "🔁",
+        "type": "repeat_algorithm"
+      },
+      {
+        "id": "sv006",
+        "name": "키워드 기반 검색 유입 시청",
+        "emoji": "🔍",
+        "type": "keyword_search"
+      },
+      {
+        "id": "sv007",
+        "name": "키워드 순위 개선",
+        "emoji": "📊",
+        "type": "ranking_boost"
+      },
+      {
+        "id": "sv008",
+        "name": "일반 영상 자동 시청",
+        "emoji": "🎬",
+        "type": "general_watch"
+      },
+      {
+        "id": "sv009",
+        "name": "쇼츠 자동 시청",
+        "emoji": "⚡",
+        "type": "shorts_watch"
+      },
+      {
+        "id": "sv010",
+        "name": "타겟 채널 방문",
+        "emoji": "🎯",
+        "type": "channel_visit"
+      }
+    ]
+  },
+  "gmail_management": {
+    "count": 12,
+    "features": [
+      {
+        "id": "gm001",
+        "name": "지메일 계정 생성",
+        "emoji": "📩",
+        "type": "account_creation"
+      },
+      {
+        "id": "gm002",
+        "name": "대량 계정 생성",
+        "emoji": "🏭",
+        "type": "bulk_creation"
+      },
+      {
+        "id": "gm003",
+        "name": "계정 검증 자동화",
+        "emoji": "✅",
+        "type": "verification"
+      },
+      {
+        "id": "gm004",
+        "name": "프로필 설정 자동화",
+        "emoji": "👤",
+        "type": "profile_setup"
+      },
+      {
+        "id": "gm005",
+        "name": "복구 이메일 설정",
+        "emoji": "🔐",
+        "type": "recovery_setup"
+      },
+      {
+        "id": "gm006",
+        "name": "SMS 인증 자동화",
+        "emoji": "📱",
+        "type": "sms_verification"
+      },
+      {
+        "id": "gm007",
+        "name": "계정 보안 설정",
+        "emoji": "🛡️",
+        "type": "security_setup"
+      },
+      {
+        "id": "gm008",
+        "name": "계정 상태 모니터링",
+        "emoji": "📊",
+        "type": "monitoring"
+      },
+      {
+        "id": "gm009",
+        "name": "계정 로그인 테스트",
+        "emoji": "🔑",
+        "type": "login_test"
+      },
+      {
+        "id": "gm010",
+        "name": "계정 백업 관리",
+        "emoji": "💾",
+        "type": "backup_management"
+      },
+      {
+        "id": "gm011",
+        "name": "계정 복구 자동화",
+        "emoji": "🔄",
+        "type": "recovery_automation"
+      },
+      {
+        "id": "gm012",
+        "name": "계정 그룹 관리",
+        "emoji": "👥",
+        "type": "group_management"
+      }
+    ]
+  },
+  "youtube_automation": {
+    "count": 15,
+    "features": [
+      {
+        "id": "yt001",
+        "name": "유튜브 채널 생성",
+        "emoji": "📷",
+        "type": "channel_creation"
+      },
+      {
+        "id": "yt002",
+        "name": "채널 프로필 설정",
+        "emoji": "🎨",
+        "type": "profile_setup"
+      },
+      {
+        "id": "yt003",
+        "name": "동영상 업로드 자동화",
+        "emoji": "📤",
+        "type": "upload_automation"
+      },
+      {
+        "id": "yt004",
+        "name": "썸네일 자동 생성",
+        "emoji": "🖼️",
+        "type": "thumbnail_creation"
+      },
+      {
+        "id": "yt005",
+        "name": "제목 최적화",
+        "emoji": "📝",
+        "type": "title_optimization"
+      },
+      {
+        "id": "yt006",
+        "name": "설명 자동 생성",
+        "emoji": "📄",
+        "type": "description_generation"
+      },
+      {
+        "id": "yt007",
+        "name": "태그 자동 추가",
+        "emoji": "🏷️",
+        "type": "tag_automation"
+      },
+      {
+        "id": "yt008",
+        "name": "플레이리스트 관리",
+        "emoji": "📋",
+        "type": "playlist_management"
+      },
+      {
+        "id": "yt009",
+        "name": "커뮤니티 포스트",
+        "emoji": "📢",
+        "type": "community_posting"
+      },
+      {
+        "id": "yt010",
+        "name": "스케줄 업로드",
+        "emoji": "⏰",
+        "type": "scheduled_upload"
+      },
+      {
+        "id": "yt011",
+        "name": "라이브 스트림 설정",
+        "emoji": "🔴",
+        "type": "livestream_setup"
+      },
+      {
+        "id": "yt012",
+        "name": "채널 최적화",
+        "emoji": "⚙️",
+        "type": "channel_optimization"
+      },
+      {
+        "id": "yt013",
+        "name": "SEO 최적화",
+        "emoji": "🔍",
+        "type": "seo_optimization"
+      },
+      {
+        "id": "yt014",
+        "name": "분석 데이터 수집",
+        "emoji": "📊",
+        "type": "analytics_collection"
+      },
+      {
+        "id": "yt015",
+        "name": "수익화 설정",
+        "emoji": "💰",
+        "type": "monetization_setup"
+      }
+    ]
+  },
+  "proxy_management": {
+    "count": 10,
+    "features": [
+      {
+        "id": "px001",
+        "name": "프록시 자동 로테이션",
+        "emoji": "🔄",
+        "type": "rotation"
+      },
+      {
+        "id": "px002",
+        "name": "프록시 상태 체크",
+        "emoji": "✅",
+        "type": "health_check"
+      },
+      {
+        "id": "px003",
+        "name": "고속 프록시 선별",
+        "emoji": "⚡",
+        "type": "speed_filtering"
+      },
+      {
+        "id": "px004",
+        "name": "지역별 프록시 관리",
+        "emoji": "🌍",
+        "type": "geo_management"
+      },
+      {
+        "id": "px005",
+        "name": "프록시 풀 관리",
+        "emoji": "🏊",
+        "type": "pool_management"
+      },
+      {
+        "id": "px006",
+        "name": "프록시 인증 자동화",
+        "emoji": "🔐",
+        "type": "auth_automation"
+      },
+      {
+        "id": "px007",
+        "name": "프록시 성능 모니터링",
+        "emoji": "📊",
+        "type": "performance_monitoring"
+      },
+      {
+        "id": "px008",
+        "name": "프록시 장애 복구",
+        "emoji": "🔧",
+        "type": "failure_recovery"
+      },
+      {
+        "id": "px009",
+        "name": "프록시 비용 최적화",
+        "emoji": "💰",
+        "type": "cost_optimization"
+      },
+      {
+        "id": "px010",
+        "name": "프록시 보안 검증",
+        "emoji": "🛡️",
+        "type": "security_validation"
+      }
+    ]
+  },
+  "account_creation": {
+    "count": 15,
+    "features": [
+      {
+        "id": "ac001",
+        "name": "계정 대량 생성",
+        "emoji": "🏭",
+        "type": "bulk_creation"
+      },
+      {
+        "id": "ac002",
+        "name": "신원 정보 생성",
+        "emoji": "🆔",
+        "type": "identity_generation"
+      },
+      {
+        "id": "ac003",
+        "name": "전화번호 인증",
+        "emoji": "📞",
+        "type": "phone_verification"
+      },
+      {
+        "id": "ac004",
+        "name": "이메일 인증",
+        "emoji": "✉️",
+        "type": "email_verification"
+      },
+      {
+        "id": "ac005",
+        "name": "계정 웜업",
+        "emoji": "🔥",
+        "type": "account_warming"
+      },
+      {
+        "id": "ac006",
+        "name": "계정 에이징",
+        "emoji": "⏳",
+        "type": "account_aging"
+      },
+      {
+        "id": "ac007",
+        "name": "계정 활동 시뮬레이션",
+        "emoji": "🎭",
+        "type": "activity_simulation"
+      },
+      {
+        "id": "ac008",
+        "name": "계정 신뢰도 구축",
+        "emoji": "🏆",
+        "type": "trust_building"
+      },
+      {
+        "id": "ac009",
+        "name": "계정 그룹 관리",
+        "emoji": "👥",
+        "type": "group_management"
+      },
+      {
+        "id": "ac010",
+        "name": "계정 상태 추적",
+        "emoji": "📍",
+        "type": "status_tracking"
+      },
+      {
+        "id": "ac011",
+        "name": "계정 복구 시스템",
+        "emoji": "🔄",
+        "type": "recovery_system"
+      },
+      {
+        "id": "ac012",
+        "name": "계정 보안 강화",
+        "emoji": "🔒",
+        "type": "security_enhancement"
+      },
+      {
+        "id": "ac013",
+        "name": "계정 생명주기 관리",
+        "emoji": "🔄",
+        "type": "lifecycle_management"
+      },
+      {
+        "id": "ac014",
+        "name": "계정 품질 관리",
+        "emoji": "⭐",
+        "type": "quality_management"
+      },
+      {
+        "id": "ac015",
+        "name": "계정 자동화 스케줄링",
+        "emoji": "📅",
+        "type": "automation_scheduling"
+      }
+    ]
+  },
+  "engagement_automation": {
+    "count": 20,
+    "features": [
+      {
+        "id": "en001",
+        "name": "자동 댓글봇",
+        "emoji": "🧠",
+        "type": "comment_bot"
+      },
+      {
+        "id": "en002",
+        "name": "좋아요 자동화",
+        "emoji": "👍",
+        "type": "like_automation"
+      },
+      {
+        "id": "en003",
+        "name": "구독 자동화",
+        "emoji": "📺",
+        "type": "subscribe_automation"
+      },
+      {
+        "id": "en004",
+        "name": "공유 자동화",
+        "emoji": "🔗",
+        "type": "share_automation"
+      },
+      {
+        "id": "en005",
+        "name": "댓글 응답 봇",
+        "emoji": "💬",
+        "type": "reply_bot"
+      },
+      {
+        "id": "en006",
+        "name": "감정 분석 댓글",
+        "emoji": "😊",
+        "type": "sentiment_comments"
+      },
+      {
+        "id": "en007",
+        "name": "키워드 기반 댓글",
+        "emoji": "🔍",
+        "type": "keyword_comments"
+      },
+      {
+        "id": "en008",
+        "name": "자연어 처리 댓글",
+        "emoji": "🤖",
+        "type": "nlp_comments"
+      },
+      {
+        "id": "en009",
+        "name": "다국어 댓글",
+        "emoji": "🌐",
+        "type": "multilang_comments"
+      },
+      {
+        "id": "en010",
+        "name": "상황별 댓글",
+        "emoji": "🎯",
+        "type": "contextual_comments"
+      },
+      {
+        "id": "en011",
+        "name": "인플루언서 타겟팅",
+        "emoji": "⭐",
+        "type": "influencer_targeting"
+      },
+      {
+        "id": "en012",
+        "name": "브랜드 멘션",
+        "emoji": "🏷️",
+        "type": "brand_mentions"
+      },
+      {
+        "id": "en013",
+        "name": "해시태그 활용",
+        "emoji": "#️⃣",
+        "type": "hashtag_usage"
+      },
+      {
+        "id": "en014",
+        "name": "트렌드 분석",
+        "emoji": "📈",
+        "type": "trend_analysis"
+      },
+      {
+        "id": "en015",
+        "name": "경쟁사 분석",
+        "emoji": "🔍",
+        "type": "competitor_analysis"
+      },
+      {
+        "id": "en016",
+        "name": "사용자 행동 분석",
+        "emoji": "👤",
+        "type": "user_behavior"
+      },
+      {
+        "id": "en017",
+        "name": "참여율 최적화",
+        "emoji": "⚡",
+        "type": "engagement_optimization"
+      },
+      {
+        "id": "en018",
+        "name": "시간대별 최적화",
+        "emoji": "🕐",
+        "type": "timing_optimization"
+      },
+      {
+        "id": "en019",
+        "name": "콘텐츠 추천",
+        "emoji": "💡",
+        "type": "content_recommendation"
+      },
+      {
+        "id": "en020",
+        "name": "자동 스토리 생성",
+        "emoji": "📖",
+        "type": "story_generation"
+      }
+    ]
+  },
+  "analytics": {
+    "count": 15,
+    "features": [
+      {
+        "id": "an001",
+        "name": "실시간 분석",
+        "emoji": "⚡",
+        "type": "realtime_analytics"
+      },
+      {
+        "id": "an002",
+        "name": "성과 추적",
+        "emoji": "📊",
+        "type": "performance_tracking"
+      },
+      {
+        "id": "an003",
+        "name": "ROI 분석",
+        "emoji": "💰",
+        "type": "roi_analysis"
+      },
+      {
+        "id": "an004",
+        "name": "트래픽 분석",
+        "emoji": "🚦",
+        "type": "traffic_analysis"
+      },
+      {
+        "id": "an005",
+        "name": "사용자 분석",
+        "emoji": "👥",
+        "type": "user_analysis"
+      },
+      {
+        "id": "an006",
+        "name": "콘텐츠 분석",
+        "emoji": "📄",
+        "type": "content_analysis"
+      },
+      {
+        "id": "an007",
+        "name": "키워드 추적",
+        "emoji": "🔍",
+        "type": "keyword_tracking"
+      },
+      {
+        "id": "an008",
+        "name": "경쟁사 모니터링",
+        "emoji": "👁️",
+        "type": "competitor_monitoring"
+      },
+      {
+        "id": "an009",
+        "name": "트렌드 예측",
+        "emoji": "🔮",
+        "type": "trend_prediction"
+      },
+      {
+        "id": "an010",
+        "name": "보고서 자동화",
+        "emoji": "📋",
+        "type": "report_automation"
+      },
+      {
+        "id": "an011",
+        "name": "알림 시스템",
+        "emoji": "🔔",
+        "type": "notification_system"
+      },
+      {
+        "id": "an012",
+        "name": "대시보드 생성",
+        "emoji": "📺",
+        "type": "dashboard_creation"
+      },
+      {
+        "id": "an013",
+        "name": "데이터 시각화",
+        "emoji": "📈",
+        "type": "data_visualization"
+      },
+      {
+        "id": "an014",
+        "name": "예측 모델링",
+        "emoji": "🧮",
+        "type": "predictive_modeling"
+      },
+      {
+        "id": "an015",
+        "name": "비즈니스 인텔리전스",
+        "emoji": "🧠",
+        "type": "business_intelligence"
+      }
+    ]
+  },
+  "security": {
+    "count": 10,
+    "features": [
+      {
+        "id": "sc001",
+        "name": "브라우저 핑거프린트 위장",
+        "emoji": "🎭",
+        "type": "fingerprint_spoofing"
+      },
+      {
+        "id": "sc002",
+        "name": "IP 추적 방지",
+        "emoji": "🛡️",
+        "type": "ip_protection"
+      },
+      {
+        "id": "sc003",
+        "name": "CAPTCHA 자동 해결",
+        "emoji": "🔓",
+        "type": "captcha_solving"
+      },
+      {
+        "id": "sc004",
+        "name": "봇 탐지 우회",
+        "emoji": "👻",
+        "type": "bot_detection_bypass"
+      },
+      {
+        "id": "sc005",
+        "name": "SSL 인증서 관리",
+        "emoji": "🔒",
+        "type": "ssl_management"
+      },
+      {
+        "id": "sc006",
+        "name": "데이터 암호화",
+        "emoji": "🔐",
+        "type": "data_encryption"
+      },
+      {
+        "id": "sc007",
+        "name": "로그 보안",
+        "emoji": "📝",
+        "type": "log_security"
+      },
+      {
+        "id": "sc008",
+        "name": "접근 제어",
+        "emoji": "🚪",
+        "type": "access_control"
+      },
+      {
+        "id": "sc009",
+        "name": "보안 감사",
+        "emoji": "🔍",
+        "type": "security_audit"
+      },
+      {
+        "id": "sc010",
+        "name": "침입 탐지",
+        "emoji": "🚨",
+        "type": "intrusion_detection"
+      }
+    ]
+  },
+  "advanced": {
+    "count": 15,
+    "features": [
+      {
+        "id": "ad001",
+        "name": "AI 기반 최적화",
+        "emoji": "🤖",
+        "type": "ai_optimization"
+      },
+      {
+        "id": "ad002",
+        "name": "머신러닝 예측",
+        "emoji": "🧠",
+        "type": "ml_prediction"
+      },
+      {
+        "id": "ad003",
+        "name": "자동 스케일링",
+        "emoji": "📈",
+        "type": "auto_scaling"
+      },
+      {
+        "id": "ad004",
+        "name": "로드 밸런싱",
+        "emoji": "⚖️",
+        "type": "load_balancing"
+      },
+      {
+        "id": "ad005",
+        "name": "분산 처리",
+        "emoji": "🌐",
+        "type": "distributed_processing"
+      },
+      {
+        "id": "ad006",
+        "name": "클러스터 관리",
+        "emoji": "🔗",
+        "type": "cluster_management"
+      },
+      {
+        "id": "ad007",
+        "name": "자동 복구",
+        "emoji": "🔄",
+        "type": "auto_recovery"
+      },
+      {
+        "id": "ad008",
+        "name": "성능 최적화",
+        "emoji": "⚡",
+        "type": "performance_optimization"
+      },
+      {
+        "id": "ad009",
+        "name": "리소스 관리",
+        "emoji": "💾",
+        "type": "resource_management"
+      },
+      {
+        "id": "ad010",
+        "name": "API 통합",
+        "emoji": "🔌",
+        "type": "api_integration"
+      },
+      {
+        "id": "ad011",
+        "name": "웹훅 처리",
+        "emoji": "🎣",
+        "type": "webhook_processing"
+      },
+      {
+        "id": "ad012",
+        "name": "이벤트 스트리밍",
+        "emoji": "🌊",
+        "type": "event_streaming"
+      },
+      {
+        "id": "ad013",
+        "name": "실시간 동기화",
+        "emoji": "🔄",
+        "type": "realtime_sync"
+      },
+      {
+        "id": "ad014",
+        "name": "클라우드 통합",
+        "emoji": "☁️",
+        "type": "cloud_integration"
+      },
+      {
+        "id": "ad015",
+        "name": "마이크로서비스",
+        "emoji": "🧩",
+        "type": "microservices"
+      }
+    ]
+  },
+  "total_features": 134,
+  "total_categories": 10
+}

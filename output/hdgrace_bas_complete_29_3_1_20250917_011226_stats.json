@@ -1,0 +1,12 @@
+{
+  "generation_start": "2025-09-17 01:12:26.461376",
+  "generation_end": "2025-09-17 01:12:26.611156",
+  "total_features": 1,
+  "total_macros": 136,
+  "total_actions": 80,
+  "file_size_bytes": 1110696,
+  "validation_errors": 0,
+  "performance_metrics": {},
+  "file_size_mb": 1.0592422485351562,
+  "generation_time_seconds": 0.14978
+}
