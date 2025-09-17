@@ -1,0 +1,801 @@
+
+
+```xml
+<macro name="RemoveDuplicateKeywords">
+  <action name="ReadFile">
+    <File>./data/ranking_keywords.txt</File>
+    <Variable>Keywords</Variable>
+  </action>
+  
+  <action name="SetVariable">
+    <Variable>UniqueKeywords</Variable>
+    <Value>{Keywords.unique()}</Value>
+  </action>
+  
+  <action name="WriteFile">
+    <File>./data/ranking_keywords_unique.txt</File>
+    <Data>{UniqueKeywords.join('\n')}</Data>
+  </action>
+  
+  <action name="LogEvent">
+    <Type>DuplicateKeywordsRemoved</Type>
+    <Details>중복 키워드 제거 완료: {UniqueKeywords.length} 개의 고유 키워드 남음</Details>
+  </action>
+</macro>
+```
+
+
+```xml
+<macro name="GlobalKeywordRankingBoost">
+  <action name="SetVariable">
+    <Variable>TargetKeyword</Variable>
+    <Value>{RandomLine('./data/ranking_keywords_unique.txt')}</Value>
+  </action>
+  
+  <action name="SetVariable">
+    <Variable>TargetURL</Variable>
+    <Value>{RandomLine('./data/target_urls.txt')}</Value>
+  </action>
+  
+  <!-- 유튜브 접속 -->
+  <action name="Navigate">
+    <Url>https://www.youtube.com</Url>
+  </action>
+  
+  <!-- 로그인 (필요 시) -->
+  <If condition="!IsLoggedIn">
+    <Then>
+      <call macro="LoginToGoogle"/>
+    </Then>
+  </If>
+  
+  <!-- 키워드 검색 -->
+  <action name="Type">
+    <Selector>input[placeholder='검색']</Selector>
+    <Text>{TargetKeyword}</Text>
+  </action>
+  
+  <!-- 검색 버튼 클릭 -->
+  <action name="Click">
+    <Selector>button[aria-label='검색']</Selector>
+  </action>
+  
+  <!-- 콘텐츠 유형 필터 선택 -->
+  <If condition="TargetType == 'Live'">
+    <Then>
+      <action name="Click">
+        <Selector>a[href*='/results?search_query={TargetKeyword}&sp=EgIQAw%253D%253D']</Selector>
+      </action>
+    </Then>
+  </If>
+  <If condition="TargetType == 'Shorts'">
+    <Then>
+      <action name="Click">
+        <Selector>a[href*='/results?search_query={TargetKeyword}&sp=EgIQAQ%253D%253D']</Selector>
+      </action>
+    </Then>
+  </If>
+  <If condition="TargetType == 'Video'">
+    <Then>
+      <action name="Click">
+        <Selector>a[href*='/results?search_query={TargetKeyword}&sp=EgIIBQ%253D%253D']</Selector>
+      </action>
+    </Then>
+  </If>
+  
+  <!-- 대상 URL 찾기 -->
+  <action name="FindTargetURL">
+    <TargetURL>{TargetURL}</TargetURL>
+    <MaxAttempts>300</MaxAttempts>
+  </action>
+  
+  <!-- URL 발견 시 클릭 -->
+  <If condition="TargetURLFound">
+    <Then>
+      <action name="Click">
+        <Selector>//a[contains(@href, '{TargetURL}')]</Selector>
+      </action>
+      
+      <!-- 시청 시간 설정 -->
+      <action name="SetVariable">
+        <Variable>ViewTime</Variable>
+        <Value>{Random(600, 3600)}</Value>
+      </action>
+      
+      <!-- 시청 시작 -->
+      <action name="WatchVideo">
+        <Duration>{ViewTime}</Duration>
+      </action>
+      
+      <!-- 상호작용 (좋아요, 댓글, 구독) -->
+      <If condition="{Random(1,100)} > 70">
+        <Then>
+          <action name="Click">
+            <Selector>#segmented-like-button button</Selector>
+          </action>
+        </Then>
+      </If>
+      <If condition="{Random(1,100)} > 50">
+        <Then>
+          <action name="Type">
+            <Selector>#contenteditable-root</Selector>
+            <Text>{RandomLine('./data/comments.txt')}</Text>
+          </action>
+          <action name="Click">
+            <Selector>#submit-button</Selector>
+          </action>
+        </Then>
+      </If>
+      <If condition="{Random(1,100)} > 30">
+        <Then>
+          <action name="Click">
+            <Selector>#subscribe-button</Selector>
+          </action>
+        </Then>
+      </If>
+      
+      <!-- 성공 로그 기록 -->
+      <action name="LogEvent">
+        <Type>KeywordRankingBoost</Type>
+        <Details>Clicked {TargetURL} for keyword '{TargetKeyword}'</Details>
+      </action>
+      
+      <!-- 로그 파일 생성 -->
+      <action name="CreateFile">
+        <Name>ranking_boosted.txt</Name>
+        <Header>keyword|url|view_time</Header>
+        <Data>{TargetKeyword}|{TargetURL}|{ViewTime}</Data>
+      </action>
+    </Then>
+  </If>
+  
+  <!-- URL 발견 실패 시 오류 로그 -->
+  <Else>
+    <action name="LogEvent">
+      <Type>Error</Type>
+      <Details>URL not found in top 300 results: {TargetURL}</Details>
+    </action>
+    <action name="CreateFile">
+      <Name>url_not_found.txt</Name>
+      <Header>keyword|url</Header>
+      <Data>{TargetKeyword}|{TargetURL}</Data>
+    </action>
+  </Else>
+</macro>
+```
+
+#### **3. 프록시 관리 및 CAPTCHA 우회**
+
+```xml
+<macro name="ApplyKoreanProxy">
+  <action name="ReadFile">
+    <File>./proxies/korea_random.txt</File>
+    <Variable>ProxyList</Variable>
+  </action>
+  
+  <action name="FilterProxies">
+    <Condition>IP contains '158.247.' or IP contains '141.164.'</Condition>
+    <Variable>KoreanProxies</Variable>
+  </action>
+  
+  <action name="SetProxy">
+    <Source>List</Source>
+    <List>{KoreanProxies}</List>
+  </action>
+  
+  <action name="LogEvent">
+    <Type>ProxyApplied</Type>
+    <Details>국가=한국, ISP={ExtractText(ProxyList, 'SKT|KT|LGU+', 'skt|kt|lgu')}, IP={ProxyIP}:{ProxyPort}</Details>
+  </action>
+</macro>
+
+<macro name="CaptchaBypass">
+  <If condition="CAPTCHA_DETECTED">
+    <Then>
+      <action name="RotateProxy">
+        <ProxyList>./proxies/korea_random.txt</ProxyList>
+        <Delay>5000</Delay>
+      </action>
+      
+      <action name="LogEvent">
+        <Type>CaptchaDetected</Type>
+        <Details>캡차 감지 → 프록시 회전</Details>
+      </action>
+      
+      <action name="RestartBrowser"/>
+    </Then>
+  </If>
+</macro>
+```
+
+
+
+```xml
+<macro name="LoginToGoogle">
+  <action name="Navigate">
+    <Url>https://accounts.google.com/signin</Url>
+  </action>
+  
+  <action name="Type">
+    <Selector>input[type='email'][name='identifier']</Selector>
+    <Text>{Account.id}</Text>
+  </action>
+  
+  <action name="Click">
+    <Selector>#identifierNext button</Selector>
+  </action>
+  
+  <action name="Type">
+    <Selector>input[type='password'][name='Passwd']</Selector>
+    <Text>{Account.pass}</Text>
+  </action>
+  
+  <action name="Click">
+    <Selector>#passwordNext button</Selector>
+  </action>
+  
+  <!-- 2FA 인증 (필요 시) -->
+  <If condition="2FARequired">
+    <Then>
+      <call macro="Gmail_RequestSMSVerification"/>
+      <call macro="Gmail_WaitForSMSCode"/>
+    </Then>
+  </If>
+</macro>
+```
+
+#### **5. SMS 인증**
+
+```xml
+<macro name="Gmail_RequestSMSVerification">
+  <action name="CallAPI">
+    <URL>https://sms-activate.ru/stubs/handler_api.php?api_key={SMS_API_KEY}&amp;action=getNumber&amp;service=gm</URL>
+    <Method>GET</Method>
+    <Variable>SMSResponse</Variable>
+  </action>
+  
+  <action name="ExtractText">
+    <Text>{SMSResponse}</Text>
+    <Variable>SMSID</Variable>
+    <Regex>ACCESS_NUMBER:(\d+):</Regex>
+  </action>
+  
+  <action name="LogEvent">
+    <Type>SMSRequested</Type>
+    <Details>SMS 인증 요청됨. ID: {SMSID}</Details>
+  </action>
+  
+  <call macro="Gmail_WaitForSMSCode"/>
+</macro>
+
+<macro name="Gmail_WaitForSMSCode">
+  <loop name="PollSMS" count="30">
+    <action name="CallAPI">
+      <URL>https://sms-activate.ru/stubs/handler_api.php?api_key={SMS_API_KEY}&amp;action=getStatus&amp;id={SMSID}</URL>
+      <Method>GET</Method>
+      <Variable>SMSStatus</Variable>
+    </action>
+    
+    <If condition="SMSStatus.includes('STATUS_OK')">
+      <Then>
+        <action name="ExtractText">
+          <Text>{SMSStatus}</Text>
+          <Variable>SMSCode</Variable>
+          <Regex>STATUS_OK:(\d+)</Regex>
+        </action>
+        
+        <action name="Type">
+          <Selector>input[type='text'], #code</Selector>
+          <Text>{SMSCode}</Text>
+        </action>
+        
+        <action name="Click">
+          <Selector>button:contains('확인'), #submit</Selector>
+        </action>
+        
+        <action name="BreakLoop"/>
+      </Then>
+    </If>
+    
+    <action name="Delay">
+      <Min>3000</Min>
+      <Max>4000</Max>
+    </action>
+  </loop>
+</macro>
+```
+
+#### **6. UI 구성 및 JavaScript 함수**
+
+```xml
+<style>
+  :root {
+    --primary: #1a1a1a;
+    --secondary: #00ff99;
+    --accent: #ff4757;
+    --text: #e6e6e6;
+    --input-bg: #2c2c2c;
+    --gradient: linear-gradient(135deg, var(--primary), var(--secondary));
+  }
+
+  body {
+    font-family: 'Segoe UI', sans-serif;
+    background: var(--primary);
+    color: var(--text);
+    margin: 0;
+  }
+
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    border-radius: 15px;
+    box-shadow: 0 0 30px rgba(0, 255, 153, 0.3);
+    background: var(--gradient);
+  }
+
+  .button-group button {
+    background: var(--secondary);
+    color: var(--primary);
+    border: none;
+    padding: 12px 24px;
+    margin-right: 10px;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+
+  .button-group button:hover {
+    background: var(--accent);
+  }
+
+  .input-group {
+    margin-bottom: 10px;
+  }
+
+  .input-group label {
+    display: block;
+    margin-bottom: 5px;
+  }
+
+  .input-group input, .input-group select {
+    background: var(--input-bg);
+    color: var(--text);
+    border: none;
+    padding: 10px;
+    width: 100%;
+    border-radius: 5px;
+  }
+
+  .note {
+    background: var(--accent);
+    color: white;
+    padding: 10px;
+    border-radius: 5px;
+    margin-top: 20px;
+    font-size: 0.9em;
+  }
+</style>
+
+<div class="container">
+  <h1 style="color: var(--secondary); text-align: center;">HDGRACE YouTube Automation</h1>
+  
+  <!-- 제어 버튼 -->
+  <div class="button-group">
+    <button onclick="startAutomation()">▶️ 전체 실행</button>
+    <button onclick="stopAutomation()">⏹️ 중지</button>
+    <button onclick="showGuide()">❓ 사용자 가이드</button>
+  </div>
+  
+  <!-- 추가 기능 버튼 -->
+  <div class="advanced-btns">
+    <button onclick="createGmailAccount()">📧 계정 생성</button>
+    <button onclick="setupYouTubeChannel()">🎥 채널 생성</button>
+    <button onclick="startFarming()">🌱 파밍 시작</button>
+    <button onclick="scrapeVideos()">🔍 비디오 스크래핑</button>
+    <button onclick="googleRankBoost()">🏆 구글 1등 상승</button>
+  </div>
+  
+  <!-- 키워드 랭킹 상승 설정 -->
+  <div class="keyword-ranking-section">
+    <h3>🔥 키워드 랭킹 상승</h3>
+    <div class="input-group">
+      <label>키워드 파일:
+        <input type="file" id="ranking-keywords-file" accept=".txt">
+      </label>
+    </div>
+    <div class="input-group">
+      <label>대상 URL:
+        <input type="text" id="target-url" placeholder="https://www.youtube.com/watch?v=...">
+      </label>
+    </div>
+    <div class="input-group">
+      <label>컨텐츠 유형:
+        <select id="target-type">
+          <option value="Live">라이브</option>
+          <option value="Shorts">ショーツ (Shorts)</option>
+          <option value="Video">비디오</option>
+        </select>
+      </label>
+    </div>
+    <div class="button-group">
+      <button onclick="boostKeywordRanking()">🚀 키워드 1등 상승</button>
+    </div>
+  </div>
+  
+  <!-- 로그 출력 -->
+  <div id="log-output"></div>
+</div>
+```
+
+#### **7. JavaScript 함수**
+
+```javascript
+function startAutomation() {
+  BAS.sendCommand('Start');
+  updateLog('▶️ 전체 실행 시작');
+}
+
+function stopAutomation() {
+  BAS.sendCommand('Stop');
+  updateLog('⏹️ 전체 실행 중지');
+}
+
+function showGuide() {
+  alert('사용자 가이드: \n1. 키워드 파일과 대상 URL을 입력하세요.\n2. 컨텐츠 유형을 선택하세요.\n3. 버튼을 클릭하여 실행하세요.');
+}
+
+function createGmailAccount() {
+  BAS.sendCommand('CreateGmailAccount');
+  updateLog('📧 계정 생성 시작');
+}
+
+function setupYouTubeChannel() {
+  BAS.sendCommand('SetupYouTubeChannel');
+  updateLog('🎥 채널 생성 시작');
+}
+
+function startFarming() {
+  BAS.sendCommand('StartFarming');
+  updateLog('🌱 파밍 시작');
+}
+
+function scrapeVideos() {
+  BAS.sendCommand('ScrapeVideos');
+  updateLog('🔍 비디오 스크래핑 시작');
+}
+
+function googleRankBoost() {
+  const keywordsFile = document.getElementById('ranking-keywords-file').files[0];
+  const targetURL = document.getElementById('target-url').value;
+  const targetType = document.getElementById('target-type').value;
+  
+  if (!keywordsFile || !targetURL) {
+    alert('키워드 파일과 대상 URL을 입력해주세요.');
+    return;
+  }
+  
+  const reader = new FileReader();
+  
+  reader.onload = function(e) {
+    const keywords = e.target.result.split('\n').map(keyword => keyword.trim()).filter(keyword => keyword !== '');
+    BAS.setVariable('ranking_keywords', keywords);
+    BAS.setVariable('TargetURL', targetURL);
+    BAS.setVariable('TargetType', targetType);
+    
+    keywords.forEach(keyword => {
+      BAS.sendCommand('GlobalKeywordRankingBoost', { TargetKeyword: keyword });
+    });
+  };
+  
+  reader.readAsText(keywordsFile);
+}
+
+function updateLog(message, color = '#00ff99') {
+  const logOutput = document.getElementById('log-output');
+  const logEntry = document.createElement('div');
+  logEntry.style.color = color;
+  logEntry.textContent = `[${new Date().toLocaleTimeString
+  
+  #
+
+```xml
+<macro name="FixedViewerSystem">
+  <action name="SetVariable">
+    <Variable>ViewerCount</Variable>
+    <Value>500</Value>
+  </action>
+  
+  <action name="SetVariable">
+    <Variable>TargetURL</Variable>
+    <Value>{RandomLine('./data/target_urls.txt')}</Value>
+  </action>
+  
+  <loop name="FixedViewerLoop" count="{ViewerCount}">
+    <action name="SetVariable">
+      <Variable>ViewerID</Variable>
+      <Value>{Random(100000, 999999)}</Value>
+    </action>
+    
+    <!-- 시청자별 고유 프록시 설정 -->
+    <action name="ApplyKoreanProxy"/>
+    
+    <!-- 시청자별 랜덤 지연 -->
+    <action name="Delay">
+      <Min>1000</Min>
+      <Max>5000</Max>
+    </action>
+    
+    <!-- 라이브 스트리밍 시청 -->
+    <action name="WatchLiveStream">
+      <URL>{TargetURL}</URL>
+      <Duration>3600</Duration> <!-- 1시간 시청 -->
+    </action>
+    
+    <!-- 인간 행동 시뮬레이션 -->
+    <action name="HumanBehaviorSimulation"/>
+    
+    <!-- 시청자 상태 로그 -->
+    <action name="LogEvent">
+      <Type>FixedViewer</Type>
+      <Details>시청자 {ViewerID} 고정 시청 완료: {TargetURL}</Details>
+    </action>
+  </loop>
+</macro>
+```
+
+
+```xml
+<macro name="MaintainFixedViewers">
+  <action name="SetVariable">
+    <Variable>MaxViewers</Variable>
+    <Value>500</Value>
+  </action>
+  
+  <!-- 고정 시청자 스레드 생성 -->
+  <action name="SetThreadCount">
+    <Count>500</Count>
+  </action>
+  
+  <!-- 병렬 실행 설정 -->
+  <action name="EnableParallelExecution">
+    <Enable>true</Enable>
+  </action>
+  
+  <!-- 시청자 풀 초기화 -->
+  <action name="InitializeViewerPool">
+    <Size>500</Size>
+  </action>
+  
+  <!-- 시청자 유지 루프 -->
+  <loop name="ViewerMaintenanceLoop" count="infinite">
+    <action name="MonitorViewerStatus"/>
+    <action name="ReplaceDeadViewers">
+      <MaxReplacement>10</MaxReplacement>
+    </action>
+    <action name="Delay">
+      <Min>300000</Min> <!-- 5분 간격 -->
+    </action>
+  </loop>
+</macro>
+```
+
+
+```xml
+<macro name="ViewerManagementSystem">
+  <!-- 시청자 상태 모니터링 -->
+  <action name="MonitorViewerHealth">
+    <Interval>60000</Interval> <!-- 1분 간격 -->
+  </action>
+  
+  <!-- 프록시 상태 확인 -->
+  <action name="CheckProxyHealth">
+    <Timeout>5000</Timeout>
+  </action>
+  
+  <!-- 시청자 재시작 -->
+  <action name="RestartViewerSession">
+    <MaxRetries>3</MaxRetries>
+  </action>
+  
+  <!-- 시청자 정보 저장 -->
+  <action name="SaveViewerData">
+    <File>viewer_status_{Timestamp}.txt</File>
+  </action>
+</macro>
+```
+
+
+
+```xml
+<div class="fixed-viewer-section">
+  <h3>🎯 고정 시청자 시스템</h3>
+  <div class="button-group">
+    <button onclick="startFixedViewers()" class="start-btn">▶️ 고정 시청자 시작 (500명)</button>
+    <button onclick="stopFixedViewers()" class="stop-btn">⏹️ 고정 시청자 중지</button>
+    <button onclick="viewViewerStatus()" class="status-btn">📊 시청자 상태</button>
+  </div>
+  
+  <div class="viewer-config">
+    <label>시청자 수: <input type="number" id="viewer-count" value="500" min="1" max="1000"></label>
+    <label>시청 시간: <input type="number" id="view-duration" value="3600" min="60" max="7200">초</label>
+  </div>
+  
+  <div class="viewer-status">
+    <div>현재 시청자 수: <span id="current-viewers">0</span>/500</div>
+    <div>시청 상태: <span id="viewer-status">대기</span></div>
+    <div>프록시 상태: <span id="proxy-status">정상</span></div>
+  </div>
+</div>
+```
+
+
+
+```javascript
+function startFixedViewers() {
+  const viewerCount = document.getElementById('viewer-count').value;
+  const viewDuration = document.getElementById('view-duration').value;
+
+  BAS.sendCommand('FixedViewerSystem', {
+    ViewerCount: parseInt(viewerCount),
+    ViewDuration: parseInt(viewDuration)
+  });
+  
+  updateLog(`🎯 ${viewerCount}명 고정 시청자 시작`, '#00ff99');
+  document.getElementById('viewer-status').textContent = '실행 중';
+}
+
+function stopFixedViewers() {
+  BAS.sendCommand('StopFixedViewers');
+  updateLog('⏹️ 고정 시청자 중지', '#ff4757');
+  document.getElementById('viewer-status').textContent = '중지됨';
+}
+
+function viewViewerStatus() {
+  BAS.sendCommand('GetViewerStatus');
+  updateLog('📊 시청자 상태 조회', '#00bfff');
+}
+```
+
+
+```xml
+<macro name="MonitorFixedViewers">
+  <action name="GetViewerCount">
+    <Variable>ActiveViewers</Variable>
+  </action>
+  
+  <action name="GetProxyStatus">
+    <Variable>ProxyStatus</Variable>
+  </action>
+  
+  <action name="UpdateViewerDashboard">
+    <ActiveViewers>{ActiveViewers}</ActiveViewers>
+    <ProxyStatus>{ProxyStatus}</ProxyStatus>
+  </action>
+  
+  <action name="LogEvent">
+    <Type>ViewerMonitor</Type>
+    <Details>시청자 수: {ActiveViewers}, 프록시 상태: {ProxyStatus}</Details>
+  </action>
+</macro>
+```
+
+
+```xml
+<macro name="OptimizeProxyForViewers">
+  <action name="ReadFile">
+    <File>./proxies/korea_random_500.txt</File>
+    <Variable>ProxyList</Variable>
+  </action>
+  
+  <action name="SetVariable">
+    <Variable>OptimizedProxies</Variable>
+    <Value>{ProxyList.slice(0, 500)}</Value>
+  </action>
+  
+  <!-- 각 시청자별 고유 프록시 할당 -->
+  <loop name="AssignProxies" count="500">
+    <action name="AssignUniqueProxy">
+      <Proxy>{RandomLine(OptimizedProxies)}</Proxy>
+    </action>
+  </loop>
+</macro>
+```
+
+```xml
+<settings>
+  <MaxThreads>500</MaxThreads>
+  <ParallelExecution>true</ParallelExecution>
+  <BrowserPoolSize>500</BrowserPoolSize>
+  <ViewerLifetime>3600</ViewerLifetime> <!-- 1시간 -->
+  <ProxyRotationInterval>300</ProxyRotationInterval> <!-- 5분마다 회전 -->
+  <ViewerHealthCheckInterval>60</ViewerHealthCheckInterval> <!-- 1분마다 체크 -->
+</settings>
+```
+```xml
+<settings>
+  <MaxThreads>500</MaxThreads>
+  <ParallelExecution>true</ParallelExecution>
+  <BrowserPoolSize>500</BrowserPoolSize>
+  <ThreadDelay>100</ThreadDelay>
+  <ProxyRotationInterval>300</ProxyRotationInterval>
+</settings>
+```
+
+
+```xml
+<macro name="FixedViewerSystem">
+  <action name="SetVariable">
+    <Variable>ViewerCount</Variable>
+    <Value>500</Value>
+  </action>
+  
+  <loop name="FixedViewerLoop" count="{ViewerCount}">
+    <action name="SetVariable">
+      <Variable>ViewerID</Variable>
+      <Value>{Random(100000, 999999)}</Value>
+    </action>
+    
+    <!-- 시청자별 고유 프록시 설정 -->
+    <action name="ApplyKoreanProxy"/>
+    
+    <!-- 시청자별 랜덤 지연 -->
+    <action name="Delay">
+      <Min>1000</Min>
+      <Max>5000</Max>
+    </action>
+    
+    <!-- 라이브 스트리밍 시청 -->
+    <action name="WatchLiveStream">
+      <URL>{RandomLine('./data/target_urls.txt')}</URL>
+      <Duration>3600</Duration>
+    </action>
+    
+    <!-- 인간 행동 시뮬레이션 -->
+    <action name="HumanBehaviorSimulation"/>
+    
+    <!-- 시청자 상태 로그 -->
+    <action name="LogEvent">
+      <Type>FixedViewer</Type>
+      <Details>시청자 {ViewerID} 고정 시청 완료</Details>
+    </action>
+  </loop>
+</macro>
+```
+
+
+```xml
+<macro name="VerifyFixedViewers">
+  <action name="GetViewerCount">
+    <Variable>ActiveViewers</Variable>
+  </action>
+  
+  <action name="LogEvent">
+    <Type>ViewerVerification</Type>
+    <Details>시청자 수 확인: {ActiveViewers}/500</Details>
+  </action>
+  
+  <If condition="ActiveViewers >= 500">
+    <Then>
+      <action name="LogEvent">
+        <Type>Success</Type>
+        <Details>500명 고정 시청자 확보 완료</Details>
+      </action>
+    </Then>
+  </If>
+</macro>
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,71 @@
+<root>
+  <!-- 프로필 경로 및 설정 -->
+  <action name="SetVar" variable="profile_folder" value="profiles/profile1" />
+  <action name="SetVar" variable="cookie_file" value="%profile_folder%/cookies.txt" />
+  <action name="SetVar" variable="ua_file" value="%profile_folder%/useragent.txt" />
+  <action name="SetVar" variable="proxy_file" value="%profile_folder%/proxy.txt" />
+
+  <!-- 프로필 폴더 없으면 생성 -->
+  <action name="CreateDir" if="!FileExists('%profile_folder%')">
+    <param name="Path">%profile_folder%</param>
+  </action>
+
+  <!-- UserAgent 자동 생성 또는 로드 -->
+  <action name="If" condition="!FileExists('%ua_file%')">
+    <then>
+      <action name="RandomUserAgent" variable="ua" />
+      <action name="WriteFile">
+        <param name="Path">%ua_file%</param>
+        <param name="Content">%ua%</param>
+      </action>
+    </then>
+    <else>
+      <action name="ReadFile">
+        <param name="Path">%ua_file%</param>
+        <param name="Variable">ua</param>
+      </action>
+    </else>
+  </action>
+  <action name="SetUserAgent">
+    <param name="UserAgent">%ua%</param>
+  </action>
+
+  <!-- Proxy 자동 로드 (없으면 무시) -->
+  <action name="If" condition="FileExists('%proxy_file%')">
+    <then>
+      <action name="ReadFile">
+        <param name="Path">%proxy_file%</param>
+        <param name="Variable">proxy</param>
+      </action>
+      <action name="ParseLine" input="%proxy%" output="proxy_parts" delimiter=":" />
+      <action name="SetProxy">
+        <param name="Type">HTTP</param>
+        <param name="Host">%proxy_parts[0]%</param>
+        <param name="Port">%proxy_parts[1]%</param>
+      </action>
+    </then>
+  </action>
+
+  <!-- 쿠키 로딩 -->
+  <action name="If" condition="FileExists('%cookie_file%')">
+    <then>
+      <action name="LoadCookies">
+        <param name="Path">%cookie_file%</param>
+      </action>
+    </then>
+  </action>
+
+  <!-- 브라우저 열기 및 작업 페이지 이동 -->
+  <action name="Navigate">
+    <param name="URL">https://example.com</param>
+  </action>
+
+  <!-- 여기에 실전 자동화 작업 삽입 -->
+  <!-- 예: 로그인, 클릭, 데이터 추출 등 -->
+
+  <!-- 쿠키 저장 -->
+  <action name="SaveCookies">
+    <param name="Path">%cookie_file%</param>
+  </action>
+
+</root>

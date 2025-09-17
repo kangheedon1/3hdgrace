@@ -1,0 +1,76 @@
+<root>
+
+  <!-- [1] 현재 설치된 크롬 버전 확인 -->
+  <action name="RunProcess">
+    <param name="Path">C:\Program Files\Google\Chrome\Application\chrome.exe</param>
+    <param name="Args">--version</param>
+    <param name="Result">chrome_version_output</param>
+  </action>
+
+  <action name="RegexExtract">
+    <param name="Text">%chrome_version_output%</param>
+    <param name="Pattern">\d+\.\d+\.\d+\.\d+</param>
+    <param name="Result">chrome_version</param>
+  </action>
+
+  <!-- [2] 저장된 크롬 버전 읽기 -->
+  <action name="SetVar" variable="version_file" value="version_tracker.txt" />
+  <action name="SetVar" variable="stored_version" value="" />
+  <action name="ReadFile" if="FileExists('%version_file%')">
+    <param name="Path">%version_file%</param>
+    <param name="Variable">stored_version</param>
+  </action>
+
+  <!-- [3] 버전 변경 여부 판단 -->
+  <action name="If" condition="%chrome_version% != %stored_version%">
+    <then>
+      <!-- [4] 업데이트 감지 메시지 -->
+      <action name="ShowMessage">
+        <param name="Text">🟡 크롬 버전 변경 감지됨: 자동 환경 갱신 중...</param>
+      </action>
+
+      <!-- [5] UserAgent 재생성 -->
+      <action name="RandomUserAgent" variable="ua_new" />
+      <action name="WriteFile">
+        <param name="Path">useragent.txt</param>
+        <param name="Content">%ua_new%</param>
+      </action>
+
+      <!-- [6] 쿠키 파일 삭제 (모든 프로필 초기화) -->
+      <action name="GetFiles">
+        <param name="Directory">profiles</param>
+        <param name="Pattern">cookies.txt</param>
+        <param name="OnlyFiles">true</param>
+        <param name="Recursive">true</param>
+        <param name="Result">cookie_files</param>
+      </action>
+      <action name="ForEach" variable="cookie_path" in="cookie_files">
+        <action name="DeleteFile">
+          <param name="Path">%cookie_path%</param>
+        </action>
+      </action>
+
+      <!-- [7] 크롬 버전 기록 업데이트 -->
+      <action name="WriteFile">
+        <param name="Path">%version_file%</param>
+        <param name="Content">%chrome_version%</param>
+      </action>
+
+    </then>
+  </action>
+
+  <!-- [8] 최신 UserAgent 로드 -->
+  <action name="ReadFile">
+    <param name="Path">useragent.txt</param>
+    <param name="Variable">ua</param>
+  </action>
+  <action name="SetUserAgent">
+    <param name="UserAgent">%ua%</param>
+  </action>
+
+  <!-- [9] 예시 테스트 페이지 이동 -->
+  <action name="Navigate">
+    <param name="URL">https://www.whatismybrowser.com/</param>
+  </action>
+
+</root>

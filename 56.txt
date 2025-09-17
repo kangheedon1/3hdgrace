@@ -1,0 +1,1245 @@
+
+<macro name="SystemToggleUI">
+  <action name="CreatePopup"><Title>기능 선택</Title><Message>사용할 고급 기능을 선택하세요:</Message></action>
+  <action name="AddChoice"><Option>🕒 예약 실행 (06~18시)</Option></action>
+  <action name="AddChoice"><Option>📈 시청 유지율 개별 조정</Option></action>
+  <action name="AddChoice"><Option>🌐 전문 프록시 API 사용</Option></action>
+  <action name="AddChoice"><Option>🧬 브라우저 프로파일링 적용</Option></action>
+  <action name="AddChoice"><Option>📌 다음 영상 클릭 시뮬레이션</Option></action>
+  <action name="ShowPopup"/>
+  <action name="GetUserChoice"><Variable>SelectedFeatures</Variable></action>
+  <action name="LogEvent"><Type>UI</Type><Details>선택된 기능: {SelectedFeatures}</Details></action>
+</macro>
+<macro name="ApplyBrowserFingerprinting">
+  <action name="CallURL">
+    <URL>https://fp.bablosoft.com/api/fingerprint?token=J6tgC3yKrA67k6wr4SpeqWxLlRqgyZ8N0AhkmCmV9jAPC5hxuo1jt9TfFDsWWhJI</URL>
+    <Method>GET</Method>
+    <Variable>BrowserFingerprint</Variable>
+  </action>
+  <action name="SetFingerprintProfile"><Data>{BrowserFingerprint}</Data></action>
+
+  <action name="CallURL">
+    <URL>https://proxygeo.com/BrowserFingerprints?api_key=ff893e3d-5f3e-43d9-8ac4-b12890fcb72f</URL>
+    <Method>GET</Method>
+    <Variable>GeoProfile</Variable>
+  </action>
+  <action name="MergeFingerprint"><Base>{BrowserFingerprint}</Base><Geo>{GeoProfile}</Geo><Variable>FinalFingerprint</Variable></action>
+
+  <action name="ApplyFingerprint"><Profile>{FinalFingerprint}</Profile></action>
+  <action name="LogEvent"><Type>Fingerprint</Type><Details>브라우저 프로파일 적용 완료</Details></action>
+</macro>
+<macro name="CheckExecutionTime">
+  <action name="GetCurrentHour"><Variable>CurrentHour</Variable></action>
+  <if condition="{CurrentHour} &gt;= 6 && {CurrentHour} &lt;= 18">
+    <then><action name="SetVariable"><Variable>CanRun</Variable><Value>true</Value></action></then>
+    <else><action name="Exit"><Reason>예약 시간 외 실행 금지</Reason></action></else>
+  </if>
+</macro>
+<macro name="GetWatchTimeRatioUI">
+  <action name="CreatePopup"><Title>시청 유지율</Title><Message>영상 유지율 범위를 설정하세요 (%):</Message></action>
+  <action name="AddInput"><Label>최소 유지율</Label><DefaultValue>60</DefaultValue><Variable>MinRate</Variable></action>
+  <action name="AddInput"><Label>최대 유지율</Label><DefaultValue>100</DefaultValue><Variable>MaxRate</Variable></action>
+  <action name="ShowPopup"/>
+  <action name="CalculateDuration"><VideoLength>{VideoTotalLength}</VideoLength><Min>{MinRate}</Min><Max>{MaxRate}</Max><Variable>WatchDuration</Variable></action>
+</macro>
+<macro name="ClickNextVideo">
+  <action name="Wait"><Time>5</Time></action>
+  <action name="ScrollPage"/>
+  <action name="RandomClick"><Selector>.next-video-thumbnail</Selector></action>
+  <action name="LogEvent"><Type>Behavior</Type><Details>다음 영상 클릭 시뮬레이션</Details></action>
+</macro>
+<macro name="SelectProxySourceUI">
+  <action name="CreatePopup"><Title>프록시 공급자 선택</Title><Message>사용할 프록시 제공 업체를 선택하세요:</Message></action>
+  <action name="AddChoice"><Option>직접입력</Option></action>
+  <action name="AddChoice"><Option>BrightData</Option></action>
+  <action name="AddChoice"><Option>SmartProxy</Option></action>
+  <action name="ShowPopup"/>
+  <action name="GetUserChoice"><Variable>SelectedProxySource</Variable></action>
+
+  <if condition="{SelectedProxySource} == 'BrightData'">
+    <then>
+      <action name="SetVariable"><Variable>ProxyAPI</Variable><Value>https://api.brightdata.com/proxies?key=API_KEY</Value></action>
+    </then>
+  </if>
+
+  <if condition="{SelectedProxySource} == 'SmartProxy'">
+    <then>
+      <action name="SetVariable"><Variable>ProxyAPI</Variable><Value>https://proxy.smartproxy.com/v1/list?token=SMART_TOKEN</Value></action>
+    </then>
+  </if>
+
+  <action name="LogEvent"><Type>ProxySource</Type><Details>선택된 소스: {SelectedProxySource}</Details></action>
+</macro>
+<macro name="EnableProfileAndNextClickUI">
+  <action name="CreatePopup"><Title>브라우저 옵션</Title><Message>프로파일링과 사용자 행동 시뮬레이션 설정</Message></action>
+  <action name="AddCheckbox"><Option>브라우저 프로파일링 활성화</Option><Variable>EnableProfile</Variable></action>
+  <action name="AddCheckbox"><Option>다음 영상 클릭 시뮬레이션</Option><Variable>EnableNextClick</Variable></action>
+  <action name="ShowPopup"/>
+</macro>
+
+<macro name="ApplyProfileSimulation">
+  <if condition="{EnableProfile} == true">
+    <then>
+      <action name="ApplyFingerprintAPI">
+        <URL>https://fp.bablosoft.com/?key=J6tgC3yKrA67k6wr4SpeqWxLlRqgyZ8N0AhkmCmV9jAPC5hxuo1jt9TfFDsWWhJI</URL>
+      </action>
+    </then>
+  </if>
+
+  <if condition="{EnableNextClick} == true">
+    <then>
+      <action name="Wait"><Seconds>5</Seconds></action>
+      <action name="Click"><Selector>.next-button, .ytp-next-button</Selector></action>
+      <action name="WatchLiveStream"><URL>자동클릭된URL</URL><Duration>{Random(600, 1200)}</Duration></action>
+    </then>
+  </if>
+</macro>
+<macro name="FilterFastProxies">
+  <parameter name="InputList"/>
+  <action name="SetVariable"><Variable>FastProxies</Variable><Value>[]</Value></action>
+
+  <loop name="CheckLoop" from="0" to="{InputList.length - 1}">
+    <action name="MeasureProxySpeed">
+      <Proxy>{InputList[{CheckLoop}]}</Proxy>
+      <Timeout>1500</Timeout>
+      <Variable>PingResult</Variable>
+    </action>
+    <if condition="{PingResult} < 1000">
+      <then>
+        <action name="AddToList"><List>{FastProxies}</List><Item>{InputList[{CheckLoop}]}</Item></action>
+      </then>
+    </if>
+  </loop>
+
+  <action name="LogEvent"><Type>SpeedFilter</Type><Details>빠른 프록시 수: {FastProxies.length}</Details></action>
+</macro>
+<macro name="CIDRFilter">
+  <parameter name="ProxyList"/>
+  <parameter name="AllowedCIDRs"/>
+  <action name="SetVariable"><Variable>FilteredProxies</Variable><Value>[]</Value></action>
+
+  <loop name="CIDRLoop" from="0" to="{ProxyList.length - 1}">
+    <action name="GetIP"><Proxy>{ProxyList[{CIDRLoop}]}</Proxy><Variable>ProxyIP</Variable></action>
+    <action name="CheckIPInCIDR"><IP>{ProxyIP}</IP><CIDRs>{AllowedCIDRs}</CIDRs><Result>IsAllowed</Result></action>
+    <if condition="{IsAllowed} == true">
+      <then>
+        <action name="AddToList"><List>{FilteredProxies}</List><Item>{ProxyList[{CIDRLoop}]}</Item></action>
+      </then>
+    </if>
+  </loop>
+
+  <action name="LogEvent"><Type>CIDRFilter</Type><Details>CIDR 통과 프록시 수: {FilteredProxies.length}</Details></action>
+</macro>
+<macro name="SelectViewStrategyUI">
+  <action name="CreatePopup"><Title>시청 전략 선택</Title><Message>URL 시청 전략을 선택하세요:</Message></action>
+  <action name="AddChoice"><Option>집중 시청 (1개 URL)</Option></action>
+  <action name="AddChoice"><Option>분산 시청 (여러 URL)</Option></action>
+  <action name="ShowPopup"/>
+  <action name="GetUserChoice"><Variable>ViewStrategy</Variable></action>
+</macro>
+<macro name="Main">
+  <action name="CallMacro"><Name>SelectCountryUI</Name></action>
+  <action name="ReadFile"><File>./proxies/global_proxies.txt</File><Variable>ProxyList</Variable></action>
+  <action name="ReadFile"><File>./data/target_urls.txt</File><Variable>TargetURLs</Variable></action>
+  <action name="CallMacro"><Name>FilterFastProxies</Name><Parameters><InputList>{ProxyList}</InputList></Parameters></action>
+  <action name="CallMacro"><Name>CIDRFilter</Name><Parameters><ProxyList>{FastProxies}</ProxyList><AllowedCIDRs>1.1.1.0/24,2.2.2.0/24</AllowedCIDRs></Parameters></action>
+  <action name="CallMacro"><Name>SelectViewStrategyUI</Name></action>
+  <action name="SetVariable"><Variable>FinalProxyList</Variable><Value>{FilteredProxies}</Value></action>
+  <action name="CallMacro"><Name>FixedViewerSystem_ElitePlus</Name></action>
+</macro><?xml version="1.0" encoding="UTF-8"?>
+<project>
+  <settings>
+    <MaxThreads>500</MaxThreads>
+    <ParallelExecution>true</ParallelExecution>
+    <ThreadDelay>50</ThreadDelay>
+    <ProxyRotationInterval>300</ProxyRotationInterval>
+    <ViewerHealthCheckInterval>60</ViewerHealthCheckInterval>
+  </settings>
+
+  <macro name="SelectProxyFormatUI">
+    <action name="CreatePopup"><Title>프록시 형식 선택</Title><Message>다음 중 프록시 형식을 선택하세요:
+1. host:port:username:password
+2. username:password:host:port
+3. host:port
+(IPv4, IPv6, SOCKS4/5 모두 지원)</Message></action>
+    <action name="AddChoice"><Option>host:port:username:password</Option></action>
+    <action name="AddChoice"><Option>username:password:host:port</Option></action>
+    <action name="AddChoice"><Option>host:port</Option></action>
+    <action name="ShowPopup"/>
+    <action name="GetUserChoice"><Variable>SelectedFormat</Variable></action>
+    <action name="SetProxyFormat"><Format>{SelectedFormat}</Format></action>
+    <action name="LogEvent"><Type>ProxyFormat</Type><Details>프록시 형식: {SelectedFormat}</Details></action>
+  </macro>
+
+  <macro name="KoreaISPChange">
+    <parameter name="Account"/>
+    <action name="SelectRandomISP"><ISPList>KT,SKT,LGU+</ISPList><Variable>SelectedISP</Variable></action>
+    <action name="ChangeProxy"><ISP>{SelectedISP}</ISP><Proxy>{Account.proxy}</Proxy></action>
+    <action name="LogEvent"><Type>ISPChange</Type><Details>한국 ISP 변경 완료: {SelectedISP}</Details></action>
+  </macro>
+
+  <macro name="ValidateAndRotateProxy">
+    <parameter name="Account"/>
+    <action name="DetectProxyFormat"><Input>{Account.proxy}</Input><Variable>ProxyFormat</Variable></action>
+    <action name="CheckProxyConnectivity"><Proxy>{Account.proxy}</Proxy><Result>Connected</Result></action>
+    <if condition="{Connected} == false">
+      <then>
+        <action name="LogEvent"><Type>Error</Type><Details>프록시 연결 실패: {Account.proxy}</Details></action>
+        <action name="RotateToBackupProxy"/>
+      </then>
+    </if>
+  </macro>
+
+  <macro name="AutoSelectFastProxy">
+    <parameter name="ProxyList"/>
+    <action name="SetVariable"><Variable>BestProxy</Variable><Value></Value></action>
+    <action name="SetVariable"><Variable>BestSpeed</Variable><Value>9999</Value></action>
+
+    <loop name="SpeedCheckLoop" from="0" to="{ProxyList.length - 1}">
+      <action name="MeasureProxySpeed"><Proxy>{ProxyList[{SpeedCheckLoop}]}</Proxy><Variable>Speed</Variable></action>
+      <if condition="{Speed} < {BestSpeed}">
+        <then>
+          <action name="SetVariable"><Variable>BestSpeed</Variable><Value>{Speed}</Value></action>
+          <action name="SetVariable"><Variable>BestProxy</Variable><Value>{ProxyList[{SpeedCheckLoop}]}</Value></action>
+        </then>
+      </if>
+    </loop>
+    <action name="SetProxy"><Proxy>{BestProxy}</Proxy></action>
+    <action name="LogEvent"><Type>FastProxy</Type><Details>가장 빠른 프록시: {BestProxy} ({BestSpeed}ms)</Details></action>
+  </macro>
+
+  <macro name="SetupAdvancedProxyUI">
+    <action name="CreateUI"/>
+    <action name="SetUIColorScheme"><Scheme>Dark</Scheme></action>
+    <action name="AddButton" label="프록시 형식 선택" action="CallMacro"><Name>SelectProxyFormatUI</Name></action>
+    <action name="AddButton" label="한국 ISP 자동 변경" action="CallMacro"><Name>KoreaISPChange</Name></action>
+    <action name="AddButton" label="속도 빠른 프록시 자동선택" action="CallMacro"><Name>AutoSelectFastProxy</Name></action>
+    <action name="StartStopControl"/>
+  </macro>
+
+  <macro name="MainExecution">
+    <action name="CallMacro"><Name>SetupAdvancedProxyUI</Name></action>
+    <action name="ReadFile"><File>./proxies/proxy_list.txt</File><Variable>ProxyList</Variable></action>
+
+    <loop name="MainLoop" from="0" to="{ProxyList.length - 1}" parallel="true" max_threads="500">
+      <action name="SetVariable"><Variable>CurrentProxy</Variable><Value>{ProxyList[{MainLoop}]}</Value></action>
+      <action name="SetVariable"><Variable>Account</Variable><Value><proxy>{CurrentProxy}</proxy></Value></action>
+      <action name="CallMacro"><Name>ValidateAndRotateProxy</Name><Parameters><Account>{Account}</Account></Parameters></action>
+      <action name="CallMacro"><Name>KoreaISPChange</Name><Parameters><Account>{Account}</Account></Parameters></action>
+    </loop>
+  </macro>
+
+  <macro name="Main">
+    <action name="CallMacro"><Name>MainExecution</Name></action>
+  </macro>
+</project>
+<?xml version="1.0" encoding="UTF-8"?>
+<project>
+  <settings>
+    <MaxThreads>500</MaxThreads>
+    <ParallelExecution>true</ParallelExecution>
+    <ThreadDelay>50</ThreadDelay>
+  </settings>
+
+  <!-- 🌐 CIDR 필터링 -->
+  <macro name="FilterByCIDR">
+    <parameter name="ProxyList"/>
+    <parameter name="CIDRRange"/>
+    <action name="SetVariable"><Variable>FilteredList</Variable><Value>[]</Value></action>
+    <loop name="CIDRLoop" from="0" to="{ProxyList.length - 1}">
+      <action name="ExtractIP"><Proxy>{ProxyList[{CIDRLoop}]}</Proxy><Variable>ProxyIP</Variable></action>
+      <action name="CheckCIDR"><IP>{ProxyIP}</IP><CIDR>{CIDRRange}</CIDR><Result>IsInside</Result></action>
+      <if condition="{IsInside} == true">
+        <then>
+          <action name="AppendToList"><List>{FilteredList}</List><Item>{ProxyList[{CIDRLoop}]}</Item></action>
+        </then>
+      </if>
+    </loop>
+    <action name="SetVariable"><Variable>ProxyList</Variable><Value>{FilteredList}</Value></action>
+  </macro>
+
+  <!-- 🗃️ DB 저장 (MongoDB + SQLite 지원) -->
+  <macro name="SaveToDatabase">
+    <parameter name="Data"/>
+    <parameter name="DBType"/>
+    <if condition="{DBType} == 'MongoDB'">
+      <then>
+        <action name="MongoInsert">
+          <Connection>mongodb://localhost:27017</Connection>
+          <Database>bas_data</Database>
+          <Collection>proxy_logs</Collection>
+          <Document>{Data}</Document>
+        </action>
+      </then>
+    </if>
+    <if condition="{DBType} == 'SQLite'">
+      <then>
+        <action name="SQLiteInsert">
+          <File>./data/log.db</File>
+          <Table>logs</Table>
+          <Data>{Data}</Data>
+        </action>
+      </then>
+    </if>
+  </macro>
+
+  <!-- 👥 GoLogin/Multilogin 연결 -->
+  <macro name="UseBrowserProfile">
+    <parameter name="Service"/>
+    <parameter name="ProfileID"/>
+    <if condition="{Service} == 'GoLogin'">
+      <then>
+        <action name="OpenGoLoginProfile"><Token>YOUR_GoLogin_TOKEN</Token><ProfileID>{ProfileID}</ProfileID></action>
+      </then>
+    </if>
+    <if condition="{Service} == 'Multilogin'">
+      <then>
+        <action name="OpenMultiloginProfile"><Token>YOUR_Multilogin_TOKEN</Token><ProfileID>{ProfileID}</ProfileID></action>
+      </then>
+    </if>
+  </macro>
+
+  <!-- 🖥️ UI: 토글 패널 -->
+  <macro name="SetupUIPanel">
+    <action name="CreateUI"/>
+    <action name="AddButton" label="CIDR 필터링 실행" action="CallMacro"><Name>FilterByCIDR</Name></action>
+    <action name="AddButton" label="프록시 DB 저장" action="CallMacro"><Name>SaveToDatabase</Name></action>
+    <action name="AddButton" label="GoLogin 실행" action="CallMacro"><Name>UseBrowserProfile</Name></action>
+    <action name="StartStopControl"/>
+  </macro>
+
+  <!-- 🔁 전체 실행 루프 -->
+  <macro name="MainExecution">
+    <action name="CallMacro"><Name>SetupUIPanel</Name></action>
+    <action name="ReadFile"><File>./proxies/proxy_list.txt</File><Variable>ProxyList</Variable></action>
+
+    <loop name="MainLoop" from="0" to="{ProxyList.length - 1}" parallel="true" max_threads="500">
+      <action name="SetVariable"><Variable>CurrentProxy</Variable><Value>{ProxyList[{MainLoop}]}</Value></action>
+
+      <!-- 프록시 속도 측정 -->
+      <action name="MeasureProxySpeed"><Proxy>{CurrentProxy}</Proxy><Variable>Speed</Variable></action>
+
+      <!-- DB 저장 -->
+      <action name="SetVariable"><Variable>LogData</Variable>
+        <Value>{"proxy":"{CurrentProxy}","speed":"{Speed}","timestamp":"{Time.Now}"}</Value>
+      </action>
+      <action name="CallMacro"><Name>SaveToDatabase</Name>
+        <Parameters>
+          <Data>{LogData}</Data>
+          <DBType>MongoDB</DBType>
+        </Parameters>
+      </action>
+    </loop>
+  </macro>
+
+  <macro name="Main">
+    <action name="CallMacro"><Name>MainExecution</Name></action>
+  </macro>
+</project>
+
+<?xml version="1.0" encoding="UTF-8"?>
+<project>
+  <settings>
+    <MaxThreads>500</MaxThreads>
+    <ParallelExecution>true</ParallelExecution>
+    <ThreadDelay>50</ThreadDelay>
+    <ProxyRotationInterval>300</ProxyRotationInterval>
+    <ViewerHealthCheckInterval>60</ViewerHealthCheckInterval>
+  </settings>
+
+  <macro name="SelectProxyFormatUI">
+    <action name="CreatePopup"><Title>프록시 형식 선택</Title><Message>다음 중 프록시 형식을 선택하세요:
+1. host:port:username:password
+2. username:password:host:port
+3. host:port
+(IPv4, IPv6, SOCKS4/5 모두 지원)</Message></action>
+    <action name="AddChoice"><Option>host:port:username:password</Option></action>
+    <action name="AddChoice"><Option>username:password:host:port</Option></action>
+    <action name="AddChoice"><Option>host:port</Option></action>
+    <action name="ShowPopup"/>
+    <action name="GetUserChoice"><Variable>SelectedFormat</Variable></action>
+    <action name="SetProxyFormat"><Format>{SelectedFormat}</Format></action>
+    <action name="LogEvent"><Type>ProxyFormat</Type><Details>프록시 형식: {SelectedFormat}</Details></action>
+  </macro>
+
+  <macro name="KoreaISPChange">
+    <parameter name="Account"/>
+    <action name="SelectRandomISP"><ISPList>KT,SKT,LGU+</ISPList><Variable>SelectedISP</Variable></action>
+    <action name="ChangeProxy"><ISP>{SelectedISP}</ISP><Proxy>{Account.proxy}</Proxy></action>
+    <action name="LogEvent"><Type>ISPChange</Type><Details>한국 ISP 변경 완료: {SelectedISP}</Details></action>
+  </macro>
+
+  <macro name="ValidateAndRotateProxy">
+    <parameter name="Account"/>
+    <action name="DetectProxyFormat"><Input>{Account.proxy}</Input><Variable>ProxyFormat</Variable></action>
+    <action name="CheckProxyConnectivity"><Proxy>{Account.proxy}</Proxy><Result>Connected</Result></action>
+    <if condition="{Connected} == false">
+      <then>
+        <action name="LogEvent"><Type>Error</Type><Details>프록시 연결 실패: {Account.proxy}</Details></action>
+        <action name="RotateToBackupProxy"/>
+      </then>
+    </if>
+  </macro>
+
+  <macro name="AutoSelectFastProxy">
+    <parameter name="ProxyList"/>
+    <action name="SetVariable"><Variable>BestProxy</Variable><Value></Value></action>
+    <action name="SetVariable"><Variable>BestSpeed</Variable><Value>9999</Value></action>
+
+    <loop name="SpeedCheckLoop" from="0" to="{ProxyList.length - 1}">
+      <action name="MeasureProxySpeed"><Proxy>{ProxyList[{SpeedCheckLoop}]}</Proxy><Variable>Speed</Variable></action>
+      <if condition="{Speed} < {BestSpeed}">
+        <then>
+          <action name="SetVariable"><Variable>BestSpeed</Variable><Value>{Speed}</Value></action>
+          <action name="SetVariable"><Variable>BestProxy</Variable><Value>{ProxyList[{SpeedCheckLoop}]}</Value></action>
+        </then>
+      </if>
+    </loop>
+    <action name="SetProxy"><Proxy>{BestProxy}</Proxy></action>
+    <action name="LogEvent"><Type>FastProxy</Type><Details>가장 빠른 프록시: {BestProxy} ({BestSpeed}ms)</Details></action>
+  </macro>
+
+  <macro name="SetupAdvancedProxyUI">
+    <action name="CreateUI"/>
+    <action name="SetUIColorScheme"><Scheme>Dark</Scheme></action>
+    <action name="AddButton" label="프록시 형식 선택" action="CallMacro"><Name>SelectProxyFormatUI</Name></action>
+    <action name="AddButton" label="한국 ISP 자동 변경" action="CallMacro"><Name>KoreaISPChange</Name></action>
+    <action name="AddButton" label="속도 빠른 프록시 자동선택" action="CallMacro"><Name>AutoSelectFastProxy</Name></action>
+    <action name="StartStopControl"/>
+  </macro>
+
+  <macro name="MainExecution">
+    <action name="CallMacro"><Name>SetupAdvancedProxyUI</Name></action>
+    <action name="ReadFile"><File>./proxies/proxy_list.txt</File><Variable>ProxyList</Variable></action>
+
+    <loop name="MainLoop" from="0" to="{ProxyList.length - 1}" parallel="true" max_threads="500">
+      <action name="SetVariable"><Variable>CurrentProxy</Variable><Value>{ProxyList[{MainLoop}]}</Value></action>
+      <action name="SetVariable"><Variable>Account</Variable><Value><proxy>{CurrentProxy}</proxy></Value></action>
+      <action name="CallMacro"><Name>ValidateAndRotateProxy</Name><Parameters><Account>{Account}</Account></Parameters></action>
+      <action name="CallMacro"><Name>KoreaISPChange</Name><Parameters><Account>{Account}</Account></Parameters></action>
+    </loop>
+  </macro>
+
+  <macro name="Main">
+    <action name="CallMacro"><Name>MainExecution</Name></action>
+  </macro>
+</project>
+<?xml version="1.0" encoding="UTF-8"?>
+<project>
+  <settings>
+    <MaxThreads>500</MaxThreads>
+    <ParallelExecution>true</ParallelExecution>
+    <ThreadDelay>50</ThreadDelay>
+  </settings>
+
+  <!-- 🌐 CIDR 필터링 -->
+  <macro name="FilterByCIDR">
+    <parameter name="ProxyList"/>
+    <parameter name="CIDRRange"/>
+    <action name="SetVariable"><Variable>FilteredList</Variable><Value>[]</Value></action>
+    <loop name="CIDRLoop" from="0" to="{ProxyList.length - 1}">
+      <action name="ExtractIP"><Proxy>{ProxyList[{CIDRLoop}]}</Proxy><Variable>ProxyIP</Variable></action>
+      <action name="CheckCIDR"><IP>{ProxyIP}</IP><CIDR>{CIDRRange}</CIDR><Result>IsInside</Result></action>
+      <if condition="{IsInside} == true">
+        <then>
+          <action name="AppendToList"><List>{FilteredList}</List><Item>{ProxyList[{CIDRLoop}]}</Item></action>
+        </then>
+      </if>
+    </loop>
+    <action name="SetVariable"><Variable>ProxyList</Variable><Value>{FilteredList}</Value></action>
+  </macro>
+
+  <!-- 🗃️ DB 저장 (MongoDB + SQLite 지원) -->
+  <macro name="SaveToDatabase">
+    <parameter name="Data"/>
+    <parameter name="DBType"/>
+    <if condition="{DBType} == 'MongoDB'">
+      <then>
+        <action name="MongoInsert">
+          <Connection>mongodb://localhost:27017</Connection>
+          <Database>bas_data</Database>
+          <Collection>proxy_logs</Collection>
+          <Document>{Data}</Document>
+        </action>
+      </then>
+    </if>
+    <if condition="{DBType} == 'SQLite'">
+      <then>
+        <action name="SQLiteInsert">
+          <File>./data/log.db</File>
+          <Table>logs</Table>
+          <Data>{Data}</Data>
+        </action>
+      </then>
+    </if>
+  </macro>
+
+  <!-- 👥 GoLogin/Multilogin 연결 -->
+  <macro name="UseBrowserProfile">
+    <parameter name="Service"/>
+    <parameter name="ProfileID"/>
+    <if condition="{Service} == 'GoLogin'">
+      <then>
+        <action name="OpenGoLoginProfile"><Token>YOUR_GoLogin_TOKEN</Token><ProfileID>{ProfileID}</ProfileID></action>
+      </then>
+    </if>
+    <if condition="{Service} == 'Multilogin'">
+      <then>
+        <action name="OpenMultiloginProfile"><Token>YOUR_Multilogin_TOKEN</Token><ProfileID>{ProfileID}</ProfileID></action>
+      </then>
+    </if>
+  </macro>
+
+  <!-- 🖥️ UI: 토글 패널 -->
+  <macro name="SetupUIPanel">
+    <action name="CreateUI"/>
+    <action name="AddButton" label="CIDR 필터링 실행" action="CallMacro"><Name>FilterByCIDR</Name></action>
+    <action name="AddButton" label="프록시 DB 저장" action="CallMacro"><Name>SaveToDatabase</Name></action>
+    <action name="AddButton" label="GoLogin 실행" action="CallMacro"><Name>UseBrowserProfile</Name></action>
+    <action name="StartStopControl"/>
+  </macro>
+
+  <!-- 🔁 전체 실행 루프 -->
+  <macro name="MainExecution">
+    <action name="CallMacro"><Name>SetupUIPanel</Name></action>
+    <action name="ReadFile"><File>./proxies/proxy_list.txt</File><Variable>ProxyList</Variable></action>
+
+    <loop name="MainLoop" from="0" to="{ProxyList.length - 1}" parallel="true" max_threads="500">
+      <action name="SetVariable"><Variable>CurrentProxy</Variable><Value>{ProxyList[{MainLoop}]}</Value></action>
+
+      <!-- 프록시 속도 측정 -->
+      <action name="MeasureProxySpeed"><Proxy>{CurrentProxy}</Proxy><Variable>Speed</Variable></action>
+
+      <!-- DB 저장 -->
+      <action name="SetVariable"><Variable>LogData</Variable>
+        <Value>{"proxy":"{CurrentProxy}","speed":"{Speed}","timestamp":"{Time.Now}"}</Value>
+      </action>
+      <action name="CallMacro"><Name>SaveToDatabase</Name>
+        <Parameters>
+          <Data>{LogData}</Data>
+          <DBType>MongoDB</DBType>
+        </Parameters>
+      </action>
+    </loop>
+  </macro>
+
+  <macro name="Main">
+    <action name="CallMacro"><Name>MainExecution</Name></action>
+  </macro>
+</project>
+<?xml version="1.0" encoding="UTF-8"?>
+<project>
+  <settings>
+    <MaxThreads>500</MaxThreads>
+    <ParallelExecution>true</ParallelExecution>
+    <ThreadDelay>50</ThreadDelay>
+    <ViewerHealthCheckInterval>60</ViewerHealthCheckInterval>
+  </settings>
+
+  <!-- UI: DB 선택 및 실행 모드 -->
+  <macro name="SetupExecutionMode">
+    <action name="CreatePopup">
+      <Title>실행 설정</Title>
+      <Message>DB 저장 방식 및 실행 전략을 선택하세요</Message>
+    </action>
+    <action name="AddChoice"><Option>MongoDB</Option></action>
+    <action name="AddChoice"><Option>SQLite</Option></action>
+    <action name="AddChoice"><Option>Multilogin</Option></action>
+    <action name="AddChoice"><Option>GoLogin</Option></action>
+    <action name="ShowPopup"/>
+    <action name="GetUserChoice"><Variable>SelectedDB</Variable></action>
+    <action name="LogEvent"><Type>UI</Type><Details>선택된 DB/모드: {SelectedDB}</Details></action>
+  </macro>
+
+  <!-- Fingerprint API 호출 -->
+  <macro name="ApplyFingerprint">
+    <action name="HTTPRequest">
+      <Method>GET</Method>
+      <URL>https://fp.bablosoft.com/api/v1/fingerprint?token=J6tgC3yKrA67k6wr4SpeqWxLlRqgyZ8N0AhkmCmV9jAPC5hxuo1jt9TfFDsWWhJI</URL>
+      <ResponseVariable>FP_Response</ResponseVariable>
+    </action>
+    <action name="ParseJSON">
+      <JSON>{FP_Response}</JSON>
+      <Key>fingerprint</Key>
+      <Variable>FingerprintData</Variable>
+    </action>
+    <action name="ApplyFingerprint"><Data>{FingerprintData}</Data></action>
+  </macro>
+
+  <!-- CIDR 필터링 규칙 적용 -->
+  <macro name="FilterByCIDR">
+    <action name="ReadFile"><File>./rules/cidr_rules.txt</File><Variable>CIDRList</Variable></action>
+    <action name="CheckIPInCIDR"><IP>{ProxyIP}</IP><CIDRs>{CIDRList}</CIDRs><ResultVariable>IsAllowed</ResultVariable></action>
+    <if condition="{IsAllowed} == false">
+      <then>
+        <action name="LogEvent"><Type>CIDR</Type><Details>프록시 제외됨 - CIDR 불일치</Details></action>
+        <action name="BreakLoop"/>
+      </then>
+    </if>
+  </macro>
+
+  <!-- URL 집중/분산 시나리오 -->
+  <macro name="DetermineURLStrategy">
+    <parameter name="URL"/>
+    <if condition="{URL}.contains('priority')">
+      <then>
+        <action name="SetVariable"><Variable>WatchDuration</Variable><Value>{Random(3600, 5400)}</Value></action>
+        <action name="LogEvent"><Type>Strategy</Type><Details>URL 집중 시청 적용: {URL}</Details></action>
+      </then>
+      <else>
+        <action name="SetVariable"><Variable>WatchDuration</Variable><Value>{Random(600, 1200)}</Value></action>
+        <action name="LogEvent"><Type>Strategy</Type><Details>URL 분산 시청 적용: {URL}</Details></action>
+      </else>
+    </if>
+  </macro>
+
+  <!-- Multilogin / GoLogin 프로파일 연결 -->
+  <macro name="StartBrowserProfile">
+    <parameter name="Platform"/>
+    <if condition="{Platform} == 'Multilogin'">
+      <then>
+        <action name="StartMultiloginProfile"><ProfileName>auto_{ThreadIndex}</ProfileName></action>
+      </then>
+    </if>
+    <if condition="{Platform} == 'GoLogin'">
+      <then>
+        <action name="StartGoLoginProfile"><ProfileID>auto_{ThreadIndex}</ProfileID></action>
+      </then>
+    </if>
+  </macro>
+
+  <!-- 메인 루프 실행 -->
+  <macro name="ExecuteViewers">
+    <action name="CallMacro"><Name>SetupExecutionMode</Name></action>
+    <action name="ReadFile"><File>./data/target_urls.txt</File><Variable>TargetURLs</Variable></action>
+    <loop name="ViewLoop" count="500">
+      <action name="SetVariable"><Variable>TargetURL</Variable><Value>{TargetURLs[{ThreadIndex} % TargetURLs.length]}</Value></action>
+      <action name="CallMacro"><Name>DetermineURLStrategy</Name><Parameters><URL>{TargetURL}</URL></Parameters></action>
+      <action name="CallMacro"><Name>ApplyFingerprint</Name></action>
+      <action name="CallMacro"><Name>StartBrowserProfile</Name><Parameters><Platform>{SelectedDB}</Platform></Parameters></action>
+      <action name="OpenURL"><URL>{TargetURL}</URL></action>
+      <action name="Delay"><Seconds>{WatchDuration}</Seconds></action>
+      <action name="CloseBrowser"/>
+    </loop>
+  </macro>
+
+  <macro name="Main">
+    <action name="CallMacro"><Name>ExecuteViewers</Name></action>
+  </macro>
+</project>
+<?xml version="1.0" encoding="UTF-8"?>
+<project>
+  <settings>
+    <MaxThreads>500</MaxThreads>
+    <ParallelExecution>true</ParallelExecution>
+    <ThreadDelay>50</ThreadDelay>
+    <ViewerHealthCheckInterval>60</ViewerHealthCheckInterval>
+  </settings>
+
+  <!-- 📌 실행 모드 선택 UI -->
+  <macro name="SetupExecutionOptions">
+    <action name="CreatePopup">
+      <Title>실행 옵션 선택</Title>
+      <Message>DB 저장 방식, 브라우저 프릴딩 및 전략을 선택하세요</Message>
+    </action>
+    <action name="AddChoice"><Option>MongoDB</Option></action>
+    <action name="AddChoice"><Option>SQLite</Option></action>
+    <action name="AddChoice"><Option>Multilogin 프로필</Option></action>
+    <action name="AddChoice"><Option>GoLogin 프로필</Option></action>
+    <action name="ShowPopup"/>
+    <action name="GetUserChoice"><Variable>SelectedMode</Variable></action>
+    <action name="LogEvent"><Type>Mode</Type><Details>선택된 모드: {SelectedMode}</Details></action>
+  </macro>
+
+  <!-- 🔐 Bablosoft / ProxyGeo Fingerprint API 호출 -->
+  <macro name="FetchFingerprint">
+    <action name="HTTPRequest">
+      <Method>GET</Method>
+      <URL>https://fp.bablosoft.com/api/v1/fingerprint?token=J6tgC3yKrA67k6wr4SpeqWxLlRqgyZ8N0AhkmCmV9jAPC5hxuo1jt9TfFDsWWhJI</URL>
+      <ResponseVariable>FP1</ResponseVariable>
+    </action>
+    <action name="HTTPRequest">
+      <Method>GET</Method>
+      <URL>https://proxygeo.com/api/browser-fingerprint?apikey=ff893e3d-5f3e-43d9-8ac4-b12890fcb72f</URL>
+      <ResponseVariable>FP2</ResponseVariable>
+    </action>
+    <action name="ParseJSON"><JSON>{FP1}</JSON><Key>fingerprint</Key><Variable>Data1</Variable></action>
+    <action name="ParseJSON"><JSON>{FP2}</JSON><Key>fingerprint</Key><Variable>Data2</Variable></action>
+    <action name="Merge"><Base>{Data1}</Base><Overlay>{Data2}</Overlay><Variable>FinalFingerprint</Variable></action>
+    <action name="ApplyFingerprint"><Profile>{FinalFingerprint}</Profile></action>
+    <action name="LogEvent"><Type>Fingerprint</Type><Details>Fingerprint 적용 완료</Details></action>
+  </macro>
+
+  <!-- 🧬 브라우저 프로파일 초기화 -->
+  <macro name="StartBrowserSession">
+    <if condition="{SelectedMode} == 'Multilogin 프로필'">
+      <then><action name="StartMultiloginProfile"><ProfileId>auto_{ThreadIndex}</ProfileId></action></then>
+    </if>
+    <if condition="{SelectedMode} == 'GoLogin 프로필'">
+      <then><action name="StartGoLoginProfile"><ProfileId>auto_{ThreadIndex}</ProfileId></action></then>
+    </if>
+  </macro>
+
+  <!-- 🎯 URL 집중/분산 전략 -->
+  <macro name="URLStrategy">
+    <parameter name="URL"/>
+    <if condition="{URL}.contains('priority')">
+      <then>
+        <action name="SetVariable"><Variable>WatchDuration</Variable><Value>{Random(3600,5400)}</Value></action>
+        <action name="LogEvent"><Type>Strategy</Type><Details>집중 시청: {URL}</Details></action>
+      </then>
+      <else>
+        <action name="SetVariable"><Variable>WatchDuration</Variable><Value>{Random(600,1800)}</Value></action>
+        <action name="LogEvent"><Type>Strategy</Type><Details>분산 시청: {URL}</Details></action>
+      </else>
+    </if>
+  </macro>
+
+  <!-- 🧰 CIDR 기반 프록시 필터링 -->
+  <macro name="CIDRFilter">
+    <action name="ReadFile"><File>./rules/cidr_rules.txt</File><Variable>CIDRList</Variable></action>
+    <action name="ExtractIP"><Proxy>{Account.proxy}</Proxy><Variable>ProxyIP</Variable></action>
+    <action name="CheckCIDR"><IP>{ProxyIP}</IP><CIDRs>{CIDRList}</CIDRs><Result>Allowed</Result></action>
+    <if condition="{Allowed} == false">
+      <then>
+        <action name="LogEvent"><Type>CIDR</Type><Details>필터 제외됨: {ProxyIP}</Details></action>
+        <action name="Exit"/>
+      </then>
+    </if>
+  </macro>
+
+  <!-- 🗃️ DB 저장 -->
+  <macro name="SaveActivity">
+    <parameter name="RecordJson"/>
+    <if condition="{SelectedMode} == 'MongoDB'">
+      <then>
+        <action name="MongoInsert">
+          <Connection>mongodb://localhost:27017</Connection>
+          <Database>bas_logs</Database>
+          <Collection>activities</Collection>
+          <Document>{RecordJson}</Document>
+        </action>
+      </then>
+    </if>
+    <if condition="{SelectedMode} == 'SQLite'">
+      <then>
+        <action name="SQLiteInsert">
+          <File>./data/log.db</File>
+          <Table>activity_logs</Table>
+          <Data>{RecordJson}</Data>
+        </action>
+      </then>
+    </if>
+  </macro>
+
+  <!-- 🔄 전체 시청 루프 -->
+  <macro name="RunViewSessions">
+    <action name="CallMacro"><Name>SetupExecutionOptions</Name></action>
+    <action name="ReadFile"><File>./data/target_urls.txt</File><Variable>TargetURLs</Variable></action>
+
+    <loop name="Sessions" count="500">
+      <action name="SetVariable"><Variable>TargetURL</Variable><Value>{TargetURLs[{ThreadIndex} % TargetURLs.length]}</Value></action>
+      <action name="CallMacro"><Name>URLStrategy</Name><Parameters><URL>{TargetURL}</URL></Parameters></action>
+      <action name="CallMacro"><Name>FetchFingerprint</Name></action>
+      <action name="CallMacro"><Name>StartBrowserSession</Name></action>
+      <action name="OpenURL"><URL>{TargetURL}</URL></action>
+      <action name="Delay"><Seconds>{WatchDuration}</Seconds></action>
+      <action name="CloseBrowser"/>
+
+      <action name="SetVariable"><Variable>LogRecord</Variable>
+        <Value>{"url":"{TargetURL}","duration":"{WatchDuration}","fingerprint_used":"yes","timestamp":"{Timestamp}"}</Value>
+      </action>
+      <action name="CallMacro"><Name>SaveActivity</Name><Parameters><RecordJson>{LogRecord}</RecordJson></Parameters></action>
+    </loop>
+  </macro>
+
+  <macro name="Main">
+    <action name="CallMacro"><Name>RunViewSessions</Name></action>
+  </macro>
+</project>
+<root>
+  <!-- 프로필 경로 및 설정 -->
+  <action name="SetVar" variable="profile_folder" value="profiles/profile1" />
+  <action name="SetVar" variable="cookie_file" value="%profile_folder%/cookies.txt" />
+  <action name="SetVar" variable="ua_file" value="%profile_folder%/useragent.txt" />
+  <action name="SetVar" variable="proxy_file" value="%profile_folder%/proxy.txt" />
+
+  <!-- 프로필 폴더 없으면 생성 -->
+  <action name="CreateDir" if="!FileExists('%profile_folder%')">
+    <param name="Path">%profile_folder%</param>
+  </action>
+
+  <!-- UserAgent 자동 생성 또는 로드 -->
+  <action name="If" condition="!FileExists('%ua_file%')">
+    <then>
+      <action name="RandomUserAgent" variable="ua" />
+      <action name="WriteFile">
+        <param name="Path">%ua_file%</param>
+        <param name="Content">%ua%</param>
+      </action>
+    </then>
+    <else>
+      <action name="ReadFile">
+        <param name="Path">%ua_file%</param>
+        <param name="Variable">ua</param>
+      </action>
+    </else>
+  </action>
+  <action name="SetUserAgent">
+    <param name="UserAgent">%ua%</param>
+  </action>
+
+  <!-- Proxy 자동 로드 (없으면 무시) -->
+  <action name="If" condition="FileExists('%proxy_file%')">
+    <then>
+      <action name="ReadFile">
+        <param name="Path">%proxy_file%</param>
+        <param name="Variable">proxy</param>
+      </action>
+      <action name="ParseLine" input="%proxy%" output="proxy_parts" delimiter=":" />
+      <action name="SetProxy">
+        <param name="Type">HTTP</param>
+        <param name="Host">%proxy_parts[0]%</param>
+        <param name="Port">%proxy_parts[1]%</param>
+      </action>
+    </then>
+  </action>
+
+  <!-- 쿠키 로딩 -->
+  <action name="If" condition="FileExists('%cookie_file%')">
+    <then>
+      <action name="LoadCookies">
+        <param name="Path">%cookie_file%</param>
+      </action>
+    </then>
+  </action>
+
+  <!-- 브라우저 열기 및 작업 페이지 이동 -->
+  <action name="Navigate">
+    <param name="URL">https://example.com</param>
+  </action>
+
+  <!-- 여기에 실전 자동화 작업 삽입 -->
+  <!-- 예: 로그인, 클릭, 데이터 추출 등 -->
+
+  <!-- 쿠키 저장 -->
+  <action name="SaveCookies">
+    <param name="Path">%cookie_file%</param>
+  </action>
+
+</root>
+<root>
+
+  <!-- [1] CSV 경로 지정 -->
+  <action name="SetVar" variable="csv_path" value="profiles.csv" />
+
+  <!-- [2] CSV 읽기 -->
+  <action name="ReadCSV">
+    <param name="Path">%csv_path%</param>
+    <param name="Table">profile_table</param>
+  </action>
+
+  <!-- [3] GUI 테이블 표시 -->
+  <action name="ShowTable">
+    <param name="Table">profile_table</param>
+    <param name="Message">사용할 브라우저 프로파일을 선택하세요</param>
+    <param name="SelectedRow">selected_profile</param>
+  </action>
+
+  <!-- [4] 선택된 행에서 변수 추출 -->
+  <action name="GetTableCell">
+    <param name="Table">profile_table</param>
+    <param name="Row">%selected_profile%</param>
+    <param name="Column">folder</param>
+    <param name="Result">profile_folder</param>
+  </action>
+
+  <action name="GetTableCell">
+    <param name="Table">profile_table</param>
+    <param name="Row">%selected_profile%</param>
+    <param name="Column">useragent</param>
+    <param name="Result">ua</param>
+  </action>
+
+  <action name="GetTableCell">
+    <param name="Table">profile_table</param>
+    <param name="Row">%selected_profile%</param>
+    <param name="Column">proxy</param>
+    <param name="Result">proxy</param>
+  </action>
+
+  <!-- [5] 쿠키 경로 설정 -->
+  <action name="SetVar" variable="cookie_file" value="profiles/%profile_folder%/cookies.txt" />
+
+  <!-- [6] 프로파일 폴더 없으면 생성 -->
+  <action name="CreateDir" if="!FileExists('profiles/%profile_folder%')">
+    <param name="Path">profiles/%profile_folder%</param>
+  </action>
+
+  <!-- [7] Proxy 자동 적용 -->
+  <action name="ParseLine" input="%proxy%" output="proxy_parts" delimiter=":" />
+  <action name="SetProxy">
+    <param name="Type">HTTP</param>
+    <param name="Host">%proxy_parts[0]%</param>
+    <param name="Port">%proxy_parts[1]%</param>
+  </action>
+
+  <!-- [8] UserAgent 적용 -->
+  <action name="SetUserAgent">
+    <param name="UserAgent">%ua%</param>
+  </action>
+
+  <!-- [9] 쿠키 불러오기 -->
+  <action name="If" condition="FileExists('%cookie_file%')">
+    <then>
+      <action name="LoadCookies">
+        <param name="Path">%cookie_file%</param>
+      </action>
+    </then>
+  </action>
+
+  <!-- [10] 테스트 사이트 열기 -->
+  <action name="Navigate">
+    <param name="URL">https://example.com</param>
+  </action>
+
+  <!-- [11] 쿠키 저장 -->
+  <action name="SaveCookies">
+    <param name="Path">%cookie_file%</param>
+  </action>
+
+</root>
+<root>
+
+  <!-- [1] CSV 경로 지정 -->
+  <action name="SetVar" variable="csv_path" value="profiles.csv" />
+
+  <!-- [2] CSV 읽기 -->
+  <action name="ReadCSV">
+    <param name="Path">%csv_path%</param>
+    <param name="Table">profile_table</param>
+  </action>
+
+  <!-- [3] GUI 테이블 표시 -->
+  <action name="ShowTable">
+    <param name="Table">profile_table</param>
+    <param name="Message">사용할 브라우저 프로파일을 선택하세요</param>
+    <param name="SelectedRow">selected_profile</param>
+  </action>
+
+  <!-- [4] 선택된 행에서 변수 추출 -->
+  <action name="GetTableCell">
+    <param name="Table">profile_table</param>
+    <param name="Row">%selected_profile%</param>
+    <param name="Column">folder</param>
+    <param name="Result">profile_folder</param>
+  </action>
+
+  <action name="GetTableCell">
+    <param name="Table">profile_table</param>
+    <param name="Row">%selected_profile%</param>
+    <param name="Column">useragent</param>
+    <param name="Result">ua</param>
+  </action>
+
+  <action name="GetTableCell">
+    <param name="Table">profile_table</param>
+    <param name="Row">%selected_profile%</param>
+    <param name="Column">proxy</param>
+    <param name="Result">proxy</param>
+  </action>
+
+  <!-- [5] 쿠키 경로 설정 -->
+  <action name="SetVar" variable="cookie_file" value="profiles/%profile_folder%/cookies.txt" />
+
+  <!-- [6] 프로파일 폴더 없으면 생성 -->
+  <action name="CreateDir" if="!FileExists('profiles/%profile_folder%')">
+    <param name="Path">profiles/%profile_folder%</param>
+  </action>
+
+  <!-- [7] Proxy 자동 적용 -->
+  <action name="ParseLine" input="%proxy%" output="proxy_parts" delimiter=":" />
+  <action name="SetProxy">
+    <param name="Type">HTTP</param>
+    <param name="Host">%proxy_parts[0]%</param>
+    <param name="Port">%proxy_parts[1]%</param>
+  </action>
+
+  <!-- [8] UserAgent 적용 -->
+  <action name="SetUserAgent">
+    <param name="UserAgent">%ua%</param>
+  </action>
+
+  <!-- [9] 쿠키 불러오기 -->
+  <action name="If" condition="FileExists('%cookie_file%')">
+    <then>
+      <action name="LoadCookies">
+        <param name="Path">%cookie_file%</param>
+      </action>
+    </then>
+  </action>
+
+  <!-- [10] 테스트 사이트 열기 -->
+  <action name="Navigate">
+    <param name="URL">https://example.com</param>
+  </action>
+
+  <!-- [11] 쿠키 저장 -->
+  <action name="SaveCookies">
+    <param name="Path">%cookie_file%</param>
+  </action>
+
+</root>
+<action name="SetCurrentDate" format="yyyy-MM-dd" result="today_date" />
+
+<action name="SetTableCell">
+  <param name="Table">profile_table</param>
+  <param name="Row">%selected_row%</param>
+  <param name="Column">last_used</param>
+  <param name="Value">%today_date%</param>
+</action>
+<action name="GetTableCell">
+  <param name="Table">profile_table</param>
+  <param name="Row">%selected_row%</param>
+  <param name="Column">usage_count</param>
+  <param name="Result">usage_count</param>
+</action>
+
+<action name="Math">
+  <param name="Operation">+</param>
+  <param name="Value1">%usage_count%</param>
+  <param name="Value2">1</param>
+  <param name="Result">usage_count</param>
+</action>
+
+<action name="If" condition="%usage_count% > 5">
+  <then>
+    <action name="SetVar" variable="usage_count" value="0" />
+  </then>
+</action>
+
+<action name="SetTableCell">
+  <param name="Table">profile_table</param>
+  <param name="Row">%selected_row%</param>
+  <param name="Column">usage_count</param>
+  <param name="Value">%usage_count%</param>
+</action>
+<action name="IfElementExists">
+  <param name="XPath">//*[@id="logout-button"]</param>
+  <param name="Result">is_logged_in</param>
+</action>
+
+<action name="If" condition="%is_logged_in% == false">
+  <then>
+    <action name="DeleteFile">
+      <param name="Path">%cookie_file%</param>
+    </action>
+  </then>
+</action>
+<!-- 예: profile1 ~ profile10까지 탐색 -->
+<action name="SetVar" variable="i" value="1" />
+<action name="While" condition="%i% <= 10">
+  <do>
+    <action name="SetVar" variable="check_folder" value="profiles/profile%i%" />
+    <action name="If" condition="FileExists('%check_folder%') == true">
+      <then>
+        <action name="SetVar" variable="found" value="false" />
+
+        <!-- 기존 Table에 해당 folder가 있는지 검사 -->
+        <action name="For" table="profile_table" variable="row">
+          <action name="GetTableCell">
+            <param name="Table">profile_table</param>
+            <param name="Row">%row%</param>
+            <param name="Column">folder</param>
+            <param name="Result">folder_in_table</param>
+          </action>
+          <action name="If" condition="%folder_in_table% == profile%i%">
+            <then>
+              <action name="SetVar" variable="found" value="true" />
+            </then>
+          </action>
+        </action>
+
+        <!-- 없으면 신규 등록 -->
+        <action name="If" condition="%found% == false">
+          <then>
+            <action name="AddTableRow">
+              <param name="Table">profile_table</param>
+              <param name="Row">
+                profile%i%,profile%i%,Mozilla/5.0...,127.0.0.1:8080,%today_date%,0
+              </param>
+            </action>
+          </then>
+        </action>
+      </then>
+    </action>
+
+    <action name="Math">
+      <param name="Operation">+</param>
+      <param name="Value1">%i%</param>
+      <param name="Value2">1</param>
+      <param name="Result">i</param>
+    </action>
+  </do>
+</action>
+<action name="WriteTableToCSV">
+  <param name="Table">profile_table</param>
+  <param name="Path">%csv_path%</param>
+</action>
+<root>
+
+  <!-- CSV 파일 경로 설정 -->
+  <action name="SetVar" variable="csv_path" value="profiles.csv" />
+
+  <!-- 현재 날짜 저장 -->
+  <action name="SetCurrentDate" format="yyyy-MM-dd" result="today_date" />
+
+  <!-- CSV 읽기 -->
+  <action name="ReadCSV">
+    <param name="Path">%csv_path%</param>
+    <param name="Table">profile_table</param>
+  </action>
+
+  <!-- 프로필 폴더 목록 읽기 -->
+  <action name="GetFiles">
+    <param name="Directory">profiles</param>
+    <param name="Pattern">*</param>
+    <param name="OnlyDirectories">true</param>
+    <param name="Recursive">false</param>
+    <param name="Result">folder_list</param>
+  </action>
+
+  <!-- 신규 폴더 탐색 및 CSV 자동 등록 -->
+  <action name="ForEach" variable="folder_name" in="folder_list">
+    <!-- 폴더명에서 경로 제거 -->
+    <action name="ParsePath">
+      <param name="Path">%folder_name%</param>
+      <param name="Result">folder_only</param>
+      <param name="ParseType">filename</param>
+    </action>
+
+    <!-- 현재 폴더가 CSV에 있는지 확인 -->
+    <action name="SetVar" variable="found" value="false" />
+    <action name="For" table="profile_table" variable="row">
+      <action name="GetTableCell">
+        <param name="Table">profile_table</param>
+        <param name="Row">%row%</param>
+        <param name="Column">folder</param>
+        <param name="Result">existing_folder</param>
+      </action>
+      <action name="If" condition="%existing_folder% == %folder_only%">
+        <then>
+          <action name="SetVar" variable="found" value="true" />
+        </then>
+      </action>
+    </action>
+
+    <!-- CSV에 없으면 신규 등록 -->
+    <action name="If" condition="%found% == false">
+      <then>
+        <!-- 랜덤 UserAgent 생성 -->
+        <action name="RandomUserAgent" variable="new_ua" />
+
+        <!-- ID 생성: 현재 row 수 + 1 -->
+        <action name="GetTableSize">
+          <param name="Table">profile_table</param>
+          <param name="Result">row_count</param>
+        </action>
+
+        <action name="Math">
+          <param name="Operation">+</param>
+          <param name="Value1">%row_count%</param>
+          <param name="Value2">1</param>
+          <param name="Result">new_id</param>
+        </action>
+
+        <!-- CSV 행 추가 -->
+        <action name="AddTableRow">
+          <param name="Table">profile_table</param>
+          <param name="Row">
+            %new_id%,%folder_only%,%new_ua%,, %today_date%,0
+          </param>
+        </action>
+      </then>
+    </action>
+
+  </action>
+
+  <!-- CSV 저장 -->
+  <action name="WriteTableToCSV">
+    <param name="Table">profile_table</param>
+    <param name="Path">%csv_path%</param>
+  </action>
+
+</root>
+<root>
+  <!-- 프로필 경로 및 설정 -->
+  <action name="SetVar" variable="profile_folder" value="profiles/profile1" />
+  <action name="SetVar" variable="cookie_file" value="%profile_folder%/cookies.txt" />
+  <action name="SetVar" variable="ua_file" value="%profile_folder%/useragent.txt" />
+  <action name="SetVar" variable="proxy_file" value="%profile_folder%/proxy.txt" />
+
+  <!-- 프로필 폴더 없으면 생성 -->
+  <action name="CreateDir" if="!FileExists('%profile_folder%')">
+    <param name="Path">%profile_folder%</param>
+  </action>
+
+  <!-- UserAgent 자동 생성 또는 로드 -->
+  <action name="If" condition="!FileExists('%ua_file%')">
+    <then>
+      <action name="RandomUserAgent" variable="ua" />
+      <action name="WriteFile">
+        <param name="Path">%ua_file%</param>
+        <param name="Content">%ua%</param>
+      </action>
+    </then>
+    <else>
+      <action name="ReadFile">
+        <param name="Path">%ua_file%</param>
+        <param name="Variable">ua</param>
+      </action>
+    </else>
+  </action>
+  <action name="SetUserAgent">
+    <param name="UserAgent">%ua%</param>
+  </action>
+
+  <!-- Proxy 자동 로드 (없으면 무시) -->
+  <action name="If" condition="FileExists('%proxy_file%')">
+    <then>
+      <action name="ReadFile">
+        <param name="Path">%proxy_file%</param>
+        <param name="Variable">proxy</param>
+      </action>
+      <action name="ParseLine" input="%proxy%" output="proxy_parts" delimiter=":" />
+      <action name="SetProxy">
+        <param name="Type">HTTP</param>
+        <param name="Host">%proxy_parts[0]%</param>
+        <param name="Port">%proxy_parts[1]%</param>
+      </action>
+    </then>
+  </action>
+
+  <!-- 쿠키 로딩 -->
+  <action name="If" condition="FileExists('%cookie_file%')">
+    <then>
+      <action name="LoadCookies">
+        <param name="Path">%cookie_file%</param>
+      </action>
+    </then>
+  </action>
+
+  <!-- 브라우저 열기 및 작업 페이지 이동 -->
+  <action name="Navigate">
+    <param name="URL">https://example.com</param>
+  </action>
+
+  <!-- 여기에 실전 자동화 작업 삽입 -->
+  <!-- 예: 로그인, 클릭, 데이터 추출 등 -->
+
+  <!-- 쿠키 저장 -->
+  <action name="SaveCookies">
+    <param name="Path">%cookie_file%</param>
+  </action>
+
+</root>

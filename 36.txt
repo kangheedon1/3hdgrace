@@ -1,0 +1,304 @@
+#
+
+```xml
+<macro name="FixedViewerSystem">
+  <action name="SetVariable">
+    <Variable>ViewerCount</Variable>
+    <Value>500</Value>
+  </action>
+  
+  <action name="SetVariable">
+    <Variable>TargetURL</Variable>
+    <Value>{RandomLine('./data/target_urls.txt')}</Value>
+  </action>
+  
+  <loop name="FixedViewerLoop" count="{ViewerCount}">
+    <action name="SetVariable">
+      <Variable>ViewerID</Variable>
+      <Value>{Random(100000, 999999)}</Value>
+    </action>
+    
+    <!-- 시청자별 고유 프록시 설정 -->
+    <action name="ApplyKoreanProxy"/>
+    
+    <!-- 시청자별 랜덤 지연 -->
+    <action name="Delay">
+      <Min>1000</Min>
+      <Max>5000</Max>
+    </action>
+    
+    <!-- 라이브 스트리밍 시청 -->
+    <action name="WatchLiveStream">
+      <URL>{TargetURL}</URL>
+      <Duration>3600</Duration> <!-- 1시간 시청 -->
+    </action>
+    
+    <!-- 인간 행동 시뮬레이션 -->
+    <action name="HumanBehaviorSimulation"/>
+    
+    <!-- 시청자 상태 로그 -->
+    <action name="LogEvent">
+      <Type>FixedViewer</Type>
+      <Details>시청자 {ViewerID} 고정 시청 완료: {TargetURL}</Details>
+    </action>
+  </loop>
+</macro>
+```
+
+
+```xml
+<macro name="MaintainFixedViewers">
+  <action name="SetVariable">
+    <Variable>MaxViewers</Variable>
+    <Value>500</Value>
+  </action>
+  
+  <!-- 고정 시청자 스레드 생성 -->
+  <action name="SetThreadCount">
+    <Count>500</Count>
+  </action>
+  
+  <!-- 병렬 실행 설정 -->
+  <action name="EnableParallelExecution">
+    <Enable>true</Enable>
+  </action>
+  
+  <!-- 시청자 풀 초기화 -->
+  <action name="InitializeViewerPool">
+    <Size>500</Size>
+  </action>
+  
+  <!-- 시청자 유지 루프 -->
+  <loop name="ViewerMaintenanceLoop" count="infinite">
+    <action name="MonitorViewerStatus"/>
+    <action name="ReplaceDeadViewers">
+      <MaxReplacement>10</MaxReplacement>
+    </action>
+    <action name="Delay">
+      <Min>300000</Min> <!-- 5분 간격 -->
+    </action>
+  </loop>
+</macro>
+```
+
+
+```xml
+<macro name="ViewerManagementSystem">
+  <!-- 시청자 상태 모니터링 -->
+  <action name="MonitorViewerHealth">
+    <Interval>60000</Interval> <!-- 1분 간격 -->
+  </action>
+  
+  <!-- 프록시 상태 확인 -->
+  <action name="CheckProxyHealth">
+    <Timeout>5000</Timeout>
+  </action>
+  
+  <!-- 시청자 재시작 -->
+  <action name="RestartViewerSession">
+    <MaxRetries>3</MaxRetries>
+  </action>
+  
+  <!-- 시청자 정보 저장 -->
+  <action name="SaveViewerData">
+    <File>viewer_status_{Timestamp}.txt</File>
+  </action>
+</macro>
+```
+
+
+
+```xml
+<div class="fixed-viewer-section">
+  <h3>🎯 고정 시청자 시스템</h3>
+  <div class="button-group">
+    <button onclick="startFixedViewers()" class="start-btn">▶️ 고정 시청자 시작 (500명)</button>
+    <button onclick="stopFixedViewers()" class="stop-btn">⏹️ 고정 시청자 중지</button>
+    <button onclick="viewViewerStatus()" class="status-btn">📊 시청자 상태</button>
+  </div>
+  
+  <div class="viewer-config">
+    <label>시청자 수: <input type="number" id="viewer-count" value="500" min="1" max="1000"></label>
+    <label>시청 시간: <input type="number" id="view-duration" value="3600" min="60" max="7200">초</label>
+  </div>
+  
+  <div class="viewer-status">
+    <div>현재 시청자 수: <span id="current-viewers">0</span>/500</div>
+    <div>시청 상태: <span id="viewer-status">대기</span></div>
+    <div>프록시 상태: <span id="proxy-status">정상</span></div>
+  </div>
+</div>
+```
+
+
+
+```javascript
+function startFixedViewers() {
+  const viewerCount = document.getElementById('viewer-count').value;
+  const viewDuration = document.getElementById('view-duration').value;
+
+  BAS.sendCommand('FixedViewerSystem', {
+    ViewerCount: parseInt(viewerCount),
+    ViewDuration: parseInt(viewDuration)
+  });
+  
+  updateLog(`🎯 ${viewerCount}명 고정 시청자 시작`, '#00ff99');
+  document.getElementById('viewer-status').textContent = '실행 중';
+}
+
+function stopFixedViewers() {
+  BAS.sendCommand('StopFixedViewers');
+  updateLog('⏹️ 고정 시청자 중지', '#ff4757');
+  document.getElementById('viewer-status').textContent = '중지됨';
+}
+
+function viewViewerStatus() {
+  BAS.sendCommand('GetViewerStatus');
+  updateLog('📊 시청자 상태 조회', '#00bfff');
+}
+```
+
+
+```xml
+<macro name="MonitorFixedViewers">
+  <action name="GetViewerCount">
+    <Variable>ActiveViewers</Variable>
+  </action>
+  
+  <action name="GetProxyStatus">
+    <Variable>ProxyStatus</Variable>
+  </action>
+  
+  <action name="UpdateViewerDashboard">
+    <ActiveViewers>{ActiveViewers}</ActiveViewers>
+    <ProxyStatus>{ProxyStatus}</ProxyStatus>
+  </action>
+  
+  <action name="LogEvent">
+    <Type>ViewerMonitor</Type>
+    <Details>시청자 수: {ActiveViewers}, 프록시 상태: {ProxyStatus}</Details>
+  </action>
+</macro>
+```
+
+
+```xml
+<macro name="OptimizeProxyForViewers">
+  <action name="ReadFile">
+    <File>./proxies/korea_random_500.txt</File>
+    <Variable>ProxyList</Variable>
+  </action>
+  
+  <action name="SetVariable">
+    <Variable>OptimizedProxies</Variable>
+    <Value>{ProxyList.slice(0, 500)}</Value>
+  </action>
+  
+  <!-- 각 시청자별 고유 프록시 할당 -->
+  <loop name="AssignProxies" count="500">
+    <action name="AssignUniqueProxy">
+      <Proxy>{RandomLine(OptimizedProxies)}</Proxy>
+    </action>
+  </loop>
+</macro>
+```
+
+
+
+```xml
+<settings>
+  <MaxThreads>500</MaxThreads>
+  <ParallelExecution>true</ParallelExecution>
+  <BrowserPoolSize>500</BrowserPoolSize>
+  <ViewerLifetime>3600</ViewerLifetime> <!-- 1시간 -->
+  <ProxyRotationInterval>300</ProxyRotationInterval> <!-- 5분마다 회전 -->
+  <ViewerHealthCheckInterval>60</ViewerHealthCheckInterval> <!-- 1분마다 체크 -->
+</settings>
+```
+```xml
+<settings>
+  <MaxThreads>500</MaxThreads>
+  <ParallelExecution>true</ParallelExecution>
+  <BrowserPoolSize>500</BrowserPoolSize>
+  <ThreadDelay>100</ThreadDelay>
+  <ProxyRotationInterval>300</ProxyRotationInterval>
+</settings>
+```
+
+
+```xml
+<macro name="FixedViewerSystem">
+  <action name="SetVariable">
+    <Variable>ViewerCount</Variable>
+    <Value>500</Value>
+  </action>
+  
+  <loop name="FixedViewerLoop" count="{ViewerCount}">
+    <action name="SetVariable">
+      <Variable>ViewerID</Variable>
+      <Value>{Random(100000, 999999)}</Value>
+    </action>
+    
+    <!-- 시청자별 고유 프록시 설정 -->
+    <action name="ApplyKoreanProxy"/>
+    
+    <!-- 시청자별 랜덤 지연 -->
+    <action name="Delay">
+      <Min>1000</Min>
+      <Max>5000</Max>
+    </action>
+    
+    <!-- 라이브 스트리밍 시청 -->
+    <action name="WatchLiveStream">
+      <URL>{RandomLine('./data/target_urls.txt')}</URL>
+      <Duration>3600</Duration>
+    </action>
+    
+    <!-- 인간 행동 시뮬레이션 -->
+    <action name="HumanBehaviorSimulation"/>
+    
+    <!-- 시청자 상태 로그 -->
+    <action name="LogEvent">
+      <Type>FixedViewer</Type>
+      <Details>시청자 {ViewerID} 고정 시청 완료</Details>
+    </action>
+  </loop>
+</macro>
+```
+
+
+```xml
+<macro name="VerifyFixedViewers">
+  <action name="GetViewerCount">
+    <Variable>ActiveViewers</Variable>
+  </action>
+  
+  <action name="LogEvent">
+    <Type>ViewerVerification</Type>
+    <Details>시청자 수 확인: {ActiveViewers}/500</Details>
+  </action>
+  
+  <If condition="ActiveViewers >= 500">
+    <Then>
+      <action name="LogEvent">
+        <Type>Success</Type>
+        <Details>500명 고정 시청자 확보 완료</Details>
+      </action>
+    </Then>
+  </If>
+</macro>
+```
+
+
+
+ 
+
+
+
+
+
+
+
+
+
+

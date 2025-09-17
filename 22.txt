@@ -1,0 +1,1851 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="hdgrace-youtube" version="25.7.217">
+  <settings>
+    <FingerprintAPIKey>apiff893e3d-5f3e-43d9-8ac4-b12890fcb72f</FingerprintAPIKey>
+    <CaptchaAPIKey>32182a8277ab53355c49192af58c4b7b2b8c69cdc735ad217ed46c5f58d608c5</CaptchaAPIKey>
+    <SMSAPIKey>a81e7999e7a24ff88434c716b7b7ce51</SMSAPIKey>
+    <ProxyService>pyproxy.com</ProxyService>
+    <ProxyAPIKey>your_pyproxy_api_key</ProxyAPIKey>
+    <Language>ko,en</Language>
+    <MaxThreads>500</MaxThreads>
+    <ThreadDelay>100</ThreadDelay>
+    <ParallelExecution>true</ParallelExecution>
+    <TTLPerViewer>3600</TTLPerViewer>
+    <LogFile>./logs/activity.log</LogFile>
+    <DataFolder>./data/</DataFolder>
+    <AccountFormat>id|pass|recovery_email|recovery_pass|proxy</AccountFormat>
+  </settings>
+
+  <macro name="InitializeParallelEnvironment">
+    <action name="SetThreadCount"><Count>500</Count></action>
+    <action name="EnableParallelExecution"><Value>true</Value></action>
+    <action name="SetThreadDelay"><Delay>100</Delay></action>
+    <action name="InitializeBrowserPool"><Size>500</Size><Headless>false</Headless></action>
+    <action name="ConfigureThreadManagement">
+      <MaxConcurrent>500</MaxConcurrent>
+      <QueueSize>1000</QueueSize>
+      <ThreadTimeout>3600000</ThreadTimeout>
+    </action>
+  </macro>
+
+  <macro name="MainFlow">
+    <action name="LoadAccounts" file="gaccounts.txt" format="{settings.AccountFormat}" />
+    <action name="LoadShortsLinks" file="shorts-url-Link.txt" />
+    <action name="LoadLiveStreams" file="live-streams.txt" />
+    
+    <action name="DistributeAccountsToThreads"/>
+    
+    <loop name="ProcessEachAccountParallel" parallel="true" max_threads="{settings.MaxThreads}">
+      <action name="GetNextAccount"><Variable>Account</Variable></action>
+      <if condition="AccountAvailable">
+        <then>
+          <action name="InitializeBrowser">
+            <Engine>Chromium</Engine>
+            <Headless>false</Headless>
+            <Fingerprint>PinkFingerprint</Fingerprint>
+            <FingerprintKey>{settings.FingerprintAPIKey}</FingerprintKey>
+          </action>
+          
+          <action name="SetProxy">
+            <Source>API</Source>
+            <URL>https://pyproxy.com/api</URL>
+            <AuthKey>{settings.ProxyAPIKey}</AuthKey>
+            <RotationInterval>60s</RotationInterval>
+          </action>
+          
+          <action name="LoginToGoogle">
+            <Email>{Account.id}</Email>
+            <Password>{Account.pass}</Password>
+            <RecoveryEmail>{Account.recovery_email}</RecoveryEmail>
+          </action>
+          
+          <if condition="LoginFailed">
+            <then>
+              <action name="HandleLoginFailure">
+                <Account>{Account.id}</Account>
+                <Proxy>{Account.proxy}</Proxy>
+              </action>
+            </then>
+            <else>
+              <action name="ExecuteAllFeatures">
+                <Account>{Account.id}</Account>
+                <Proxy>{Account.proxy}</Proxy>
+              </action>
+            </else>
+          </if>
+          
+          <action name="SaveData">
+            <Cookies>./data/cookies/{Account.id}.txt</Cookies>
+            <UserAgent>./data/ua/{Account.id}.txt</UserAgent>
+            <FingerprintData>./data/fingerprints/{Account.id}.txt</FingerprintData>
+          </action>
+          
+          <action name="UploadToGoogleSheets">
+            <SheetID>1aBcDeFgHiJkLmNoPqRsTuVwXyZ</SheetID>
+            <Range>A1</Range>
+            <Data>Account,Views,Comments,Time,Status</Data>
+          </action>
+        </then>
+      </if>
+    </loop>
+  </macro>
+
+  <macro name="HandleLoginFailure">
+    <action name="CheckFailureReason">
+      <Account>{Account}</Account>
+      <Proxy>{Proxy}</Proxy>
+    </action>
+    
+    <if condition="AccountDisabled">
+      <then>
+        <action name="MarkAccountAsDisabled"><Account>{Account}</Account></action>
+        <action name="SubmitAppeal"><Account>{Account}</Account></action>
+      </then>
+    </if>
+    
+    <if condition="VerificationRequired">
+      <then>
+        <action name="HandleVerification">
+          <Account>{Account}</Account>
+          <Proxy>{Proxy}</Proxy>
+        </action>
+      </then>
+    </if>
+    
+    <if condition="ProxyIssue">
+      <then>
+        <action name="RotateProxy">
+          <Account>{Account}</Account>
+          <Proxy>{Proxy}</Proxy>
+        </action>
+        <action name="RetryLogin">
+          <Account>{Account}</Account>
+          <Proxy>{NewProxy}</Proxy>
+        </action>
+      </then>
+    </if>
+  </macro>
+
+  <macro name="HandleVerification">
+    <if condition="SMSVerificationNeeded">
+      <then>
+        <action name="UseSMSVerificationService">
+          <Service>sms-activate.ru</Service>
+          <Account>{Account}</Account>
+        </action>
+      </then>
+    </if>
+    
+    <if condition="TabletVerificationNeeded">
+      <then>
+        <action name="HandleTabletVerification">
+          <Account>{Account}</Account>
+        </action>
+      </then>
+    </if>
+    
+    <if condition="EmailVerificationNeeded">
+      <then>
+        <action name="CheckRecoveryEmail">
+          <Account>{Account}</Account>
+          <RecoveryEmail>{Account.recovery_email}</RecoveryEmail>
+        </action>
+      </then>
+    </if>
+  </macro>
+
+  <macro name="ExecuteAllFeatures">
+    <action name="StartFeature1_ShortViewing">
+      <Account>{Account}</Account>
+      <Proxy>{Proxy}</Proxy>
+    </action>
+    
+    <action name="StartFeature2_LiveViewing">
+      <Account>{Account}</Account>
+      <Proxy>{Proxy}</Proxy>
+    </action>
+    
+    <action name="StartFeature3_ChannelAnalysis">
+      <Account>{Account}</Account>
+      <Proxy>{Proxy}</Proxy>
+    </action>
+    
+    <action name="StartFeature4_AccountManagement">
+      <Account>{Account}</Account>
+      <Proxy>{Proxy}</Proxy>
+    </action>
+    
+    <action name="StartFeature5_ProxyManagement">
+      <Account>{Account}</Account>
+      <Proxy>{Proxy}</Proxy>
+    </action>
+    
+    <action name="StartFeature6_Fingerprinting">
+      <Account>{Account}</Account>
+      <Proxy>{Proxy}</Proxy>
+    </action>
+    
+    <action name="StartFeature7_Commenting">
+      <Account>{Account}</Account>
+      <Proxy>{Proxy}</Proxy>
+    </action>
+    
+    <action name="StartFeature8_Liking">
+      <Account>{Account}</Account>
+      <Proxy>{Proxy}</Proxy>
+    </action>
+    
+    <action name="StartFeature9_AccountUpdate">
+      <Account>{Account}</Account>
+      <Proxy>{Proxy}</Proxy>
+    </action>
+    
+    <action name="StartFeature10_FarmingActivity">
+      <Account>{Account}</Account>
+      <Proxy>{Proxy}</Proxy>
+    </action>
+    
+    <action name="StartFeature11_FixedProxyYouTube">
+      <Account>{Account}</Account>
+      <Proxy>{Proxy}</Proxy>
+    </action>
+    
+    <action name="StartFeature12_AppealDisabledAccounts">
+      <Account>{Account}</Account>
+      <Proxy>{Proxy}</Proxy>
+    </action>
+    
+    <action name="StartFeature13_SMSVerification">
+      <Account>{Account}</Account>
+      <Proxy>{Proxy}</Proxy>
+    </action>
+    
+    <action name="StartFeature14_RealTimeDetection">
+      <Account>{Account}</Account>
+      <Proxy>{Proxy}</Proxy>
+    </action>
+    
+    <action name="StartFeature15_MobileProxyViewing">
+      <Account>{Account}</Account>
+      <Proxy>{Proxy}</Proxy>
+    </action>
+    
+    <action name="StartFeature16_ShortViewExtension">
+      <Account>{Account}</Account>
+      <Proxy>{Proxy}</Proxy>
+    </action>
+    
+    <action name="StartFeature17_AccountChecker">
+      <Account>{Account}</Account>
+      <Proxy>{Proxy}</Proxy>
+    </action>
+    
+    <action name="StartFeature18_ProxyRotationOptimization">
+      <Account>{Account}</Account>
+      <Proxy>{Proxy}</Proxy>
+    </action>
+    
+    <action name="StartFeature19_RealisticUserBehavior">
+      <Account>{Account}</Account>
+      <Proxy>{Proxy}</Proxy>
+    </action>
+    
+    <action name="StartFeature20_PerformanceMonitoring">
+      <Account>{Account}</Account>
+      <Proxy>{Proxy}</Proxy>
+    </action>
+    
+    <action name="StartFeature21_SecurityCompliance">
+      <Account>{Account}</Account>
+      <Proxy>{Proxy}</Proxy>
+    </action>
+    
+    <action name="StartFeature22_RealTimeAnalytics">
+      <Account>{Account}</Account>
+      <Proxy>{Proxy}</Proxy>
+    </action>
+    
+    <action name="StartFeature23_LiveStreamRanking">
+      <Account>{Account}</Account>
+      <Proxy>{Proxy}</Proxy>
+    </action>
+  </macro>
+
+  <macro name="StartFeature1_ShortViewing">
+    <loop name="ViewShorts" count="1000000">
+      <action name="NavigateTo"><URL>https://www.youtube.com/shorts/{Shorts.VideoID}</URL></action>
+      <action name="WaitFor"><Selector>video</Selector><Timeout>15000</Timeout></action>
+      <action name="ExecuteJS"><Code>document.querySelector('video').play()</Code></Code></action>
+      <action name="Delay"><Seconds>{Random(30, 60)}</Seconds></action>
+      
+      <if condition="ShouldLikeAndComment">
+        <then>
+          <action name="LikeShorts"/>
+          <action name="PostComment"><Text>{RandomLine(comments.txt)}</Text></action>
+        </then>
+      </if>
+    </loop>
+  </macro>
+
+  <macro name="StartFeature2_LiveViewing">
+    <action name="YouTubeLiveWatch">
+      <LiveID>{LiveID}</LiveID>
+      <Duration>{settings.TTLPerViewer}</Duration>
+    </action>
+    
+    <action name="AutoReplyToLiveChat">
+      <Keyword>?</Keyword>
+      <Reply>감사합니다! 더 보여주세요!</Reply>
+    </action>
+    
+    <action name="AutoReplyToLiveChat">
+      <Keyword>가격</Keyword>
+      <Reply>DM 주세요! 🙏</Reply>
+    </action>
+    
+    <loop name="MaintainLiveViewership" count="10">
+      <action name="RotateProxy" interval="300"/>
+      <action name="RandomizeViewPattern"/>
+      <action name="Delay" seconds="{Random(300, 1800)}"/>
+    </loop>
+  </macro>
+
+  <macro name="StartFeature3_ChannelAnalysis">
+    <action name="AnalyzeChannelPerformance">
+      <ChannelID>{Account.channel_id}</ChannelID>
+    </action>
+    
+    <action name="TrackViewGrowth"/>
+    <action name="TrackLikeGrowth"/>
+    <action name="TrackCommentGrowth"/>
+    
+    <action name="GenerateReports">
+      <Path>./data/reports/{Account.id}.html</Path>
+    </action>
+    
+    <action name="UploadToGoogleSheets">
+      <SheetID>1aBcDeFgHiJkLmNoPqRsTuVwXyZ</SheetID>
+      <Range>ChannelAnalysis!A1</Range>
+      <Data>Account,Views,Likes,Comments,Time</Data>
+    </action>
+  </macro>
+
+  <macro name="StartFeature4_AccountManagement">
+    <action name="ChangeProfilePhoto">
+      <Photo>random_korean_face.jpg</Photo>
+    </action>
+    
+    <action name="ChangeProfileName">
+      <Name>{RandomKoreanName}</Name>
+    </action>
+    
+    <action name="CreateYouTubeChannel">
+      <ChannelName>{RandomKoreanName}</ChannelName>
+    </action>
+    
+    <action name="ChangePassword">
+      <NewPassword>{RandomPassword}</NewPassword>
+    </action>
+  </macro>
+
+  <macro name="StartFeature5_ProxyManagement">
+    <action name="UseUKFixedProxy">
+      <Count>100</Count>
+      <Bandwidth>unlimited</Bandwidth>
+    </action>
+    
+    <action name="SeparateProxyForYouTube"/>
+    <action name="SeparateProxyForGmail"/>
+    <action name="ValidateProxyAccess"/>
+    
+    <action name="MonitorProxyQuality">
+      <Threshold>200ms</Threshold>
+    </action>
+  </macro>
+
+  <macro name="StartFeature6_Fingerprinting">
+    <action name="RandomizeBrowser">
+      <Types>Windows,Mac,Android,iPhone,Random</Types>
+    </action>
+    
+    <action name="RandomizeResolution"/>
+    <action name="RandomizeUserAgent"/>
+    <action name="RandomizeDeviceID"/>
+    <action name="EmulateDifferentDevices"/>
+    
+    <action name="UseHighQualityFingerprintAPI">
+      <Key>J6tgC3yKrA67k6wr4SpeqWxLlRqgyZ8N0AhkmCmV9jAPC5hxuo1jt9TfFDsWWhJI</Key>
+    </action>
+  </macro>
+
+  <macro name="StartFeature7_Commenting">
+    <action name="PostComment">
+      <Text>{RandomLine(comments.txt)}</Text>
+    </action>
+    
+    <action name="VisitChannel">
+      <ChannelURL>{RandomLine(channels.txt)}</ChannelURL>
+    </action>
+    
+    <action name="WatchLatestVideo"/>
+    <action name="LikeShorts" mode="random_account"/>
+  </macro>
+
+  <macro name="StartFeature8_Liking">
+    <action name="LikeShorts">
+      <VideoURL>{Shorts.VideoID}</VideoURL>
+    </action>
+    
+    <action name="SubscribeChannel">
+      <ChannelID>{Shorts.ChannelID}</ChannelID>
+    </action>
+  </macro>
+
+  <macro name="StartFeature9_AccountUpdate">
+    <action name="ChangeProfilePhoto">
+      <Photo>korean_profile.jpg</Photo>
+    </action>
+    
+    <action name="ChangeProfileName">
+      <Name>{RandomKoreanName}</Name>
+    </action>
+    
+    <action name="CreateYouTubeChannel">
+      <ChannelName>{RandomKoreanName}</ChannelName>
+    </action>
+    
+    <action name="ChangePassword">
+      <NewPassword>{RandomPassword}</NewPassword>
+    </action>
+  </macro>
+
+  <macro name="StartFeature10_FarmingActivity">
+    <action name="EnablePOPIMAP"/>
+    
+    <action name="SubscribeRandomNewsletter"/>
+    <action name="CreateRandomCalendarEvent"/>
+    <action name="SendEmailToSelf"/>
+    <action name="SignUpForServices"/>
+    
+    <action name="SearchYouTube">
+      <Keywords>{RandomLine(keywords.txt)}</Keywords>
+    </action>
+  </macro>
+
+  <macro name="StartFeature11_FixedProxyYouTube">
+    <action name="UseFixedUKProxy">
+      <Count>100</Count>
+      <Bandwidth>unlimited</Bandwidth>
+    </action>
+    
+    <action name="SeparateProxyUsage">
+      <YouTubeProxy>true</YouTubeProxy>
+      <GmailProxy>true</GmailProxy>
+    </action>
+    
+    <action name="ConnectToYouTube">
+      <URL>https://www.youtube.com</URL>
+    </action>
+    
+    <action name="LoginWithGoogleAccount">
+      <Email>{Account}</Email>
+      <Password>{Account.pass}</Password>
+    </action>
+    
+    <action name="MaintainFixedConnection"/>
+  </macro>
+
+  <macro name="StartFeature12_AppealDisabledAccounts">
+    <action name="DetectDisabledAccount"/>
+    
+    <action name="SubmitAppeal">
+      <URL>https://support.google.com/accounts/contact/disabled</URL>
+    </action>
+    
+    <action name="WaitForRecovery">
+      <Timeout>86400</Timeout>
+    </action>
+    
+    <action name="VerifyRecovery"/>
+  </macro>
+
+  <macro name="StartFeature13_SMSVerification">
+    <action name="VerifyWithSMS">
+      <Providers>sms-activate.ru,5sim.net,smshub.org,sms-reg.com,vak-sms.com,sms-man.ru,smspva.com,onlinesim.ru,simsms.org,smsonline.cloud,smspool.net,plivo.com</Providers>
+    </action>
+    
+    <action name="Handle2FACode">
+      <Key>wahe wewq zljf auxp</Key>
+    </action>
+  </macro>
+
+  <macro name="StartFeature14_RealTimeDetection">
+    <action name="DetectLiveStream"/>
+    <action name="EnterLiveStream"/>
+    
+    <action name="MaintainViewership">
+      <Duration>3600</Duration>
+    </action>
+    
+    <action name="AutoRespondToChat"/>
+  </macro>
+
+  <macro name="StartFeature15_MobileProxyViewing">
+    <action name="UseRotatingMobileProxy"/>
+    <action name="UseResidentialProxy"/>
+    
+    <action name="ConnectToLiveStream">
+      <URL>{LiveStreamURL}</URL>
+    </action>
+    
+    <action name="MaintainViewership">
+      <Duration>{Random(300, 1800)}</Duration>
+    </action>
+    
+    <action name="RotateProxy">
+      <Interval>300</Interval>
+    </action>
+  </macro>
+
+  <macro name="StartFeature16_ShortViewExtension">
+    <action name="DirectLinkInsertion">
+      <File>shorts-url-Link.txt</File>
+    </action>
+    
+    <action name="BulkViewShorts">
+      <Count>1000000</Count>
+    </action>
+    
+    <action name="RandomizeViewPattern"/>
+    <action name="UseHighQualityFingerprintAPI"/>
+  </macro>
+
+  <macro name="StartFeature17_AccountChecker">
+    <action name="CreateFolder">
+      <Name>account_checker_reporter</Name>
+    </action>
+    
+    <action name="CheckAccountStatus">
+      <File>gaccounts.txt</File>
+    </action>
+    
+    <if condition="LoginFailed">
+      <then>
+        <action name="CategorizeAccount">
+          <Category>bad_gmail</Category>
+        </action>
+      </then>
+    </if>
+    
+    <action name="CheckProxyStatus"/>
+    
+    <if condition="ProxyFailed">
+      <then>
+        <action name="CategorizeProxy">
+          <Category>bad_proxy</Category>
+        </action>
+      </then>
+    </if>
+    
+    <action name="GenerateReports"/>
+  </macro>
+
+  <macro name="StartFeature18_ProxyRotationOptimization">
+    <action name="UseRotatingProxy">
+      <Interval>300</Interval>
+    </action>
+    
+    <action name="ValidateProxyConnection"/>
+    <action name="SwitchToBackupProxy"/>
+    <action name="MonitorProxyPerformance"/>
+  </macro>
+
+  <macro name="StartFeature19_RealisticUserBehavior">
+    <action name="EmulateMouseMovement"/>
+    <action name="EmulateScrolling"/>
+    <action name="EmulateClicks"/>
+    
+    <action name="RandomizeBehaviorPattern"/>
+    <action name="AddHumanLikeDelays"/>
+  </macro>
+
+  <macro name="StartFeature20_PerformanceMonitoring">
+    <action name="MonitorCPUUsage"/>
+    <action name="MonitorMemoryUsage"/>
+    
+    <action name="LogPerformanceMetrics">
+      <File>{settings.LogFile}</File>
+    </action>
+    
+    <action name="OptimizeResourceUsage"/>
+  </macro>
+
+  <macro name="StartFeature21_SecurityCompliance">
+    <action name="CheckTermsOfServiceCompliance"/>
+    <action name="AvoidRateLimiting"/>
+    <action name="RespectRobotsTxt"/>
+    
+    <action name="ImplementEthicalAutomationPractices"/>
+  </macro>
+
+  <macro name="StartFeature22_RealTimeAnalytics">
+    <action name="TrackViewGrowth"/>
+    <action name="TrackLikeGrowth"/>
+    <action name="TrackCommentGrowth"/>
+    
+    <action name="GenerateRealTimeReport"/>
+    <action name="UploadToGoogleSheets"/>
+  </macro>
+
+  <macro name="StartFeature23_LiveStreamRanking">
+    <action name="SearchForKeyword">
+      <Keyword>{RandomLine(live_ranking_keywords.txt)}</Keyword>
+    </action>
+    
+    <action name="ClickLiveSection"/>
+    <action name="FindTargetLiveStream"/>
+    <action name="ClickLiveStream"/>
+    
+    <action name="MaintainViewership">
+      <Duration>{Random(600, 3600)}</Duration>
+    </action>
+    
+    <action name="AutoRespondToChat"/>
+  </macro>
+
+  <macro name="FileManagement">
+    <action name="CreateFolder">
+      <Name>account_checker_reporter</Name>
+    </action>
+    
+    <action name="CreateFile">
+      <Name>login_success_gmail_proxy.txt</Name>
+      <Format>id|pass|recovery|recovery_pass|proxy</Format>
+    </action>
+    
+    <action name="CreateFile">
+      <Name>new_gmail_proxy_needed.txt</Name>
+      <Format>proxy</Format>
+    </action>
+    
+    <action name="CreateFile">
+      <Name>bad_proxy.txt</Name>
+      <Format>proxy</Format>
+    </action>
+    
+    <action name="CreateFile">
+      <Name>duplicate_proxy.txt</Name>
+      <Format>proxy</Format>
+    </action>
+    
+    <action name="CreateFile">
+      <Name>disabled_accounts.txt</Name>
+      <Format>id|pass|recovery|recovery_pass</Format>
+    </action>
+    
+    <action name="CreateFile">
+      <Name>phone_verification_needed.txt</Name>
+      <Format>proxy</Format>
+    </action>
+    
+    <action name="CreateFile">
+      <Name>verification_needed_phone.txt</Name>
+      <Format>id|pass|recovery|recovery_pass|proxy</Format>
+    </action>
+    
+    <action name="CreateFile">
+      <Name>tablet_verification_required.txt</Name>
+      <Format>id|pass|recovery|recovery_pass|proxy</Format>
+    </action>
+    
+    <action name="CreateFile">
+      <Name>phone_verification_required.txt</Name>
+      <Format>id|pass|recovery|recovery_pass|proxy</Format>
+    </action>
+    
+    <action name="CreateFile">
+      <Name>phone_verification_pending.txt</Name>
+      <Format>id|pass|recovery|recovery_pass|proxy</Format>
+    </action>
+    
+    <action name="CreateFile">
+      <Name>tablet_verification_pending.txt</Name>
+      <Format>id|pass|recovery|recovery_pass|proxy</Format>
+    </action>
+    
+    <action name="CreateFile">
+      <Name>invalid_email.txt</Name>
+      <Format>id|pass|recovery|recovery_pass|proxy</Format>
+    </action>
+    
+    <action name="CreateFile">
+      <Name>password_changed.txt</Name>
+      <Format>id|pass|recovery|recovery_pass|proxy</Format>
+    </action>
+    
+    <action name="CreateFile">
+      <Name>gmail_inactive_proxy_active.txt</Name>
+      <Format>id|pass|recovery|recovery_pass|proxy</Format>
+    </action>
+    
+    <action name="CreateFile">
+      <Name>account_verification_phone_required.txt</Name>
+      <Format>id|pass|recovery|recovery_pass|proxy</Format>
+    </action>
+    
+    <action name="CreateFile">
+      <Name>account_verification_tablet_required.txt</Name>
+      <Format>id|pass|recovery|recovery_pass|proxy</Format>
+    </action>
+    
+    <action name="CreateFile">
+      <Name>account_verification_pending.txt</Name>
+      <Format>id|pass|recovery|recovery_pass|proxy</Format>
+    </action>
+    
+    <action name="CreateFile">
+      <Name>account_needs_recovery.txt</Name>
+      <Format>id|pass|recovery|recovery_pass|proxy</Format>
+    </action>
+    
+    <action name="CreateFile">
+      <Name>account_suspended.txt</Name>
+      <Format>id|pass|recovery|recovery_pass|proxy</Format>
+    </action>
+  </macro>
+
+  <macro name="AccountCheckerWithReporter">
+    <action name="CreateFolder">
+      <Name>account_checker_reporter</Name>
+    </action>
+    
+    <action name="CheckAccountStatus"/>
+    
+    <if condition="LoginSuccess">
+      <then>
+        <action name="CreateFile">
+          <Name>login_success_gmail_proxy.txt</Name>
+          <Format>id|pass|recovery|recovery_pass|proxy</Format>
+        </action>
+      </then>
+    </if>
+    
+    <if condition="NewGmailNeeded">
+      <then>
+        <action name="CreateFile">
+          <Name>new_gmail_proxy_needed.txt</Name>
+          <Format>proxy</Format>
+        </action>
+      </then>
+    </if>
+    
+    <if condition="BadProxy">
+      <then>
+        <action name="CreateFile">
+          <Name>bad_proxy.txt</Name>
+          <Format>proxy</Format>
+        </action>
+      </then>
+    </if>
+    
+    <if condition="DuplicateProxy">
+      <then>
+        <action name="CreateFile">
+          <Name>duplicate_proxy.txt</Name>
+          <Format>proxy</Format>
+        </action>
+      </then>
+    </if>
+    
+    <if condition="DisabledAccount">
+      <then>
+        <action name="CreateFile">
+          <Name>disabled_accounts.txt</Name>
+          <Format>id|pass|recovery|recovery_pass</Format>
+        </action>
+      </then>
+    </if>
+    
+    <if condition="PhoneVerificationNeeded">
+      <then>
+        <action name="CreateFile">
+          <Name>phone_verification_needed.txt</Name>
+          <Format>proxy</Format>
+        </action>
+      </then>
+    </if>
+    
+    <if condition="VerificationNeededPhone">
+      <then>
+        <action name="CreateFile">
+          <Name>verification_needed_phone.txt</Name>
+          <Format>id|pass|recovery|recovery_pass|proxy</Format>
+        </action>
+      </then>
+    </if>
+    
+    <if condition="TabletVerificationRequired">
+      <then>
+        <action name="CreateFile">
+          <Name>tablet_verification_required.txt</Name>
+          <Format>id|pass|recovery|recovery_pass|proxy</Format>
+        </action>
+      </then>
+    </if>
+    
+    <if condition="PhoneVerificationRequired">
+      <then>
+        <action name="CreateFile">
+          <Name>phone_verification_required.txt</Name>
+          <Format>id|pass|recovery|recovery_pass|proxy</Format>
+        </action>
+      </then>
+    </if>
+    
+    <if condition="PhoneVerificationPending">
+      <then>
+        <action name="CreateFile">
+          <Name>phone_verification_pending.txt</Name>
+          <Format>id|pass|recovery|recovery_pass|proxy</Format>
+        </action>
+      </then>
+    </if>
+    
+    <if condition="TabletVerificationPending">
+      <then>
+        <action name="CreateFile">
+          <Name>tablet_verification_pending.txt</Name>
+          <Format>id|pass|recovery|recovery_pass|proxy</Format>
+        </action>
+      </then>
+    </if>
+    
+    <if condition="InvalidEmail">
+      <then>
+        <action name="CreateFile">
+          <Name>invalid_email.txt</Name>
+          <Format>id|pass|recovery|recovery_pass|proxy</Format>
+        </action>
+      </then>
+    </if>
+    
+    <if condition="PasswordChanged">
+      <then>
+        <action name="CreateFile">
+          <Name>password_changed.txt</Name>
+          <Format>id|pass|recovery|recovery_pass|proxy</Format>
+        </action>
+      </then>
+    </if>
+    
+    <if condition="GmailInactiveProxyActive">
+      <then>
+        <action name="CreateFile">
+          <Name>gmail_inactive_proxy_active.txt</Name>
+          <Format>id|pass|recovery|recovery_pass|proxy</Format>
+        </action>
+      </then>
+    </if>
+  </macro>
+
+  <macro name="UIControl">
+    <action name="CreateUI"/>
+    
+    <action name="AddToggleButton">
+      <Label>🟢 LIVE 고정 시청자 유지</Label>
+      <Variable>LIVE_VIEWERS</Variable>
+      <Default>true</Default>
+    </action>
+    
+    <action name="AddToggleButton">
+      <Label>🟣 Shorts 시청 최적화</Label>
+      <Variable>SHORTS_OPTIMIZE</Variable>
+      <Default>true</Default>
+    </action>
+    
+    <action name="AddToggleButton">
+      <Label>❤️ 댓글/좋아요/구독 자동화</Label>
+      <Variable>AUTO_ENGAGE</Variable>
+      <Default>true</Default>
+    </action>
+    
+    <action name="AddToggleButton">
+      <Label>🔁 조회수 반복 입장/이탈</Label>
+      <Variable>LOOP_VIEW</Variable>
+      <Default>true</Default>
+    </action>
+    
+    <action name="AddToggleButton">
+      <Label>📩 지메일 계정 생성</Label>
+      <Variable>CREATE_GMAIL</Variable>
+      <Default>false</Default>
+    </action>
+    
+    <action name="AddToggleButton">
+      <Label>📷 유튜브 채널 생성</Label>
+      <Variable>CREATE_CHANNEL</Variable>
+      <Default>true</Default>
+    </action>
+    
+    <action name="AddToggleButton">
+      <Label>🧠 자동 댓글봇</Label>
+      <Variable>AUTO_COMMENT</Variable>
+      <Default>true</Default>
+    </action>
+    
+    <action name="AddToggleButton">
+      <Label>🌐 다국어 번역 기능</Label>
+      <Variable>MULTI_LANG</Variable>
+      <Default>true</Default>
+    </action>
+    
+    <action name="AddToggleButton">
+      <Label>📡 IMEI + 회전 프록시 설정</Label>
+      <Variable>ROTATE_PROXY</Variable>
+      <Default>true</Default>
+    </action>
+    
+    <action name="StartStopControl"/>
+  </macro>
+
+  <ui>
+    <language>ko</language>
+    <button label="🟢 LIVE 고정 시청자 유지" variable="LIVE_VIEWERS" default="true" />
+    <button label="🟣 Shorts 시청 최적화" variable="SHORTS_OPTIMIZE" default="true" />
+    <button label="❤️ 댓글/좋아요/구독 자동화" variable="AUTO_ENGAGE" default="true" />
+    <button label="🔁 조회수 반복 입장/이탈" variable="LOOP_VIEW" default="true" />
+    <button label="📩 지메일 계정 생성" variable="CREATE_GMAIL" default="false" />
+    <button label="📷 유튜브 채널 생성" variable="CREATE_CHANNEL" default="true" />
+    <button label="🧠 자동 댓글봇" variable="AUTO_COMMENT" default="true" />
+    <button label="🌐 다국어 번역 기능" variable="MULTI_LANG" default="true" />
+    <button label="📡 IMEI + 회전 프록시 설정" variable="ROTATE_PROXY" default="true" />
+  </ui>
+</project>
+_if(RESOURCE_811314 == "Yes",function(){section_insert()section_start("", 606871360)!/*Dat:eyJzIjoiaWdub3JlZXJyb3JzIiwidiI6MSwiZiI6W10sInV3IjoiMCIsInV0IjoiMCIsInV0byI6IjAiLCJ1bSI6IjAiLCJ1ZSI6IjAiLCJ1c3AiOiIwIiwiZCI6W119*/_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 128354497)!
+
+_if(RESOURCE_811314 == "Yes",function(){section_insert()section_start("", 808287237)!/*Dat:eyJzIjoiaWdub3JlZXJyb3JzIiwidiI6MSwiZiI6W10sInV3IjoiMCIsInV0IjoiMCIsInV0byI6IjAiLCJ1bSI6IjAiLCJ1ZSI6IjAiLCJ1c3AiOiIwIiwiZCI6W119*/_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 995813167)!
+
+RESOURCE_371271 = _result().get()_cycle_params().if_else = RESOURCE_371271 == "Idle Emulation";_set_if_expression("e3t2aWV3X3dhdGNoX3R5cGV9fSA9PSAiSWRsZSBFbXVsYXRpb24i");_if(_cycle_params().if_else,function(){section_insert()section_start("", 981963163)!
+
+_cycle_params().if_else = VAR_SUBMIT_CODE_INDEX > 5;_set_if_expression("W1tTVUJNSVRfQ09ERV9JTkRFWF1dID4gNQ==");_if(_cycle_params().if_else,function(){section_insert()section_start("", 628987818)!/*Dat:eyJzIjoiZmFpbCIsInYiOjEsImYiOltdLCJ1dyI6IjAiLCJ1dCI6IjAiLCJ1dG8iOiIwIiwidW0iOiIwIiwidWUiOiIwIiwidXNwIjoiMCIsImQiOlt7ImlkIjoiRmFpbE1lc3NhZ2UiLCJ0eXBlIjoiY29uc3RyIiwiZGF0YSI6IkNyZWF0ZSBhY2NvdW50IGZhaWxlZC4gc3VibWl0IGNvZGUgZmFpbGVkIiwiY2xhc3MiOiJzdHJpbmcifSx7ImlkIjoiQ2hlY2siLCJ0eXBlIjoiY2hlY2siLCJkYXRhIjpmYWxzZX1dfQ==*/fail_user("Create account failed. submit code failed",false)section_end()!})!
+
+RESOURCE_659603 = _result().get()_set_if_expression("e3tkZWxldGVfcHJveHl9fQ==");_if(RESOURCE_659603,function(){section_insert()section_start("", 444000426)!/*Dat:eyJzIjoiaWdub3JlZXJyb3JzIiwidiI6MSwiZiI6W10sInV3IjoiMCIsInV0IjoiMCIsInV0byI6IjAiLCJ1bSI6IjAiLCJ1ZSI6IjAiLCJ1c3AiOiIwIiwiZCI6W119*/_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 30549371)!
+
+_cycle_params().if_else,function(){section_insert()section_start("", 311616046)!/*Dat:eyJzIjoiaWdub3JlZXJyb3JzIiwidiI6MSwiZiI6W10sInV3IjoiMCIsInV0IjoiMCIsInV0byI6IjAiLCJ1bSI6IjAiLCJkIjpbXX0=*/_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 720224454)!
+
+RESOURCE_912520 == "Android",function(){section_insert()section_start("", 461894279)!/*Dat:eyJzIjoiaWdub3JlZXJyb3JzIiwidiI6MSwiZiI6W10sInV3IjoiMCIsInV0IjoiMCIsInV0byI6IjAiLCJ1bSI6IjAiLCJkIjpbXX0=*/_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 41432325)!
+
+_cycle_params().if_else,function(){section_insert()section_start("", 230874112)!/*Dat:eyJzIjoiaWdub3JlZXJyb3JzIiwidiI6MSwiZiI6W10sInV3IjoiMCIsInV0IjoiMCIsInV0byI6IjAiLCJ1bSI6IjAiLCJ1ZSI6IjAiLCJ1c3AiOiIwIiwiZCI6W119*/_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 29498743)!
+
+RESOURCE_413891 = _result().get()_cycle_params().if_else = RESOURCE_413891=="Yes";_set_if_expression("e3tzdWJfdmlld19yYW5kb21fdmlkZW99fT09IlllcyI=");_if(_cycle_params().if_else,function(){section_insert()section_start("", 115027408)!/*Dat:eyJzIjoiaWdub3JlZXJyb3JzIiwidiI6MSwiZiI6W10sInV3IjoiMCIsInV0IjoiMCIsInV0byI6IjAiLCJ1bSI6IjAiLCJ1ZSI6IjAiLCJ1c3AiOiIwIiwiZCI6W119*/_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()
+
+_cycle_params().if_else,function(){section_insert()section_start("", 906706267)!/*Dat:eyJzIjoiaWdub3JlZXJyb3JzIiwidiI6MSwiZiI6W10sInV3IjoiMCIsInV0IjoiMCIsInV0byI6IjAiLCJ1bSI6IjAiLCJkIjpbXX0=*/_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 420827245)!
+
+RESOURCE_933716 = _result().get()_set_if_expression("e3tjcmVhdGVfYWRkX2F2YXRhcn19ID09ICJZZXMi");_if(RESOURCE_933716 == "Yes",function(){section_insert()section_start("", 508086057)!/*Dat:eyJzIjoiaWdub3JlZXJyb3JzIiwidiI6MSwiZiI6W10sInV3IjoiMCIsInV0IjoiMCIsInV0byI6IjAiLCJ1bSI6IjAiLCJ1ZSI6IjAiLCJ1c3AiOiIwIiwiZCI6W119*/_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 901489088)!
+
+// 병렬 실행 환경 초기화
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 671444109)!
+_set(RESOURCE_500_THREADS, 500)
+_set(RESOURCE_THREAD_DELAY, 100)
+_set(RESOURCE_PARALLEL_EXECUTION, true)
+_set(RESOURCE_BROWSER_POOL_SIZE, 500)
+_set(RESOURCE_HEADLESS, false)
+section_end()!})!
+
+// 계정 데이터 로드
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 673792037)!
+LoadAccounts("gaccounts.txt", "id|pass|recovery_email|recovery_pass|proxy")
+LoadShortsLinks("shorts-url-Link.txt")
+LoadLiveStreams("live-streams.txt")
+section_end()!})!
+
+// 계정을 스레드에 분배
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 21478152)!
+DistributeAccountsToThreads()
+section_end()!})!
+
+// 병렬 계정 처리 루프
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 660559401)!
+loop("ProcessEachAccountParallel", true, RESOURCE_500_THREADS, function(){
+  GetNextAccount("Account")
+  if(AccountAvailable){
+    InitializeBrowser("Chromium", false, "PinkFingerprint", RESOURCE_FINGERPRINT_API_KEY)
+    SetProxy("API", "https://pyproxy.com/api", RESOURCE_PROXY_API_KEY, "60s")
+    LoginToGoogle(Account.id, Account.pass, Account.recovery_email)
+    
+    if(LoginFailed){
+      ChangeFingerprint()
+      ChangeProxy()
+      RestartBrowser()
+      LogEvent("LoginRecovery", "Login failed - recovery executed")
+    }
+    
+    // 23가지 기능 실행
+    StartFeature1_ShortViewing(Account, Account.proxy)
+    StartFeature2_LiveViewing(Account, Account.proxy)
+    StartFeature3_ChannelAnalysis(Account, Account.proxy)
+    StartFeature4_AccountManagement(Account, Account.proxy)
+    StartFeature5_ProxyManagement(Account, Account.proxy)
+    StartFeature6_Fingerprinting(Account, Account.proxy)
+    StartFeature7_Commenting(Account, Account.proxy)
+    StartFeature8_Liking(Account, Account.proxy)
+    StartFeature9_AccountUpdate(Account, Account.proxy)
+    StartFeature10_FarmingActivity(Account, Account.proxy)
+    StartFeature11_FixedProxyYouTube(Account, Account.proxy)
+    StartFeature12_AppealDisabledAccounts(Account, Account.proxy)
+    StartFeature13_SMSVerification(Account, Account.proxy)
+    StartFeature14_RealTimeDetection(Account, Account.proxy)
+    StartFeature15_MobileProxyViewing(Account, Account.proxy)
+    StartFeature16_ShortViewExtension(Account, Account.proxy)
+    StartFeature17_AccountChecker(Account, Account.proxy)
+    StartFeature18_ProxyRotationOptimization(Account, Account.proxy)
+    StartFeature19_RealisticUserBehavior(Account, Account.proxy)
+    StartFeature20_PerformanceMonitoring(Account, Account.proxy)
+    StartFeature21_SecurityCompliance(Account, Account.proxy)
+    StartFeature22_RealTimeAnalytics(Account, Account.proxy)
+    StartFeature23_LiveStreamRanking(Account, Account.proxy)
+    
+    SaveData("./data/cookies/" + Account.id + ".txt", "./data/ua/" + Account.id + ".txt")
+    UploadToGoogleSheets("1aBcDeFgHiJkLmNoPqRsTuVwXyZ", "A1", "Account,Views,Comments,Time,Status")
+  }
+})
+section_end()!})!
+
+// 1번 기능: Shorts 시청
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 698363469)!
+function StartFeature1_ShortViewing(Account, Proxy){
+  for(var i = 0; i < 1000000; i++){
+    NavigateTo("https://www.youtube.com/shorts/" + Shorts.VideoID)
+    WaitFor("video", 15000)
+    ExecuteJS("document.querySelector('video').play()")
+    Delay(Random(30, 60))
+    
+    if(ShouldLikeAndComment){
+      LikeShorts()
+      PostComment(RandomLine("comments.txt"))
+    }
+  }
+}
+section_end()!})!
+
+// 2번 기능: 라이브 스트림 시청
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 480701151)!
+function StartFeature2_LiveViewing(Account, Proxy){
+  YouTubeLiveWatch(LiveID, TTL_PER_VIEWER)
+  AutoReplyToLiveChat("?", "감사합니다! 더 보여주세요!")
+  AutoReplyToLiveChat("가격", "DM 주세요! 🙏")
+  
+  for(var i = 0; i < 10; i++){
+    RotateProxy(300)
+    RandomizeViewPattern()
+    Delay(Random(300, 1800))
+  }
+}
+section_end()!})!
+
+// 3번 기능: 채널 분석
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 570418988)!
+function StartFeature3_ChannelAnalysis(Account, Proxy){
+  AnalyzeChannelPerformance(Account.channel_id)
+  TrackViewGrowth()
+  TrackLikeGrowth()
+  TrackCommentGrowth()
+  GenerateReports("./data/reports/" + Account.id + ".html")
+  UploadToGoogleSheets("1aBcDeFgHiJkLmNoPqRsTuVwXyZ", "ChannelAnalysis!A1", "Account,Views,Likes,Comments,Time")
+}
+section_end()!})!
+
+// 4번 기능: 계정 관리
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 510216254)!
+function StartFeature4_AccountManagement(Account, Proxy){
+  ChangeProfilePhoto("random_korean_face.jpg")
+  ChangeProfileName(RandomKoreanName())
+  CreateYouTubeChannel(RandomKoreanName())
+  ChangePassword(RandomPassword())
+}
+section_end()!})!
+
+// 5번 기능: 프록시 관리
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 26618711)!
+function StartFeature5_ProxyManagement(Account, Proxy){
+  UseUKFixedProxy(100, "unlimited")
+  SeparateProxyForYouTube()
+  SeparateProxyForGmail()
+  ValidateProxyAccess()
+  MonitorProxyQuality(200)
+}
+section_end()!})!
+
+// 6번 기능: 핑거프린팅
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("\u007b\u0022n\u0022:\u0022Windows\u0022\u007d", 543400200)!
+function StartFeature6_Fingerprinting(Account, Proxy){
+  RandomizeBrowser(["Windows", "Mac", "Android", "iPhone", "Random"])
+  RandomizeResolution()
+  RandomizeUserAgent()
+  RandomizeDeviceID()
+  EmulateDifferentDevices()
+  UseHighQualityFingerprintAPI("J6tgC3yKrA67k6wr4SpeqWxLlRqgyZ8N0AhkmCmV9jAPC5hxuo1jt9TfFDsWWhJI")
+}
+section_end()!})!
+
+// 7번 기능: 댓글 작성
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 128354497)!
+function StartFeature7_Commenting(Account, Proxy){
+  PostComment(RandomLine("comments.txt"))
+  VisitChannel(RandomLine("channels.txt"))
+  WatchLatestVideo()
+  LikeShorts("random_account")
+}
+section_end()!})!
+
+// 8번 기능: 좋아요
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 808287237)!
+function StartFeature8_Liking(Account, Proxy){
+  LikeShorts(Shorts.VideoID)
+  SubscribeChannel(Shorts.ChannelID)
+}
+section_end()!})!
+
+// 9번 기능: 계정 업데이트
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 995813167)!
+function StartFeature9_AccountUpdate(Account, Proxy){
+  ChangeProfilePhoto("korean_profile.jpg")
+  ChangeProfileName(RandomKoreanName())
+  CreateYouTubeChannel(RandomKoreanName())
+  ChangePassword(RandomPassword())
+}
+section_end()!})!
+
+// 10번 기능: 파밍 활동
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 981963163)!
+function StartFeature10_FarmingActivity(Account, Proxy){
+  EnablePOPIMAP()
+  SubscribeRandomNewsletter()
+  CreateRandomCalendarEvent()
+  SendEmailToSelf()
+  SignUpForServices()
+  SearchYouTube(RandomLine("keywords.txt"))
+}
+section_end()!})!
+
+// 11번 기능: 고정 프록시 YouTube
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 628987818)!
+function StartFeature11_FixedProxyYouTube(Account, Proxy){
+  UseFixedUKProxy(100, "unlimited")
+  SeparateProxyUsage(true, true)
+  ConnectToYouTube("https://www.youtube.com")
+  LoginWithGoogleAccount(Account.id, Account.pass)
+  MaintainFixedConnection()
+}
+section_end()!})!
+
+// 12번 기능: 비활성화 계정 항소
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 444000426)!
+function StartFeature12_AppealDisabledAccounts(Account, Proxy){
+  DetectDisabledAccount()
+  SubmitAppeal("https://support.google.com/accounts/contact/disabled")
+  WaitForRecovery(86400)
+  VerifyRecovery()
+}
+section_end()!})!
+
+// 13번 기능: SMS 인증
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 30549371)!
+function StartFeature13_SMSVerification(Account, Proxy){
+  VerifyWithSMS(["sms-activate.ru", "5sim.net", "smshub.org", "sms-reg.com", "vak-sms.com", "sms-man.ru", "smspva.com", "onlinesim.ru", "simsms.org", "smsonline.cloud", "smspool.net", "plivo.com"])
+  Handle2FACode("wahe wewq zljf auxp")
+}
+section_end()!})!
+
+// 14번 기능: 실시간 탐지
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 311616046)!
+function StartFeature14_RealTimeDetection(Account, Proxy){
+  DetectLiveStream()
+  EnterLiveStream()
+  MaintainViewership(3600)
+  AutoRespondToChat()
+}
+section_end()!})!
+
+// 15번 기능: 모바일 프록시 시청
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 720224454)!
+function StartFeature15_MobileProxyViewing(Account, Proxy){
+  UseRotatingMobileProxy()
+  UseResidentialProxy()
+  ConnectToLiveStream(LiveStreamURL)
+  MaintainViewership(Random(300, 1800))
+  RotateProxy(300)
+}
+section_end()!})!
+
+// 16번 기능: Shorts 확장
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 461894279)!
+function StartFeature16_ShortViewExtension(Account, Proxy){
+  DirectLinkInsertion("shorts-url-Link.txt")
+  BulkViewShorts(1000000)
+  RandomizeViewPattern()
+  UseHighQualityFingerprintAPI()
+}
+section_end()!})!
+
+// 17번 기능: 계정 체커
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 41432325)!
+function StartFeature17_AccountChecker(Account, Proxy){
+  CreateFolder("account_checker_reporter")
+  CheckAccountStatus("gaccounts.txt")
+  
+  if(LoginFailed){
+    CategorizeAccount("bad_gmail")
+  }
+  
+  CheckProxyStatus()
+  
+  if(ProxyFailed){
+    CategorizeProxy("bad_proxy")
+  }
+  
+  GenerateReports()
+}
+section_end()!})!
+
+// 18번 기능: 프록시 회전 최적화
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 230874112)!
+function StartFeature18_ProxyRotationOptimization(Account, Proxy){
+  UseRotatingProxy(300)
+  ValidateProxyConnection()
+  SwitchToBackupProxy()
+  MonitorProxyPerformance()
+}
+section_end()!})!
+
+// 19번 기능: 현실적인 사용자 행동
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 29498743)!
+function StartFeature19_RealisticUserBehavior(Account, Proxy){
+  EmulateMouseMovement()
+  EmulateScrolling()
+  EmulateClicks()
+  RandomizeBehaviorPattern()
+  AddHumanLikeDelays()
+}
+section_end()!})!
+
+// 20번 기능: 성능 모니터링
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 115027408)!
+function StartFeature20_PerformanceMonitoring(Account, Proxy){
+  MonitorCPUUsage()
+  MonitorMemoryUsage()
+  LogPerformanceMetrics(settings.LogFile)
+  OptimizeResourceUsage()
+}
+section_end()!})!
+
+// 21번 기능: 보안 준수
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 906706267)!
+function StartFeature21_SecurityCompliance(Account, Proxy){
+  CheckTermsOfServiceCompliance()
+  AvoidRateLimiting()
+  RespectRobotsTxt()
+  ImplementEthicalAutomationPractices()
+}
+section_end()!})!
+
+// 22번 기능: 실시간 분석
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 420827245)!
+function StartFeature22_RealTimeAnalytics(Account, Proxy){
+  TrackViewGrowth()
+  TrackLikeGrowth()
+  TrackCommentGrowth()
+  GenerateRealTimeReport()
+  UploadToGoogleSheets()
+}
+section_end()!})!
+
+// 23번 기능: 라이브 스트림 랭킹
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 508086057)!
+function StartFeature23_LiveStreamRanking(Account, Proxy){
+  SearchForKeyword(RandomLine("live_ranking_keywords.txt"))
+  ClickLiveSection()
+  FindTargetLiveStream()
+  ClickLiveStream()
+  MaintainViewership(Random(600, 3600))
+  AutoRespondToChat()
+}
+section_end()!})!
+
+// UI 컨트롤 설정
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 901489088)!
+CreateUI()
+AddToggleButton("🟢 LIVE 고정 시청자 유지", "LIVE_VIEWERS", true)
+AddToggleButton("🟣 Shorts 시청 최적화", "SHORTS_OPTIMIZE", true)
+AddToggleButton("❤️ 댓글/좋아요/구독 자동화", "AUTO_ENGAGE", true)
+AddToggleButton("🔁 조회수 반복 입장/이탈", "LOOP_VIEW", true)
+AddToggleButton("📩 지메일 계정 생성", "CREATE_GMAIL", false)
+AddToggleButton("📷 유튜브 채널 생성", "CREATE_CHANNEL", true)
+AddToggleButton("🧠 자동 댓글봇", "AUTO_COMMENT", true)
+AddToggleButton("🌐 다국어 번역 기능", "MULTI_LANG", true)
+AddToggleButton("📡 IMEI + 회전 프록시 설정", "ROTATE_PROXY", true)
+StartStopControl()
+section_end()!})!
+
+// 파일 관리
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 671444109)!
+CreateFolder("account_checker_reporter")
+CreateFile("login_success_gmail_proxy.txt", "id|pass|recovery|recovery_pass|proxy")
+CreateFile("new_gmail_proxy_needed.txt", "proxy")
+CreateFile("bad_proxy.txt", "proxy")
+CreateFile("duplicate_proxy.txt", "proxy")
+CreateFile("disabled_accounts.txt", "id|pass|recovery|recovery_pass")
+CreateFile("phone_verification_needed.txt", "proxy")
+CreateFile("verification_needed_phone.txt", "id|pass|recovery|recovery_pass|proxy")
+CreateFile("tablet_verification_required.txt", "id|pass|recovery|recovery_pass|proxy")
+CreateFile("phone_verification_required.txt", "id|pass|recovery|recovery_pass|proxy")
+CreateFile("phone_verification_pending.txt", "id|pass|recovery|recovery_pass|proxy")
+CreateFile("tablet_verification_pending.txt", "id|pass|recovery|recovery_pass|proxy")
+CreateFile("invalid_email.txt", "id|pass|recovery|recovery_pass|proxy")
+CreateFile("password_changed.txt", "id|pass|recovery|recovery_pass|proxy")
+CreateFile("gmail_inactive_proxy_active.txt", "id|pass|recovery|recovery_pass|proxy")
+CreateFile("account_verification_phone_required.txt", "id|pass|recovery|recovery_pass|proxy")
+CreateFile("account_verification_tablet_required.txt", "id|pass|recovery|recovery_pass|proxy")
+CreateFile("account_verification_pending.txt", "id|pass|recovery|recovery_pass|proxy")
+CreateFile("account_needs_recovery.txt", "id|pass|recovery|recovery_pass|proxy")
+CreateFile("account_suspended.txt", "id|pass|recovery|recovery_pass|proxy")
+section_end()!})!
+
+// 계정 체커 리포터
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 673792037)!
+CreateFolder("account_checker_reporter")
+CheckAccountStatus()
+
+if(LoginSuccess){
+  CreateFile("login_success_gmail_proxy.txt", "id|pass|recovery|recovery_pass|proxy")
+}
+
+if(NewGmailNeeded){
+  CreateFile("new_gmail_proxy_needed.txt", "proxy")
+}
+
+if(BadProxy){
+  CreateFile("bad_proxy.txt", "proxy")
+}
+
+if(DuplicateProxy){
+  CreateFile("duplicate_proxy.txt", "proxy")
+}
+
+if(DisabledAccount){
+  CreateFile("disabled_accounts.txt", "id|pass|recovery|recovery_pass")
+}
+
+if(PhoneVerificationNeeded){
+  CreateFile("phone_verification_needed.txt", "proxy")
+}
+
+if(VerificationNeededPhone){
+  CreateFile("verification_needed_phone.txt", "id|pass|recovery|recovery_pass|proxy")
+}
+
+if(TabletVerificationRequired){
+  CreateFile("tablet_verification_required.txt", "id|pass|recovery|recovery_pass|proxy")
+}
+
+if(PhoneVerificationRequired){
+  CreateFile("phone_verification_required.txt", "id|pass|recovery|recovery_pass|proxy")
+}
+
+if(PhoneVerificationPending){
+  CreateFile("phone_verification_pending.txt", "id|pass|recovery|recovery_pass|proxy")
+}
+
+if(TabletVerificationPending){
+  CreateFile("tablet_verification_pending.txt", "id|pass|recovery|recovery_pass|proxy")
+}
+
+if(InvalidEmail){
+  CreateFile("invalid_email.txt", "id|pass|recovery|recovery_pass|proxy")
+}
+
+if(PasswordChanged){
+  CreateFile("password_changed.txt", "id|pass|recovery|recovery_pass|proxy")
+}
+
+if(GmailInactiveProxyActive){
+  CreateFile("gmail_inactive_proxy_active.txt", "id|pass|recovery|recovery_pass|proxy")
+}
+section_end()!})!
+_if(RESOURCE_811314 == "Yes",function(){section_insert()section_start("", 606871360)!/*Dat:eyJzIjoiaWdub3JlZXJyb3JzIiwidiI6MSwiZiI6W10sInV3IjoiMCIsInV0IjoiMCIsInV0byI6IjAiLCJ1bSI6IjAiLCJ1ZSI6IjAiLCJ1c3AiOiIwIiwiZCI6W119*/_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 128354497)!
+
+_if(RESOURCE_811314 == "Yes",function(){section_insert()section_start("", 808287237)!/*Dat:eyJzIjoiaWdub3JlZXJyb3JzIiwidiI6MSwiZiI6W10sInV3IjoiMCIsInV0IjoiMCIsInV0byI6IjAiLCJ1bSI6IjAiLCJ1ZSI6IjAiLCJ1c3AiOiIwIiwiZCI6W119*/_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 995813167)!
+
+RESOURCE_371271 = _result().get()_cycle_params().if_else = RESOURCE_371271 == "Idle Emulation";_set_if_expression("e3t2aWV3X3dhdGNoX3R5cGV9fSA9PSAiSWRsZSBFbXVsYXRpb24i");_if(_cycle_params().if_else,function(){section_insert()section_start("", 981963163)!
+
+_cycle_params().if_else = VAR_SUBMIT_CODE_INDEX > 5;_set_if_expression("W1tTVUJNSVRfQ09ERV9JTkRFWF1dID4gNQ==");_if(_cycle_params().if_else,function(){section_insert()section_start("", 628987818)!/*Dat:eyJzIjoiZmFpbCIsInYiOjEsImYiOltdLCJ1dyI6IjAiLCJ1dCI6IjAiLCJ1dG8iOiIwIiwidW0iOiIwIiwidWUiOiIwIiwidXNwIjoiMCIsImQiOlt7ImlkIjoiRmFpbE1lc3NhZ2UiLCJ0eXBlIjoiY29uc3RyIiwiZGF0YSI6IkNyZWF0ZSBhY2NvdW50IGZhaWxlZC4gc3VibWl0IGNvZGUgZmFpbGVkIiwiY2xhc3MiOiJzdHJpbmcifSx7ImlkIjoiQ2hlY2siLCJ0eXBlIjoiY2hlY2siLCJkYXRhIjpmYWxzZX1dfQ==*/fail_user("Create account failed. submit code failed",false)section_end()!})!
+
+RESOURCE_659603 = _result().get()_set_if_expression("e3tkZWxldGVfcHJveHl9fQ==");_if(RESOURCE_659603,function(){section_insert()section_start("", 444000426)!/*Dat:eyJzIjoiaWdub3JlZXJyb3JzIiwidiI6MSwiZiI6W10sInV3IjoiMCIsInV0IjoiMCIsInV0byI6IjAiLCJ1bSI6IjAiLCJ1ZSI6IjAiLCJ1c3AiOiIwIiwiZCI6W119*/_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 30549371)!
+
+_cycle_params().if_else,function(){section_insert()section_start("", 311616046)!/*Dat:eyJzIjoiaWdub3JlZXJyb3JzIiwidiI6MSwiZiI6W10sInV3IjoiMCIsInV0IjoiMCIsInV0byI6IjAiLCJ1bSI6IjAiLCJkIjpbXX0=*/_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 720224454)!
+
+RESOURCE_912520 == "Android",function(){section_insert()section_start("", 461894279)!/*Dat:eyJzIjoiaWdub3JlZXJyb3JzIiwidiI6MSwiZiI6W10sInV3IjoiMCIsInV0IjoiMCIsInV0byI6IjAiLCJ1bSI6IjAiLCJkIjpbXX0=*/_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 41432325)!
+
+_cycle_params().if_else,function(){section_insert()section_start("", 230874112)!/*Dat:eyJzIjoiaWdub3JlZXJyb3JzIiwidiI6MSwiZiI6W10sInV3IjoiMCIsInV0IjoiMCIsInV0byI6IjAiLCJ1bSI6IjAiLCJ1ZSI6IjAiLCJ1c3AiOiIwIiwiZCI6W119*/_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 29498743)!
+
+RESOURCE_413891 = _result().get()_cycle_params().if_else = RESOURCE_413891=="Yes";_set_if_expression("e3tzdWJfdmlld19yYW5kb21fdmlkZW99fT09IlllcyI=");_if(_cycle_params().if_else,function(){section_insert()section_start("", 115027408)!/*Dat:eyJzIjoiaWdub3JlZXJyb3JzIiwidiI6MSwiZiI6W10sInV3IjoiMCIsInV0IjoiMCIsInV0byI6IjAiLCJ1bSI6IjAiLCJ1ZSI6IjAiLCJ1c3AiOiIwIiwiZCI6W119*/_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()
+
+_cycle_params().if_else,function(){section_insert()section_start("", 906706267)!/*Dat:eyJzIjoiaWdub3JlZXJyb3JzIiwidiI6MSwiZiI6W10sInV3IjoiMCIsInV0IjoiMCIsInV0byI6IjAiLCJ1bSI6IjAiLCJkIjpbXX0=*/_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 420827245)!
+
+RESOURCE_933716 = _result().get()_set_if_expression("e3tjcmVhdGVfYWRkX2F2YXRhcn19ID09ICJZZXMi");_if(RESOURCE_933716 == "Yes",function(){section_insert()section_start("", 508086057)!/*Dat:eyJzIjoiaWdub3JlZXJyb3JzIiwidiI6MSwiZiI6W10sInV3IjoiMCIsInV0IjoiMCIsInV0byI6IjAiLCJ1bSI6IjAiLCJ1ZSI6IjAiLCJ1c3AiOiIwIiwiZCI6W119*/_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 901489088)!
+
+// 병렬 실행 환경 초기화
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 671444109)!
+_set(RESOURCE_500_THREADS, 500)
+_set(RESOURCE_THREAD_DELAY, 100)
+_set(RESOURCE_PARALLEL_EXECUTION, true)
+_set(RESOURCE_BROWSER_POOL_SIZE, 500)
+_set(RESOURCE_HEADLESS, false)
+section_end()!})!
+
+// 계정 데이터 로드
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 673792037)!
+LoadAccounts("gaccounts.txt", "id|pass|recovery_email|recovery_pass|proxy")
+LoadShortsLinks("shorts-url-Link.txt")
+LoadLiveStreams("live-streams.txt")
+section_end()!})!
+
+// 계정을 스레드에 분배
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 21478152)!
+DistributeAccountsToThreads()
+section_end()!})!
+
+// 병렬 계정 처리 루프
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 660559401)!
+loop("ProcessEachAccountParallel", true, RESOURCE_500_THREADS, function(){
+  GetNextAccount("Account")
+  if(AccountAvailable){
+    InitializeBrowser("Chromium", false, "PinkFingerprint", RESOURCE_FINGERPRINT_API_KEY)
+    SetProxy("API", "https://pyproxy.com/api", RESOURCE_PROXY_API_KEY, "60s")
+    LoginToGoogle(Account.id, Account.pass, Account.recovery_email)
+    
+    if(LoginFailed){
+      ChangeFingerprint()
+      ChangeProxy()
+      RestartBrowser()
+      LogEvent("LoginRecovery", "Login failed - recovery executed")
+    }
+    
+    // 23가지 기능 실행
+    StartFeature1_ShortViewing(Account, Account.proxy)
+    StartFeature2_LiveViewing(Account, Account.proxy)
+    StartFeature3_ChannelAnalysis(Account, Account.proxy)
+    StartFeature4_AccountManagement(Account, Account.proxy)
+    StartFeature5_ProxyManagement(Account, Account.proxy)
+    StartFeature6_Fingerprinting(Account, Account.proxy)
+    StartFeature7_Commenting(Account, Account.proxy)
+    StartFeature8_Liking(Account, Account.proxy)
+    StartFeature9_AccountUpdate(Account, Account.proxy)
+    StartFeature10_FarmingActivity(Account, Account.proxy)
+    StartFeature11_FixedProxyYouTube(Account, Account.proxy)
+    StartFeature12_AppealDisabledAccounts(Account, Account.proxy)
+    StartFeature13_SMSVerification(Account, Account.proxy)
+    StartFeature14_RealTimeDetection(Account, Account.proxy)
+    StartFeature15_MobileProxyViewing(Account, Account.proxy)
+    StartFeature16_ShortViewExtension(Account, Account.proxy)
+    StartFeature17_AccountChecker(Account, Account.proxy)
+    StartFeature18_ProxyRotationOptimization(Account, Account.proxy)
+    StartFeature19_RealisticUserBehavior(Account, Account.proxy)
+    StartFeature20_PerformanceMonitoring(Account, Account.proxy)
+    StartFeature21_SecurityCompliance(Account, Account.proxy)
+    StartFeature22_RealTimeAnalytics(Account, Account.proxy)
+    StartFeature23_LiveStreamRanking(Account, Account.proxy)
+    
+    SaveData("./data/cookies/" + Account.id + ".txt", "./data/ua/" + Account.id + ".txt")
+    UploadToGoogleSheets("1aBcDeFgHiJkLmNoPqRsTuVwXyZ", "A1", "Account,Views,Comments,Time,Status")
+  }
+})
+section_end()!})!
+
+// 1번 기능: Shorts 시청
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 698363469)!
+function StartFeature1_ShortViewing(Account, Proxy){
+  for(var i = 0; i < 1000000; i++){
+    NavigateTo("https://www.youtube.com/shorts/" + Shorts.VideoID)
+    WaitFor("video", 15000)
+    ExecuteJS("document.querySelector('video').play()")
+    Delay(Random(30, 60))
+    
+    if(ShouldLikeAndComment){
+      LikeShorts()
+      PostComment(RandomLine("comments.txt"))
+    }
+  }
+}
+section_end()!})!
+
+// 2번 기능: 라이브 스트림 시청
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 480701151)!
+function StartFeature2_LiveViewing(Account, Proxy){
+  YouTubeLiveWatch(LiveID, TTL_PER_VIEWER)
+  AutoReplyToLiveChat("?", "감사합니다! 더 보여주세요!")
+  AutoReplyToLiveChat("가격", "DM 주세요! 🙏")
+  
+  for(var i = 0; i < 10; i++){
+    RotateProxy(300)
+    RandomizeViewPattern()
+    Delay(Random(300, 1800))
+  }
+}
+section_end()!})!
+
+// 3번 기능: 채널 분석
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 570418988)!
+function StartFeature3_ChannelAnalysis(Account, Proxy){
+  AnalyzeChannelPerformance(Account.channel_id)
+  TrackViewGrowth()
+  TrackLikeGrowth()
+  TrackCommentGrowth()
+  GenerateReports("./data/reports/" + Account.id + ".html")
+  UploadToGoogleSheets("1aBcDeFgHiJkLmNoPqRsTuVwXyZ", "ChannelAnalysis!A1", "Account,Views,Likes,Comments,Time")
+}
+section_end()!})!
+
+// 4번 기능: 계정 관리
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 510216254)!
+function StartFeature4_AccountManagement(Account, Proxy){
+  ChangeProfilePhoto("random_korean_face.jpg")
+  ChangeProfileName(RandomKoreanName())
+  CreateYouTubeChannel(RandomKoreanName())
+  ChangePassword(RandomPassword())
+}
+section_end()!})!
+
+// 5번 기능: 프록시 관리
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 26618711)!
+function StartFeature5_ProxyManagement(Account, Proxy){
+  UseUKFixedProxy(100, "unlimited")
+  SeparateProxyForYouTube()
+  SeparateProxyForGmail()
+  ValidateProxyAccess()
+  MonitorProxyQuality(200)
+}
+section_end()!})!
+
+// 6번 기능: 핑거프린팅
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("\u007b\u0022n\u0022:\u0022Windows\u0022\u007d", 543400200)!
+function StartFeature6_Fingerprinting(Account, Proxy){
+  RandomizeBrowser(["Windows", "Mac", "Android", "iPhone", "Random"])
+  RandomizeResolution()
+  RandomizeUserAgent()
+  RandomizeDeviceID()
+  EmulateDifferentDevices()
+  UseHighQualityFingerprintAPI("J6tgC3yKrA67k6wr4SpeqWxLlRqgyZ8N0AhkmCmV9jAPC5hxuo1jt9TfFDsWWhJI")
+}
+section_end()!})!
+
+// 7번 기능: 댓글 작성
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 128354497)!
+function StartFeature7_Commenting(Account, Proxy){
+  PostComment(RandomLine("comments.txt"))
+  VisitChannel(RandomLine("channels.txt"))
+  WatchLatestVideo()
+  LikeShorts("random_account")
+}
+section_end()!})!
+
+// 8번 기능: 좋아요
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 808287237)!
+function StartFeature8_Liking(Account, Proxy){
+  LikeShorts(Shorts.VideoID)
+  SubscribeChannel(Shorts.ChannelID)
+}
+section_end()!})!
+
+// 9번 기능: 계정 업데이트
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 995813167)!
+function StartFeature9_AccountUpdate(Account, Proxy){
+  ChangeProfilePhoto("korean_profile.jpg")
+  ChangeProfileName(RandomKoreanName())
+  CreateYouTubeChannel(RandomKoreanName())
+  ChangePassword(RandomPassword())
+}
+section_end()!})!
+
+// 10번 기능: 파밍 활동
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 981963163)!
+function StartFeature10_FarmingActivity(Account, Proxy){
+  EnablePOPIMAP()
+  SubscribeRandomNewsletter()
+  CreateRandomCalendarEvent()
+  SendEmailToSelf()
+  SignUpForServices()
+  SearchYouTube(RandomLine("keywords.txt"))
+}
+section_end()!})!
+
+// 11번 기능: 고정 프록시 YouTube
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 628987818)!
+function StartFeature11_FixedProxyYouTube(Account, Proxy){
+  UseFixedUKProxy(100, "unlimited")
+  SeparateProxyUsage(true, true)
+  ConnectToYouTube("https://www.youtube.com")
+  LoginWithGoogleAccount(Account.id, Account.pass)
+  MaintainFixedConnection()
+}
+section_end()!})!
+
+// 12번 기능: 비활성화 계정 항소
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 444000426)!
+function StartFeature12_AppealDisabledAccounts(Account, Proxy){
+  DetectDisabledAccount()
+  SubmitAppeal("https://support.google.com/accounts/contact/disabled")
+  WaitForRecovery(86400)
+  VerifyRecovery()
+}
+section_end()!})!
+
+// 13번 기능: SMS 인증
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 30549371)!
+function StartFeature13_SMSVerification(Account, Proxy){
+  VerifyWithSMS(["sms-activate.ru", "5sim.net", "smshub.org", "sms-reg.com", "vak-sms.com", "sms-man.ru", "smspva.com", "onlinesim.ru", "simsms.org", "smsonline.cloud", "smspool.net", "plivo.com"])
+  Handle2FACode("wahe wewq zljf auxp")
+}
+section_end()!})!
+
+// 14번 기능: 실시간 탐지
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 311616046)!
+function StartFeature14_RealTimeDetection(Account, Proxy){
+  DetectLiveStream()
+  EnterLiveStream()
+  MaintainViewership(3600)
+  AutoRespondToChat()
+}
+section_end()!})!
+
+// 15번 기능: 모바일 프록시 시청
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 720224454)!
+function StartFeature15_MobileProxyViewing(Account, Proxy){
+  UseRotatingMobileProxy()
+  UseResidentialProxy()
+  ConnectToLiveStream(LiveStreamURL)
+  MaintainViewership(Random(300, 1800))
+  RotateProxy(300)
+}
+section_end()!})!
+
+// 16번 기능: Shorts 확장
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 461894279)!
+function StartFeature16_ShortViewExtension(Account, Proxy){
+  DirectLinkInsertion("shorts-url-Link.txt")
+  BulkViewShorts(1000000)
+  RandomizeViewPattern()
+  UseHighQualityFingerprintAPI()
+}
+section_end()!})!
+
+// 17번 기능: 계정 체커
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 41432325)!
+function StartFeature17_AccountChecker(Account, Proxy){
+  CreateFolder("account_checker_reporter")
+  CheckAccountStatus("gaccounts.txt")
+  
+  if(LoginFailed){
+    CategorizeAccount("bad_gmail")
+  }
+  
+  CheckProxyStatus()
+  
+  if(ProxyFailed){
+    CategorizeProxy("bad_proxy")
+  }
+  
+  GenerateReports()
+}
+section_end()!})!
+
+// 18번 기능: 프록시 회전 최적화
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 230874112)!
+function StartFeature18_ProxyRotationOptimization(Account, Proxy){
+  UseRotatingProxy(300)
+  ValidateProxyConnection()
+  SwitchToBackupProxy()
+  MonitorProxyPerformance()
+}
+section_end()!})!
+
+// 19번 기능: 현실적인 사용자 행동
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 29498743)!
+function StartFeature19_RealisticUserBehavior(Account, Proxy){
+  EmulateMouseMovement()
+  EmulateScrolling()
+  EmulateClicks()
+  RandomizeBehaviorPattern()
+  AddHumanLikeDelays()
+}
+section_end()!})!
+
+// 20번 기능: 성능 모니터링
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 115027408)!
+function StartFeature20_PerformanceMonitoring(Account, Proxy){
+  MonitorCPUUsage()
+  MonitorMemoryUsage()
+  LogPerformanceMetrics(settings.LogFile)
+  OptimizeResourceUsage()
+}
+section_end()!})!
+
+// 21번 기능: 보안 준수
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 906706267)!
+function StartFeature21_SecurityCompliance(Account, Proxy){
+  CheckTermsOfServiceCompliance()
+  AvoidRateLimiting()
+  RespectRobotsTxt()
+  ImplementEthicalAutomationPractices()
+}
+section_end()!})!
+
+// 22번 기능: 실시간 분석
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 420827245)!
+function StartFeature22_RealTimeAnalytics(Account, Proxy){
+  TrackViewGrowth()
+  TrackLikeGrowth()
+  TrackCommentGrowth()
+  GenerateRealTimeReport()
+  UploadToGoogleSheets()
+}
+section_end()!})!
+
+// 23번 기능: 라이브 스트림 랭킹
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 508086057)!
+function StartFeature23_LiveStreamRanking(Account, Proxy){
+  SearchForKeyword(RandomLine("live_ranking_keywords.txt"))
+  ClickLiveSection()
+  FindTargetLiveStream()
+  ClickLiveStream()
+  MaintainViewership(Random(600, 3600))
+  AutoRespondToChat()
+}
+section_end()!})!
+
+// UI 컨트롤 설정
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 901489088)!
+CreateUI()
+AddToggleButton("🟢 LIVE 고정 시청자 유지", "LIVE_VIEWERS", true)
+AddToggleButton("🟣 Shorts 시청 최적화", "SHORTS_OPTIMIZE", true)
+AddToggleButton("❤️ 댓글/좋아요/구독 자동화", "AUTO_ENGAGE", true)
+AddToggleButton("🔁 조회수 반복 입장/이탈", "LOOP_VIEW", true)
+AddToggleButton("📩 지메일 계정 생성", "CREATE_GMAIL", false)
+AddToggleButton("📷 유튜브 채널 생성", "CREATE_CHANNEL", true)
+AddToggleButton("🧠 자동 댓글봇", "AUTO_COMMENT", true)
+AddToggleButton("🌐 다국어 번역 기능", "MULTI_LANG", true)
+AddToggleButton("📡 IMEI + 회전 프록시 설정", "ROTATE_PROXY", true)
+StartStopControl()
+section_end()!})!
+
+// 파일 관리
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 671444109)!
+CreateFolder("account_checker_reporter")
+CreateFile("login_success_gmail_proxy.txt", "id|pass|recovery|recovery_pass|proxy")
+CreateFile("new_gmail_proxy_needed.txt", "proxy")
+CreateFile("bad_proxy.txt", "proxy")
+CreateFile("duplicate_proxy.txt", "proxy")
+CreateFile("disabled_accounts.txt", "id|pass|recovery|recovery_pass")
+CreateFile("phone_verification_needed.txt", "proxy")
+CreateFile("verification_needed_phone.txt", "id|pass|recovery|recovery_pass|proxy")
+CreateFile("tablet_verification_required.txt", "id|pass|recovery|recovery_pass|proxy")
+CreateFile("phone_verification_required.txt", "id|pass|recovery|recovery_pass|proxy")
+CreateFile("phone_verification_pending.txt", "id|pass|recovery|recovery_pass|proxy")
+CreateFile("tablet_verification_pending.txt", "id|pass|recovery|recovery_pass|proxy")
+CreateFile("invalid_email.txt", "id|pass|recovery|recovery_pass|proxy")
+CreateFile("password_changed.txt", "id|pass|recovery|recovery_pass|proxy")
+CreateFile("gmail_inactive_proxy_active.txt", "id|pass|recovery|recovery_pass|proxy")
+CreateFile("account_verification_phone_required.txt", "id|pass|recovery|recovery_pass|proxy")
+CreateFile("account_verification_tablet_required.txt", "id|pass|recovery|recovery_pass|proxy")
+CreateFile("account_verification_pending.txt", "id|pass|recovery|recovery_pass|proxy")
+CreateFile("account_needs_recovery.txt", "id|pass|recovery|recovery_pass|proxy")
+CreateFile("account_suspended.txt", "id|pass|recovery|recovery_pass|proxy")
+section_end()!})!
+
+// 계정 체커 리포터
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 673792037)!
+CreateFolder("account_checker_reporter")
+CheckAccountStatus()
+
+if(LoginSuccess){
+  CreateFile("login_success_gmail_proxy.txt", "id|pass|recovery|recovery_pass|proxy")
+}
+
+if(NewGmailNeeded){
+  CreateFile("new_gmail_proxy_needed.txt", "proxy")
+}
+
+if(BadProxy){
+  CreateFile("bad_proxy.txt", "proxy")
+}
+
+if(DuplicateProxy){
+  CreateFile("duplicate_proxy.txt", "proxy")
+}
+
+if(DisabledAccount){
+  CreateFile("disabled_accounts.txt", "id|pass|recovery|recovery_pass")
+}
+
+if(PhoneVerificationNeeded){
+  CreateFile("phone_verification_needed.txt", "proxy")
+}
+
+if(VerificationNeededPhone){
+  CreateFile("verification_needed_phone.txt", "id|pass|recovery|recovery_pass|proxy")
+}
+
+if(TabletVerificationRequired){
+  CreateFile("tablet_verification_required.txt", "id|pass|recovery|recovery_pass|proxy")
+}
+
+if(PhoneVerificationRequired){
+  CreateFile("phone_verification_required.txt", "id|pass|recovery|recovery_pass|proxy")
+}
+
+if(PhoneVerificationPending){
+  CreateFile("phone_verification_pending.txt", "id|pass|recovery|recovery_pass|proxy")
+}
+
+if(TabletVerificationPending){
+  CreateFile("tablet_verification_pending.txt", "id|pass|recovery|recovery_pass|proxy")
+}
+
+if(InvalidEmail){
+  CreateFile("invalid_email.txt", "id|pass|recovery|recovery_pass|proxy")
+}
+
+if(PasswordChanged){
+  CreateFile("password_changed.txt", "id|pass|recovery|recovery_pass|proxy")
+}
+
+if(GmailInactiveProxyActive){
+  CreateFile("gmail_inactive_proxy_active.txt", "id|pass|recovery|recovery_pass|proxy")
+}
+section_end()!})!
+
+// 병렬 실행을 위한 핵심 설정
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 901489088)!
+SetThreadCount(500)
+EnableParallelExecution(true)
+SetThreadDelay(100)
+InitializeBrowserPool(500, false)
+ConfigureThreadManagement(500, 1000, 3600000)
+section_end()!})!
+
+// 23번 기능(실시간 분석) 병렬 실행
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 508086057)!
+function StartFeature23_RealTimeAnalyticsParallel(Account, Proxy){
+  loop("AnalyticsLoop", true, 500, function(){
+    GetNextAccount("Account")
+    if(AccountAvailable){
+      InitializeBrowser("Chromium", false)
+      SetProxy("API", "https://pyproxy.com/api", RESOURCE_PROXY_API_KEY)
+      LoginToGoogle(Account.id, Account.pass)
+      
+      MonitorChannelPerformance(Account.channel_id, 30000)
+      UploadAnalyticsData("1aBcDeFgHiJkLmNoPqRsTuVwXyZ", "A1")
+    }
+  })
+}
+section_end()!})!

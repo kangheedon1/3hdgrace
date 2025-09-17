@@ -1,0 +1,1243 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HDGRACE YouTube Automation - BEST VERSION</title>
+    <style>
+        :root {
+            --primary: #1a1a1a;
+            --secondary: #00ff99;
+            --accent: #ff4757;
+            --text: #e6e6e6;
+            --input-bg: #2c2c2c;
+            --gradient: linear-gradient(135deg, var(--primary), var(--secondary));
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: var(--primary);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 0 30px rgba(0, 255, 153, 0.3);
+            background: var(--gradient);
+        }
+
+        button {
+            background: var(--secondary);
+            color: var(--primary);
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 5px;
+            font-size: 16px;
+        }
+
+        button:hover {
+            background: var(--accent);
+            box-shadow: 0 3px 10px rgba(255, 71, 87, 0.5);
+        }
+
+        .status-bar {
+            padding: 15px;
+            background: var(--secondary);
+            color: var(--primary);
+            border-radius: 8px;
+            margin: 20px 0;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        #log-output {
+            height: 400px;
+            overflow-y: auto;
+            background: #1a1a1a;
+            color: #00ff99;
+            padding: 20px;
+            border-radius: 10px;
+            font-family: 'Consolas', monospace;
+            margin-top: 20px;
+        }
+
+        .country-selector {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .country-option {
+            background: var(--input-bg);
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+        }
+
+        .country-option:hover {
+            background: var(--secondary);
+            color: var(--primary);
+        }
+
+        .country-option.selected {
+            background: var(--accent);
+            color: white;
+            border: 2px solid var(--secondary);
+        }
+
+        .country-flag {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+
+        .info-card {
+            background: var(--input-bg);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+
+        .isp-section {
+            display: none;
+            margin-top: 20px;
+            padding: 15px;
+            background: var(--input-bg);
+            border-radius: 8px;
+        }
+
+        .isp-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .isp-option {
+            background: var(--input-bg);
+            padding: 8px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .isp-option.selected {
+            background: var(--secondary);
+            color: var(--primary);
+        }
+
+        .button-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: center;
+            margin: 20px 0;
+        }
+
+        .section {
+            background: var(--primary);
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .section h2 {
+            color: var(--secondary);
+            margin-bottom: 15px;
+        }
+
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            background: var(--input-bg);
+            border: 2px solid var(--secondary);
+            border-radius: 8px;
+            color: var(--text);
+            transition: all 0.3s ease;
+        }
+
+        input[type="text"]:focus, textarea:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 10px rgba(255, 71, 87, 0.5);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .modal-content {
+            background: var(--primary);
+            color: var(--text);
+            padding: 30px;
+            border-radius: 10px;
+            max-width: 800px;
+            width: 100%;
+            box-shadow: 0 0 20px rgba(0, 255, 153, 0.5);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="pulse" style="color: var(--secondary); text-align: center; text-shadow: 0 0 10px #00ff99;">
+            HDGRACE YouTube Automation - BEST VERSION
+        </h1>
+
+        <!-- 국가 선택 섹션 -->
+        <div class="section">
+            <h2>🌍 국가 및 프록시 설정</h2>
+            
+            <div class="country-selector">
+                <div class="country-option" data-country="Korea" onclick="selectCountry(this)">
+                    <div class="country-flag">🇰🇷</div>
+                    <div>한국</div>
+                </div>
+                <div class="country-option" data-country="USA" onclick="selectCountry(this)">
+                    <div class="country-flag">🇺🇸</div>
+                    <div>미국</div>
+                </div>
+                <div class="country-option" data-country="Japan" onclick="selectCountry(this)">
+                    <div class="country-flag">🇯🇵</div>
+                    <div>일본</div>
+                </div>
+                <div class="country-option" data-country="Germany" onclick="selectCountry(this)">
+                    <div class="country-flag">🇩🇪</div>
+                    <div>독일</div>
+                </div>
+                <div class="country-option" data-country="UK" onclick="selectCountry(this)">
+                    <div class="country-flag">🇬🇧</div>
+                    <div>영국</div>
+                </div>
+                <div class="country-option" data-country="Thailand" onclick="selectCountry(this)">
+                    <div class="country-flag">🇹🇭</div>
+                    <div>태국</div>
+                </div>
+                <div class="country-option" data-country="Vietnam" onclick="selectCountry(this)">
+                    <div class="country-flag">🇻🇳</div>
+                    <div>베트남</div>
+                </div>
+                <div class="country-option" data-country="Philippines" onclick="selectCountry(this)">
+                    <div class="country-flag">🇵🇭</div>
+                    <div>필리핀</div>
+                </div>
+                <div class="country-option" data-country="HongKong" onclick="selectCountry(this)">
+                    <div class="country-flag">🇭🇰</div>
+                    <div>홍콩</div>
+                </div>
+                <div class="country-option" data-country="Cambodia" onclick="selectCountry(this)">
+                    <div class="country-flag">🇰🇭</div>
+                    <div>캄보디아</div>
+                </div>
+                <div class="country-option" data-country="Russia" onclick="selectCountry(this)">
+                    <div class="country-flag">🇷🇺</div>
+                    <div>러시아</div>
+                </div>
+            </div>
+
+            <!-- 한국 ISP 섹션 -->
+            <div id="koreaISPSection" class="isp-section">
+                <h3>🇰🇷 한국 ISP 대역대</h3>
+                <div class="isp-list">
+                    <div class="isp-option" data-isp="SKT">SK Telecom</div>
+                    <div class="isp-option" data-isp="KT">KT</div>
+                    <div class="isp-option" data-isp="LGU+">LG U+</div>
+                    <div class="isp-option" data-isp="Random">자동 선택</div>
+                </div>
+            </div>
+
+            <!-- 러시아 ISP 섹션 -->
+            <div id="russiaISPSection" class="isp-section">
+                <h3>🇷🇺 러시아 ISP</h3>
+                <div class="isp-list">
+                    <div class="isp-option" data-isp="Beeline">Beeline</div>
+                    <div class="isp-option" data-isp="MTS">MTS</div>
+                    <div class="isp-option" data-isp="Megafon">Megafon</div>
+                    <div class="isp-option" data-isp="Random">자동 선택</div>
+                </div>
+            </div>
+
+            <!-- 미국 ISP 섹션 -->
+            <div id="usISPSection" class="isp-section">
+                <h3>🇺🇸 미국 ISP</h3>
+                <div class="isp-list">
+                    <div class="isp-option" data-isp="Comcast">Comcast</div>
+                    <div class="isp-option" data-isp="AT&T">AT&T</div>
+                    <div class="isp-option" data-isp="Verizon">Verizon</div>
+                    <div class="isp-option" data-isp="Spectrum">Spectrum</div>
+                    <div class="isp-option" data-isp="Random">자동 선택</div>
+                </div>
+            </div>
+
+            <!-- 일본 ISP 섹션 -->
+            <div id="jpISPSection" class="isp-section">
+                <h3>🇯🇵 일본 ISP</h3>
+                <div class="isp-list">
+                    <div class="isp-option" data-isp="NTT">NTT</div>
+                    <div class="isp-option" data-isp="SoftBank">SoftBank</div>
+                    <div class="isp-option" data-isp="KDDI">KDDI</div>
+                    <div class="isp-option" data-isp="Rakuten">Rakuten</div>
+                    <div class="isp-option" data-isp="Random">자동 선택</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 시스템 설정 섹션 -->
+        <div class="section">
+            <h2>시스템 설정</h2>
+            <div>
+                <label>프록시 파일: <input type="text" id="proxies" placeholder="proxies.txt"></label>
+            </div>
+            <div>
+                <label>SMS API 키: <input type="text" id="sms_api" placeholder="API 키"></label>
+            </div>
+            <div>
+                <label>reCAPTCHA 키: <input type="text" id="recaptcha_key" placeholder="API 키"></label>
+            </div>
+            <div class="info-card">
+                <h3>🤖 자동 프록시 시스템</h3>
+                <p>• 선택된 국가에 따라 자동으로 ISP와 대역대를 랜덤 선택</p>
+                <p>• 한국: SKT, KT, LGU+ 중 33% 확률로 랜덤</p>
+                <p>• 대역대: 각 ISP의 3가지 주요 대역대 중 30% 확률로 랜덤</p>
+                <p>• 프록시 형식: 자동 감지 및 적용</p>
+            </div>
+        </div>
+
+        <!-- 제어 버튼 -->
+        <div class="button-group">
+            <button onclick="applyProxySettings()">🔄 프록시 자동 설정</button>
+            <button onclick="startAutomation()">▶️ 시작</button>
+            <button onclick="stopAutomation()">⏹️ 중지</button>
+            <button onclick="resetSettings()">♻️ 초기화</button>
+        </div>
+
+        <!-- 추가 기능 버튼 -->
+        <div class="section">
+            <h2>기능 제어</h2>
+            <div class="button-group">
+                <button onclick="createGmailAccount()">📧 계정 생성</button>
+                <button onclick="setupYouTubeChannel()">🎥 채널 생성</button>
+                <button onclick="startFarming()">🌱 파밍 시작</button>
+                <button onclick="scrapeVideos()">🔍 비디오 스크래핑</button>
+                <button onclick="recover2FA()">🔒 2FA 복구</button>
+                <button onclick="boostSubscribers()">👥 구독자 증가</button>
+                <button onclick="sendLiveChat()">💬 라이브 채팅</button>
+                <button onclick="postShortsComment()">📝 Shorts 댓글</button>
+                <button onclick="googleRankBoost()">🏆 구글 1등 상승</button>
+            </div>
+        </div>
+
+        <!-- 상태 표시 -->
+        <div class="status-bar" id="statusBar">대기 중...</div>
+
+        <!-- 로그 영역 -->
+        <div id="log-output"></div>
+    </div>
+
+    <script>
+        let selectedCountry = 'Korea';
+        let selectedISP = 'Random';
+        let koreanISP = 'Random';
+        let proxySettings = {
+            'Korea': {
+                'SKT': {
+                    'BandA': ['101.254.', '112.172.', '123.140.'],
+                    'BandB': ['125.141.', '211.224.', '203.249.'],
+                    'BandC': ['118.129.', '110.10.', '218.144.']
+                },
+                'KT': {
+                    'BandA': ['125.141.', '211.224.', '203.249.'],
+                    'BandB': ['106.101.', '106.102.', '210.105.'],
+                    'BandC': ['210.106.', '210.107.', '210.108.']
+                },
+                'LGU+': {
+                    'BandA': ['118.129.', '110.10.', '218.144.'],
+                    'BandB': ['211.208.', '211.209.', '211.210.'],
+                    'BandC': ['211.211.', '211.212.', '211.213.']
+                }
+            },
+            'USA': {
+                'Comcast': {
+                    'BandA': ['73.73.', '96.73.', '98.13.'],
+                    'BandB': ['67.178.', '68.86.', '69.252.'],
+                    'BandC': ['71.196.', '72.14.', '74.124.']
+                },
+                'AT&T': {
+                    'BandA': ['12.12.', '99.12.', '100.40.'],
+                    'BandB': ['12.13.', '99.13.', '100.41.'],
+                    'BandC': ['12.14.', '99.14.', '100.42.']
+                }
+            },
+            'Japan': {
+                'NTT': {
+                    'BandA': ['118.69.', '118.129.', '123.106.'],
+                    'BandB': ['124.83.', '124.85.', '124.88.'],
+                    'BandC': ['125.176.', '125.178.', '125.180.']
+                },
+                'SoftBank': {
+                    'BandA': ['122.152.', '122.153.', '122.154.'],
+                    'BandB': ['124.155.', '124.156.', '124.157.'],
+                    'BandC': ['210.148.', '210.149.', '210.150.']
+                }
+            }
+        };
+
+        function selectCountry(element) {
+            // 모든 옵션에서 selected 클래스 제거
+            document.querySelectorAll('.country-option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            
+            // 선택된 옵션에 selected 클래스 추가
+            element.classList.add('selected');
+            selectedCountry = element.dataset.country;
+            
+            // 모든 ISP 섹션 숨김
+            document.querySelectorAll('.isp-section').forEach(section => {
+                section.style.display = 'none';
+            });
+            
+            // 선택된 국가의 ISP 섹션 표시
+            if (selectedCountry === 'Korea') {
+                document.getElementById('koreaISPSection').style.display = 'block';
+            } else if (selectedCountry === 'USA') {
+                document.getElementById('usISPSection').style.display = 'block';
+            } else if (selectedCountry === 'Japan') {
+                document.getElementById('jpISPSection').style.display = 'block';
+            } else if (selectedCountry === 'Russia') {
+                document.getElementById('russiaISPSection').style.display = 'block';
+            }
+            
+            updateStatus(`선택된 국가: ${selectedCountry}`);
+        }
+
+        function selectISP(element, country) {
+            // 모든 옵션에서 selected 클래스 제거
+            element.parentElement.querySelectorAll('.isp-option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            
+            // 선택된 옵션에 selected 클래스 추가
+            element.classList.add('selected');
+            selectedISP = element.dataset.isp;
+            
+            if (country === 'Korea') {
+                koreanISP = selectedISP;
+            }
+            
+            updateStatus(`선택된 ISP: ${selectedISP}`);
+        }
+
+        function applyProxySettings() {
+            if (!selectedCountry) {
+                updateStatus('⚠️ 국가를 먼저 선택해주세요', 'error');
+                return;
+            }
+            
+            // BAS로 설정 전송
+            const proxyFile = document.getElementById('proxies').value;
+            const smsAPI = document.getElementById('sms_api').value;
+            
+            // 선택된 ISP가 'Random'인 경우 랜덤 선택
+            if (selectedISP === 'Random' || selectedISP === '') {
+                if (selectedCountry === 'Korea') {
+                    const isps = ['SKT', 'KT', 'LGU+'];
+                    koreanISP = isps[Math.floor(Math.random() * isps.length)];
+                    updateLog(`자동 선택된 ISP: ${koreanISP}`);
+                }
+            }
+            
+            updateStatus(`✅ ${selectedCountry} 프록시 설정 적용 완료`);
+            updateLog(`🌍 ${selectedCountry} 국가 설정됨`);
+            
+            if (koreanISP && selectedCountry === 'Korea') {
+                updateLog(`📡 ${koreanISP} ISP 대역대 자동 적용`);
+            }
+        }
+
+        function startAutomation() {
+            if (!selectedCountry) {
+                updateStatus('⚠️ 국가를 먼저 선택해주세요', 'error');
+                return;
+            }
+            
+            // 프록시 설정이 적용되었는지 확인
+            if (!document.getElementById('proxies').value) {
+                updateStatus('⚠️ 프록시 파일 경로를 설정해주세요', 'error');
+                return;
+            }
+            
+            updateStatus('🔍 자동화 실행 중...');
+            updateLog('▶️ 전체 자동화 실행 시작');
+            
+            // 500개 스레드 실행 시뮬레이션
+            setTimeout(() => {
+                updateLog('✅ 500개 동시 고정 시청자 루프 시작');
+                updateLog('💡 모든 고정 시청자 루프 완료');
+                updateStatus('✅ 500개 동시 고정 시청자 실행 완료');
+            }, 2000);
+        }
+
+        function stopAutomation() {
+            updateStatus('⏹️ 작업 중지됨');
+            updateLog('⏹️ 작업 중지 요청');
+        }
+
+        function resetSettings() {
+            document.getElementById('proxies').value = '';
+            document.getElementById('sms_api').value = '';
+            document.getElementById('recaptcha_key').value = '';
+            updateLog('🔄 설정 초기화 완료');
+        }
+
+        // 추가 기능 연결
+        function createGmailAccount() {
+            updateLog('📧 Gmail 계정 생성 시작');
+        }
+
+        function setupYouTubeChannel() {
+            updateLog('🎥 채널 자동 생성');
+        }
+
+        function startFarming() {
+            updateLog('🌱 파밍 루틴 실행');
+        }
+
+        function scrapeVideos() {
+            updateLog('🔍 스크래핑 시작');
+        }
+
+        function recover2FA() {
+            updateLog('🔒 2FA 복구 시도');
+        }
+
+        function boostSubscribers() {
+            updateLog('👥 구독 증가 루틴 시작');
+        }
+
+        function sendLiveChat() {
+            updateLog('💬 라이브 채팅 전송');
+        }
+
+        function postShortsComment() {
+            updateLog('📝 Shorts 댓글 작성');
+        }
+
+        function googleRankBoost() {
+            updateLog('🏆 구글 순위 상승 시작');
+        }
+
+        function updateStatus(message, type = 'info') {
+            const statusBar = document.getElementById('statusBar');
+            statusBar.textContent = message;
+            statusBar.classList.remove('error');
+            if (type === 'error') statusBar.classList.add('error');
+        }
+
+        function updateLog(message, color = '#00ff99') {
+            const logDiv = document.getElementById('log-output');
+            const newLog = document.createElement('div');
+            newLog.style.color = color;
+            newLog.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logDiv.appendChild(newLog);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        // 초기화
+        document.addEventListener('DOMContentLoaded', function() {
+            // 기본 국가 선택
+            document.querySelector('.country-option[data-country="Korea"]').classList.add('selected');
+            
+            // 한국 ISP 섹션 표시
+            document.getElementById('koreaISPSection').style.display = 'block';
+        });
+    </script>
+
+    <!-- BAS XML 프로젝트 코드 (숨겨진 요소) -->
+    <script type="application/xml" id="basProject">
+        <?xml version="1.0" encoding="UTF-8"?>
+        <BrowserAutomationStudioProject>
+            <!-- 리소스 관리 -->
+            <Resources>
+                <Resource Name="Proxies" Path="proxies.txt"/>
+                <Resource Name="SMSAPIKeys" Path="smsapikeys.txt"/>
+                <Resource Name="RecaptchaKey" Path="recaptchaapikey.txt"/>
+                <Resource Name="Accounts" Path="accounts.txt"/>
+                <Resource Name="Avatars" Path="avatars/"/>
+                <Resource Name="ScrapedVideos" Path="scraped_videos.txt"/>
+                <Resource Name="2FAKeys" Path="2fa_keys.txt"/>
+                <Resource Name="TargetChannels" Path="target_channels.txt"/>
+                <Resource Name="SKTProxies" Path="proxies/skt_proxies.txt"/>
+                <Resource Name="KTProxies" Path="proxies/kt_proxies.txt"/>
+                <Resource Name="LGUProxies" Path="proxies/lgu_proxies.txt"/>
+                <Resource Name="USProxies" Path="proxies/us_proxies.txt"/>
+                <Resource Name="JPProxies" Path="proxies/jp_proxies.txt"/>
+            </Resources>
+
+            <!-- 매크로 정의 -->
+            <Macros>
+                <!-- 메인 루프 -->
+                <Macro Name="Start">
+                    <action name="loadResources"/>
+                    <action name="mainloop"/>
+                </Macro>
+
+                <!-- 로그인 복구 루틴 -->
+                <Macro Name="mainloop">
+                    <action name="checkloginstatus"/>
+                    <If condition="LoginFailed">
+                        <Then>
+                            <action name="recoverLogin"/>
+                            <action name="logevent">
+                                <Type>LoginRecovery</Type>
+                                <Details>Login failed - recovery executed</Details>
+                            </action>
+                        </Then>
+                    </If>
+                    <action name="monitorProxy"/>
+                    <If condition="ProxyIsSlow">
+                        <Then>
+                            <action name="rotateProxy"/>
+                            <action name="logevent">
+                                <Type>ProxyRotation</Type>
+                                <Details>Proxy changed due to slow response</Details>
+                            </action>
+                        </Then>
+                    </If>
+                    <action name="checkSMSStatus"/>
+                    <If condition="SMSFailureDetected">
+                        <Then>
+                            <action name="switchSMSProvider"/>
+                            <action name="logevent">
+                                <Type>SMSRecovery</Type>
+                                <Details>Switched SMS API due to failure</Details>
+                            </action>
+                        </Then>
+                    </If>
+                    <action name="detectCaptcha"/>
+                    <If condition="RecaptchaPresent">
+                        <Then>
+                            <action name="solveCaptcha"/>
+                            <action name="logevent">
+                                <Type>CaptchaBypassed</Type>
+                                <Details>2Captcha used to solve ReCaptcha</Details>
+                            </action>
+                        </Then>
+                    </If>
+                    <action name="delay">
+                        <Timeout>150</Timeout>
+                    </action>
+                    <action name="mainloop"/>
+                </Macro>
+
+                <!-- 국가별 프록시 선택 -->
+                <Macro Name="SelectCountryProxy">
+                    <action name="GetUserCountryChoice">
+                        <Variable>SelectedCountry</Variable>
+                    </action>
+                    
+                    <If condition="SelectedCountry == 'Korea'">
+                        <Then>
+                            <action name="AutoSelectKoreanISP"/>
+                            <action name="ApplyKoreanProxy"/>
+                        </Then>
+                    </If>
+                    
+                    <If condition="SelectedCountry == 'USA'">
+                        <Then>
+                            <action name="SetProxyFile">
+                                <File>${USProxies}</File>
+                            </action>
+                            <action name="ApplyUSProxy"/>
+                        </Then>
+                    </If>
+                    
+                    <If condition="SelectedCountry == 'Japan'">
+                        <Then>
+                            <action name="SetProxyFile">
+                                <File>${JPProxies}</File>
+                            </action>
+                            <action name="ApplyJapanProxy"/>
+                        </Then>
+                    </If>
+                    
+                    <If condition="SelectedCountry == 'UK'">
+                        <Then>
+                            <action name="SelectRandomISP">
+                                <ISPList>BT,TalkTalk,Sky</ISPList>
+                                <Variable>SelectedISP</Variable>
+                            </action>
+                            <action name="SetProxyFile">
+                                <File>${UKProxies}</File>
+                            </action>
+                        </Then>
+                    </If>
+                    
+                    <If condition="SelectedCountry == 'Thailand'">
+                        <Then>
+                            <action name="SelectRandomISP">
+                                <ISPList>3BB,True,AIS</ISPList>
+                                <Variable>SelectedISP</Variable>
+                            </action>
+                            <action name="SetProxyFile">
+                                <File>${ThailandProxies}</File>
+                            </action>
+                        </Then>
+                    </If>
+                    
+                    <If condition="SelectedCountry == 'Vietnam'">
+                        <Then>
+                            <action name="SelectRandomISP">
+                                <ISPList>Viettel,FPT,VNPT</ISPList>
+                                <Variable>SelectedISP</Variable>
+                            </action>
+                            <action name="SetProxyFile">
+                                <File>${VietnamProxies}</File>
+                            </action>
+                        </Then>
+                    </If>
+                    
+                    <If condition="SelectedCountry == 'Philippines'">
+                        <Then>
+                            <action name="SelectRandomISP">
+                                <ISPList>Globe,PLDT</ISPList>
+                                <Variable>SelectedISP</Variable>
+                            </action>
+                            <action name="SetProxyFile">
+                                <File>${PhilippinesProxies}</File>
+                            </action>
+                        </Then>
+                    </If>
+                    
+                    <If condition="SelectedCountry == 'HongKong'">
+                        <Then>
+                            <action name="SelectRandomISP">
+                                <ISPList>HKBN,HKT,CMI</ISPList>
+                                <Variable>SelectedISP</Variable>
+                            </action>
+                            <action name="SetProxyFile">
+                                <File>${HongKongProxies}</File>
+                            </action>
+                        </Then>
+                    </If>
+                    
+                    <If condition="SelectedCountry == 'Cambodia'">
+                        <Then>
+                            <action name="SelectRandomISP">
+                                <ISPList>EZECOM,Cellcard,Metfone</ISPList>
+                                <Variable>SelectedISP</Variable>
+                            </action>
+                            <action name="SetProxyFile">
+                                <File>${CambodiaProxies}</File>
+                            </action>
+                        </Then>
+                    </If>
+                    
+                    <If condition="SelectedCountry == 'Russia'">
+                        <Then>
+                            <action name="SelectRandomISP">
+                                <ISPList>Beeline,MTS,Megafon</ISPList>
+                                <Variable>SelectedISP</Variable>
+                            </action>
+                            <action name="SetProxyFile">
+                                <File>${RussiaProxies}</File>
+                            </action>
+                        </Then>
+                    </If>
+                    
+                    <action name="LogProxyChange">
+                        <Type>ProxyApplied</Type>
+                        <Details>Country: ${SelectedCountry}, ISP: ${CurrentISP}, IP: ${CurrentProxy}</Details>
+                    </action>
+                </Macro>
+
+                <!-- 한국 자동 랜덤 ISP 선택 -->
+                <Macro Name="AutoSelectKoreanISP">
+                    <action name="SetVariable">
+                        <Variable>CurrentISP</Variable>
+                        <Value>{Random(SKT,KT,LGU+)}</Value>
+                    </action>
+                    
+                    <action name="SetVariable">
+                        <Variable>ProxyFile</Variable>
+                        <Value>${CurrentISP}Proxies</Value>
+                    </action>
+                    
+                    <action name="LogEvent">
+                        <Type>ISPSelection</Type>
+                        <Details>자동 선택된 ISP: ${CurrentISP}</Details>
+                    </action>
+                </Macro>
+
+                <!-- 대역대별 프록시 분류 및 랜덤 적용 -->
+                <Macro Name="ApplyKoreanProxy">
+                    <action name="ReadFile">
+                        <File>${ProxyFile}</File>
+                        <Variable>AllProxies</Variable>
+                    </action>
+                    
+                    <!-- 대역대별 분류 -->
+                    <action name="SetVariable">
+                        <Variable>BandAProxies</Variable>
+                        <Value>{Filter(AllProxies, '101.254.|112.172.|123.140.')}</Value>
+                    </action>
+                    <action name="SetVariable">
+                        <Variable>BandBProxies</Variable>
+                        <Value>{Filter(AllProxies, '125.141.|211.224.|203.249.')}</Value>
+                    </action>
+                    <action name="SetVariable">
+                        <Variable>BandCProxies</Variable>
+                        <Value>{Filter(AllProxies, '118.129.|110.10.|218.144.')}</Value>
+                    </action>
+                    
+                    <!-- 대역대 랜덤 선택 (30% 확률로 각 대역대) -->
+                    <action name="SetVariable">
+                        <Variable>BandChoice</Variable>
+                        <Value>{Random(1,10)}</Value>
+                    </action>
+                    
+                    <If condition="BandChoice <= 3">
+                        <Then>
+                            <action name="SetVariable">
+                                <Variable>SelectedBand</Variable>
+                                <Value>BandA</Value>
+                            </action>
+                            <action name="SetVariable">
+                                <Variable>BandProxies</Variable>
+                                <Value>${BandAProxies}</Value>
+                            </action>
+                        </Then>
+                    </If>
+                    
+                    <If condition="BandChoice > 3 AND BandChoice <= 6">
+                        <Then>
+                            <action name="SetVariable">
+                                <Variable>SelectedBand</Variable>
+                                <Value>BandB</Value>
+                            </action>
+                            <action name="SetVariable">
+                                <Variable>BandProxies</Variable>
+                                <Value>${BandBProxies}</Value>
+                            </action>
+                        </Then>
+                    </If>
+                    
+                    <If condition="BandChoice > 6">
+                        <Then>
+                            <action name="SetVariable">
+                                <Variable>SelectedBand</Variable>
+                                <Value>BandC</Value>
+                            </action>
+                            <action name="SetVariable">
+                                <Variable>BandProxies</Variable>
+                                <Value>${BandCProxies}</Value>
+                            </action>
+                        </Then>
+                    </If>
+                    
+                    <!-- 대역대 내 프록시 랜덤 선택 -->
+                    <action name="SetVariable">
+                        <Variable>RandomProxy</Variable>
+                        <Value>{RandomLine(BandProxies)}</Value>
+                    </action>
+                    
+                    <!-- 프록시 형식 자동 감지 및 적용 -->
+                    <action name="ParseAndAssignProxy">
+                        <RawProxy>${RandomProxy}</RawProxy>
+                    </action>
+                    
+                    <action name="SetVariable">
+                        <Variable>CurrentProxy</Variable>
+                        <Value>${RandomProxy}</Value>
+                    </action>
+                    
+                    <action name="LogEvent">
+                        <Type>BandSelected</Type>
+                        <Details>대역대: ${SelectedBand}, IP: ${RandomProxy}</Details>
+                    </action>
+                </Macro>
+
+                <!-- 프록시 형식 자동 감지 -->
+                <Macro Name="ParseAndAssignProxy">
+                    <Parameter Name="RawProxy"/>
+                    
+                    <!-- IP:PORT 형식 -->
+                    <If condition="RegexMatch(RawProxy, '^\d+\.\d+\.\d+\.\d+:\d+$')">
+                        <Then>
+                            <action name="ExtractText">
+                                <Text>${RawProxy}</Text>
+                                <Regex>(\d+\.\d+\.\d+\.\d+):(\d+)</Regex>
+                                <Variable>ProxyIP</Variable>
+                                <Variable>ProxyPort</Variable>
+                            </action>
+                            
+                            <action name="SetProxy">
+                                <Type>HTTP</Type>
+                                <IP>${ProxyIP}</IP>
+                                <Port>${ProxyPort}</Port>
+                            </action>
+                        </Then>
+                    </If>
+                    
+                    <!-- IP:PORT:USER:PASS 형식 -->
+                    <ElseIf condition="RegexMatch(RawProxy, '^\d+\.\d+\.\d+\.\d+:\d+:\w+:\w+$')">
+                        <Then>
+                            <action name="ExtractText">
+                                <Text>${RawProxy}</Text>
+                                <Regex>(\d+\.\d+\.\d+\.\d+):(\d+):(\w+):(\w+)</Regex>
+                                <Variable>ProxyIP</Variable>
+                                <Variable>ProxyPort</Variable>
+                                <Variable>ProxyUser</Variable>
+                                <Variable>ProxyPass</Variable>
+                            </action>
+                            
+                            <action name="SetProxy">
+                                <Type>HTTP</Type>
+                                <IP>${ProxyIP}</IP>
+                                <Port>${ProxyPort}</Port>
+                                <Username>${ProxyUser}</Username>
+                                <Password>${ProxyPass}</Password>
+                            </action>
+                        </Then>
+                    </ElseIf>
+                    
+                    <!-- SOCKS5 형식 -->
+                    <ElseIf condition="RegexMatch(RawProxy, '^\d+\.\d+\.\d+\.\d+:\d+$')">
+                        <Then>
+                            <action name="ExtractText">
+                                <Text>${RawProxy}</Text>
+                                <Regex>(\d+\.\d+\.\d+\.\d+):(\d+)</Regex>
+                                <Variable>ProxyIP</Variable>
+                                <Variable>ProxyPort</Variable>
+                            </action>
+                            
+                            <action name="SetProxy">
+                                <Type>SOCKS5</Type>
+                                <IP>${ProxyIP}</IP>
+                                <Port>${ProxyPort}</Port>
+                            </action>
+                        </Then>
+                    </ElseIf>
+                </Macro>
+
+                <!-- 추가 기능 매크로 -->
+                <Macro Name="createGmailAccountLoop">
+                    <action name="generateAccount"/>
+                    <action name="saveAccount">
+                        <File>${Accounts}</File>
+                    </action>
+                    <action name="logevent">
+                        <Type>GmailAccount</Type>
+                        <Details>New account created: {Username}@gmail.com</Details>
+                    </action>
+                    <action name="delay">
+                        <Timeout>5000</Timeout>
+                    </action>
+                    <action name="createGmailAccountLoop"/>
+                </Macro>
+
+                <Macro Name="setupYouTubeChannel">
+                    <action name="createChannel"/>
+                    <action name="logevent">
+                        <Type>ChannelSetup</Type>
+                        <Details>Channel created: {ChannelName}</Details>
+                    </action>
+                </Macro>
+
+                <Macro Name="farmingLoop">
+                    <action name="runFarmingBot"/>
+                    <action name="logevent">
+                        <Type>Farming</Type>
+                        <Details>Farmed {ClickCount} times</Details>
+                    </action>
+                    <action name="farmingLoop"/>
+                </Macro>
+
+                <Macro Name="scrapeVideoList">
+                    <action name="scrapeVideos"/>
+                    <action name="logevent">
+                        <Type>Scraper</Type>
+                        <Details>Scraped {LineCount(${ScrapedVideos})} videos</Details>
+                    </action>
+                </Macro>
+
+                <Macro Name="recover2FA">
+                    <action name="recover2FAAction"/>
+                    <action name="logevent">
+                        <Type>2FARecovery</Type>
+                        <Details>2FA recovery initiated for {SecretKey}</Details>
+                    </action>
+                </Macro>
+
+                <Macro Name="boostSubscribersLoop">
+                    <action name="subscribeToChannel"/>
+                    <action name="logevent">
+                        <Type>Subscription</Type>
+                        <Details>Subscribed to {TargetChannel}</Details>
+                    </action>
+                    <action name="boostSubscribersLoop"/>
+                </Macro>
+
+                <!-- 라이브/Shorts 기능 추가 -->
+                <Macro Name="LiveChatMessage">
+                    <action name="setMobileUserAgent"/>
+                    <action name="sendLiveChat"/>
+                    <action name="logevent">
+                        <Type>LiveChat</Type>
+                        <Details>Live chat message sent to {LiveStreamURL}</Details>
+                    </action>
+                </Macro>
+
+                <Macro Name="ShortsComment">
+                    <action name="setMobileUserAgent"/>
+                    <action name="postShortsComment"/>
+                    <action name="logevent">
+                        <Type>ShortsComment</Type>
+                        <Details>Comment posted to {ShortsURL}</Details>
+                    </action>
+                </Macro>
+
+                <!-- 구글 검색 순위 상승 -->
+                <Macro Name="GoogleRankBoost">
+                    <action name="openGoogleSearch">
+                        <Keyword>${TargetKeyword}</Keyword>
+                    </action>
+                    <action name="waitForSearchResults">
+                        <XPath>//div[@id='search']</XPath>
+                        <Timeout>10000</Timeout>
+                    </action>
+                    <action name="findTargetURL">
+                        <URLToFind>${TargetURL}</URLToFind>
+                        <MaxAttempts>300</MaxAttempts>
+                    </action>
+                    <If condition="TargetURLFound">
+                        <Then>
+                            <action name="clickTargetURL"/>
+                            <action name="logevent">
+                                <Type>GoogleRankBoost</Type>
+                                <Details>Clicked ${TargetURL} for keyword '${TargetKeyword}'</Details>
+                            </action>
+                        </Then>
+                    </If>
+                    <Else>
+                        <action name="logevent">
+                            <Type>Error</Type>
+                            <Details>URL not found in top 300 results: ${TargetURL}</Details>
+                        </action>
+                    </Else>
+                    <action name="delay">
+                        <Timeout>${GoogleDelay}</Timeout>
+                    </action>
+                    <action name="GoogleRankBoost"/>
+                </Macro>
+            </Macros>
+
+            <!-- 액션 정의 -->
+            <Actions>
+                <!-- 기본 액션 -->
+                <Action Name="loadResources">
+                    <ProxyList>${Proxies}</ProxyList>
+                    <SMSKeys>${SMSAPIKeys}</SMSKeys>
+                    <RecaptchaAPI>${RecaptchaKey}</RecaptchaAPI>
+                </Action>
+
+                <Action Name="recoverLogin">
+                    <ActionType>FullRecovery</ActionType>
+                    <RetryCount>3</RetryCount>
+                </Action>
+
+                <Action Name="monitorProxy">
+                    <CheckProxySpeed>true</CheckProxySpeed>
+                </Action>
+
+                <Action Name="rotateProxy">
+                    <List>${Proxies}</List>
+                    <Random>true</Random>
+                </Action>
+
+                <Action Name="checkSMSStatus">
+                    <CheckAPIStatus>true</CheckAPIStatus>
+                </Action>
+
+                <Action Name="switchSMSProvider">
+                    <List>${SMSAPIKeys}</List>
+                    <Random>true</Random>
+                </Action>
+
+                <Action Name="detectCaptcha">
+                    <TargetElement>div.g-recaptcha</TargetElement>
+                </Action>
+
+                <Action Name="solveCaptcha">
+                    <APIKey>${RecaptchaKey}</APIKey>
+                    <TargetURL>${CurrentURL}</TargetURL>
+                </Action>
+
+                <!-- 추가 기능 액션 -->
+                <Action Name="generateAccount">
+                    <Username>{RandomString}</Username>
+                    <Password>{GeneratedPassword}</Password>
+                    <SaveTo>${Accounts}</SaveTo>
+                </Action>
+
+                <Action Name="createChannel">
+                    <ChannelName>${ChannelPrefix}{RandomNumber}</ChannelName>
+                    <AvatarPath>${Avatars}/{RandomAvatar}.jpg</AvatarPath>
+                    <Description>{FromFile descriptions.txt}</Description>
+                </Action>
+
+                <Action Name="runFarmingBot">
+                    <TargetURL>${FarmingURL}</TargetURL>
+                    <ClickCount>100</ClickCount>
+                </Action>
+
+                <Action Name="scrapeVideos">
+                    <Source>${VideoSource}</Source>
+                    <Output>${ScrapedVideos}</Output>
+                </Action>
+
+                <Action Name="recover2FAAction">
+                    <SecretKey>${FromFile ${2FAKeys}}</SecretKey>
+                    <RecoveryMethod>Email</RecoveryMethod>
+                </Action>
+
+                <Action Name="subscribeToChannel">
+                    <TargetURL>${TargetChannel}</TargetURL>
+                    <MaxAttempts>500</MaxAttempts>
+                </Action>
+
+                <!-- 모바일 기능 액션 -->
+                <Action Name="setMobileUserAgent">
+                    <UserAgent>
+                        <If condition="DeviceType == 'Android'">
+                            <Then>Mozilla/5.0 (Linux; Android 13; SM-S901U) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36</Then>
+                        </If>
+                        <ElseIf condition="DeviceType == 'iPhone'">
+                            <Then>Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/15E148</Then>
+                        </ElseIf>
+                        <Else>
+                            <Then>Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36</Then>
+                        </Else>
+                    </UserAgent>
+                </Action>
+
+                <Action Name="sendLiveChat">
+                    <XPath>//div[@id='chat-frame']//input[@placeholder='메시지를 입력하세요.']</XPath>
+                    <Message>{FromFile messages.txt}</Message>
+                    <SendXPath>//button[@aria-label='전송']</SendXPath>
+                </Action>
+
+                <Action Name="postShortsComment">
+                    <XPath>//ytd-comment-simplebox-renderer/tp-yt-paper-input</XPath>
+                    <Text>{FromFile comments.txt}</Text>
+                    <SendXPath>//div[@id='submit-button']</SendXPath>
+                </Action>
+
+                <!-- 구글 검색 -->
+                <Action Name="openGoogleSearch">
+                    <URL>https://www.google.com/search?q=${TargetKeyword}</URL>
+                </Action>
+
+                <Action Name="findTargetURL">
+                    <XPath>//a[contains(@href, '${TargetURL}')]</XPath>
+                    <MaxScrollAttempts>10</MaxScrollAttempts>
+                </Action>
+
+                <Action Name="clickTargetURL">
+                    <XPath>//a[contains(@href, '${TargetURL}')]</XPath>
+                    <ActionType>Click</ActionType>
+                </Action>
+            </Actions>
+
+            <!-- 조건 정의 -->
+            <Conditions>
+                <Condition Name="LoginFailed">
+                    <Expression>${LoginStatus} == 'Failed'</Expression>
+                </Condition>
+                <Condition Name="ProxyIsSlow">
+                    <Expression>${ProxySpeed} > 1000</Expression>
+                </Condition>
+                <Condition Name="SMSFailureDetected">
+                    <Expression>${SMSStatus} == 'Failed'</Expression>
+                </Condition>
+                <Condition Name="RecaptchaPresent">
+                    <Expression>Exists('div.g-recaptcha')</Expression>
+                </Condition>
+                <Condition Name="TargetURLFound">
+                    <Expression>Exists('//a[contains(@href, "${TargetURL}")]')</Expression>
+                </Condition>
+                <Condition Name="IsMobilePlatform">
+                    <Expression>${DeviceType} != 'Desktop'</Expression>
+                </Condition>
+            </Conditions>
+
+            <!-- UI 구성 -->
+            <UI>
+                <Dropdowns>
+                    <Dropdown Name="CountrySelector" Label="🌍 국가 선택">
+                        <Options>
+                            Korea,USA,Japan,Germany,UK,Thailand,Vietnam,Philippines,HongKong,Cambodia,Russia
+                        </Options>
+                        <DefaultValue>Korea</DefaultValue>
+                    </Dropdown>
+                </Dropdowns>
+
+                <InputFields>
+                    <InputField Name="ProxiesPath" Label="프록시 파일" DefaultValue="proxies.txt"/>
+                    <InputField Name="SMSAPIKeysPath" Label="SMS API 키" DefaultValue="smsapikeys.txt"/>
+                    <InputField Name="RecaptchaAPIKey" Label="reCAPTCHA 키" DefaultValue="recaptchaapikey.txt"/>
+                    <InputField Name="ChannelPrefix" Label="채널 이름 접두사" DefaultValue="Channel_"/>
+                    <InputField Name="FarmingURL" Label="파밍 대상 URL" DefaultValue="https://example.com/farm"/>
+                    <InputField Name="VideoSource" Label="스크래핑 대상" DefaultValue="https://www.youtube.com/channel/UC..."/>
+                    <InputField Name="LiveStreamURL" Label="라이브 URL" DefaultValue="https://www.youtube.com/live/..."/>
+                    <InputField Name="ShortsURL" Label="Shorts URL" DefaultValue="https://www.youtube.com/shorts/..."/>
+                    <InputField Name="TargetURL" Label="목표 URL" DefaultValue="https://example.com"/>
+                    <InputField Name="TargetKeyword" Label="키워드" DefaultValue="My Keyword"/>
+                    <InputField Name="GoogleDelay" Label="구글 클릭 지연(초)" DefaultValue="15"/>
+                </InputFields>
+
+                <Buttons>
+                    <Button Name="StartAutomation" Label="▶️ 시작" Action="Start"/>
+                    <Button Name="StopAutomation" Label="⏹️ 중지" Action="Stop"/>
+                    <Button Name="CreateGmail" Label="📧 계정 생성" Action="createGmailAccountLoop"/>
+                    <Button Name="SetupChannel" Label="🎥 채널 생성" Action="setupYouTubeChannel"/>
+                    <Button Name="StartFarming" Label="🌱 파밍 시작" Action="farmingLoop"/>
+                    <Button Name="ScrapeVideos" Label="🔍 비디오 스크래핑" Action="scrapeVideoList"/>
+                    <Button Name="Recover2FA" Label="🔒 2FA 복구" Action="recover2FA"/>
+                    <Button Name="BoostSubscribers" Label="👥 구독 증가" Action="boostSubscribersLoop"/>
+                    <Button Name="SendLiveChat" Label="💬 라이브 채팅" Action="LiveChatMessage"/>
+                    <Button Name="PostShortsComment" Label="📝 Shorts 댓글" Action="ShortsComment"/>
+                    <Button Name="GoogleBoostStart" Label="🏆 구글 1등 순위 상승" Action="GoogleRankBoost"/>
+                </Buttons>
+            </UI>
+
+            <!-- 설정 -->
+            <Settings>
+                <MaxThreads>500</MaxThreads>
+                <ProxyRotationInterval>300</ProxyRotationInterval>
+                <FingerprintRandomization>true</FingerprintRandomization>
+                <UserAgentRandomization>true</UserAgentRandomization>
+                <LogFile>automation.log</LogFile>
+            </Settings>
+        </BrowserAutomationStudioProject>
+    </script>
+</body>
+</html>

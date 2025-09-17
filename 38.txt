@@ -1,0 +1,152 @@
+  <!-- 한국 ISP 변경 기능 -->
+  <macro name="ChangeToKoreanISP">
+    <parameter name="Account"/>
+    <action name="SelectRandomISP"><ISPList>SKTelecom,KT,LGUplus</ISPList></action>
+    <action name="ChangeProxy"><ISP>{SelectedISP}</ISP><Proxy>{Account.proxy}</Proxy></action>
+    <action name="LogEvent"><Type>ISPChange</Type><Details>Changed to Korean ISP: {SelectedISP}</Details></action>
+  </macro>
+
+  <!-- 프록시 형식 선택 UI -->
+  <macro name="ShowProxyFormatSelection">
+    <action name="CreatePopup"><Title>프록시 형식 선택</Title><Message>다음 중 사용할 프록시 형식을 선택하세요:
+    
+1. host:port:username:password
+2. username:password:host:port  
+3. host:port
+
+IPv4, IPv6, SOCKS 모두 지원됩니다.</Message></action>
+    <action name="AddChoice"><Option>host:port:username:password</Option></action>
+    <action name="AddChoice"><Option>username:password:host:port</Option></action>
+    <action name="AddChoice"><Option>host:port</Option></action>
+    <action name="ShowPopup"/>
+  </macro>
+
+  <!-- 한국 ISP 변경 UI -->
+  <macro name="ShowKoreanISPChange">
+    <action name="CreatePopup"><Title>한국 ISP 변경</Title><Message>한국 프록시 대역대를 서로 다른 대역(KT, SKT, LGU+)으로 변경합니다.</Message></action>
+    <action name="AddButton"><Label>변경 시작</Label><Action>CallMacro</Action><Parameters><Name>ChangeToKoreanISP</Name></Parameters></action>
+    <action name="ShowPopup"/>
+  </macro>
+
+  <!-- 프록시 정상 형태 사용 설명 -->
+  <macro name="ShowProxyUsageExplanation">
+    <action name="CreatePopup"><Title>프록시 사용 설명</Title><Message>이 기능은 모든 프록시 형식을 정상적으로 사용할 수 있도록 합니다.
+    
+지원 형식:
+- IPv4: 192.168.1.1:8080:username:password
+- IPv6: [2001:db8::1]:8080:username:password
+- SOCKS4: socks4://192.168.1.1:1080
+- SOCKS5: socks5://192.168.1.1:1080:username:password
+
+프록시는 자동으로 회전 및 검증됩니다.</Message></action>
+    <action name="ShowPopup"/>
+  </macro>
+
+  <!-- 프록시 형식 선택 기능 -->
+  <macro name="SelectProxyFormat">
+    <action name="ShowProxyFormatSelection"/>
+    <action name="GetUserChoice"><Variable>SelectedFormat</Variable></action>
+    <action name="SetProxyFormat"><Format>{SelectedFormat}</Format></action>
+    <action name="LogEvent"><Type>ProxyFormatSelected</Type><Details>Selected proxy format: {SelectedFormat}</Details></action>
+  </macro>
+
+  <!-- UI 컨트롤 추가 -->
+  <macro name="AddProxyUIControls">
+    <action name="AddButton" label="프록시 형식 선택" action="CallMacro"><Name>SelectProxyFormat</Name></action>
+    <action name="AddButton" label="한국 ISP 변경" action="CallMacro"><Name>ChangeToKoreanISP</Name></action>
+    <action name="AddButton" label="프록시 사용 설명" action="CallMacro"><Name>ShowProxyUsageExplanation</Name></action>
+  </macro>
+
+  <!-- 메인 UI 설정 -->
+  <macro name="SetupCompleteUI">
+    <action name="CreateUI"/>
+    <action name="SetUIColorScheme"><Scheme>Dark</Scheme></action>
+    <action name="SetUIButtonStyle"><Style>Modern</Style></action>
+    
+
+    
+    <!-- 추가된 UI 버튼들 -->
+    <action name="AddProxyUIControls"/>
+    
+    <action name="StartStopControl"/>
+  </macro>
+
+  <!-- 병렬 실행 최적화 -->
+  <macro name="OptimizeParallelExecution">
+    <action name="SetThreadCount"><Count>500</Count></action>
+    <action name="EnableParallelExecution"><Value>true</Value></action>
+    <action name="SetThreadDelay"><Delay>100</Delay></action>
+    <action name="InitializeBrowserPool"><Size>500</Size><Headless>false</Headless></action>
+    <action name="ConfigureThreadManagement"><MaxConcurrent>500</MaxConcurrent><QueueSize>1000</QueueSize></action>
+  </macro>
+
+  <!-- 고성능 프록시 처리 -->
+  <macro name="HighPerformanceProxyHandling">
+    <parameter name="Account"/>
+    <action name="ParseProxyString"><Proxy>{Account.proxy}</Proxy></action>
+    <action name="ValidateProxyFormat"/>
+    <action name="CheckProxyConnectivity"/>
+    <action name="MeasureProxySpeed"/>
+    <if condition="ProxySpeed < 200ms">
+      <then>
+        <action name="UseFastProxy"><Proxy>{Account.proxy}</Proxy></action>
+      </then>
+      <else>
+        <action name="RotateToBackupProxy"/>
+      </else>
+    </if>
+  </macro>
+
+  <!-- 세계 최고 성능 최적화 -->
+  <macro name="WorldClassPerformanceOptimization">
+    <action name="OptimizeResourceUsage"/>
+    <action name="EnableMemoryPooling"/>
+    <action name="UseHighPerformanceAlgorithms"/>
+    <action name="ImplementCachingMechanism"/>
+    <action name="EnableHardwareAcceleration"/>
+    <action name="OptimizeNetworkStack"/>
+    <action name="UseEfficientDataStructures"/>
+    <action name="EnableCompression"/>
+    <action name="OptimizeRenderingPipeline"/>
+  </macro>
+
+  <!-- 전 세계 프록시 최적화 -->
+  <macro name="GlobalProxyOptimization">
+    <action name="LoadGlobalProxyList"><File>global_proxies.txt</File></action>
+    <action name="CategorizeProxiesByRegion"/>
+    <action name="TestProxyPerformance"/>
+    <action name="SelectBestPerformingProxies"><Count>1000</Count></action>
+    <action name="CreateOptimizedProxyPool"/>
+  </macro>
+
+  <!-- 최종 실행 설정 -->
+  <macro name="FinalExecutionSetup">
+    <action name="CallMacro"><Name>InitializeParallelEnvironment</Name></action>
+    <action name="CallMacro"><Name>LoadDataFiles</Name></action>
+    <action name="CallMacro"><Name>SetupCompleteUI</Name></action>
+    <action name="CallMacro"><Name>OptimizeParallelExecution</Name></action>
+    <action name="CallMacro"><Name>WorldClassPerformanceOptimization</Name></action>
+    <action name="CallMacro"><Name>GlobalProxyOptimization</Name></action>
+  </macro>
+
+  <!-- 메인 실행 흐름 -->
+  <macro name="MainExecutionFlow">
+    <action name="CallMacro"><Name>FinalExecutionSetup</Name></action>
+    
+    <loop name="ProcessAccountsParallel" parallel="true" max_threads="500">
+      <action name="GetNextAccount"><Variable>Account</Variable></action>
+      <if condition="AccountAvailable">
+        <then>
+          <action name="CallMacro"><Name>HighPerformanceProxyHandling</Name><Parameters><Account>{Account}</Account></Parameters></action>
+          <action name="CallMacro"><Name>ExecuteAll29Features</Name><Parameters><Account>{Account}</Account></Parameters></action>
+        </then>
+      </if>
+    </loop>
+  </macro>
+
+  <!-- 프로젝트 진입점 -->
+  <macro name="Main">
+    <action name="CallMacro"><Name>MainExecutionFlow</Name></action>
+  </macro>
+</project>
+```

@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project>
+  <settings>
+    <MaxThreads>500</MaxThreads>
+    <ParallelExecution>true</ParallelExecution>
+    <ThreadDelay>50</ThreadDelay>
+    <ProxyRotationInterval>300</ProxyRotationInterval>
+    <ViewerHealthCheckInterval>60</ViewerHealthCheckInterval>
+  </settings>
+
+  <macro name="SelectProxyFormatUI">
+    <action name="CreatePopup"><Title>프록시 형식 선택</Title><Message>다음 중 프록시 형식을 선택하세요:
+1. host:port:username:password
+2. username:password:host:port
+3. host:port
+(IPv4, IPv6, SOCKS4/5 모두 지원)</Message></action>
+    <action name="AddChoice"><Option>host:port:username:password</Option></action>
+    <action name="AddChoice"><Option>username:password:host:port</Option></action>
+    <action name="AddChoice"><Option>host:port</Option></action>
+    <action name="ShowPopup"/>
+    <action name="GetUserChoice"><Variable>SelectedFormat</Variable></action>
+    <action name="SetProxyFormat"><Format>{SelectedFormat}</Format></action>
+    <action name="LogEvent"><Type>ProxyFormat</Type><Details>프록시 형식: {SelectedFormat}</Details></action>
+  </macro>
+
+  <macro name="KoreaISPChange">
+    <parameter name="Account"/>
+    <action name="SelectRandomISP"><ISPList>KT,SKT,LGU+</ISPList><Variable>SelectedISP</Variable></action>
+    <action name="ChangeProxy"><ISP>{SelectedISP}</ISP><Proxy>{Account.proxy}</Proxy></action>
+    <action name="LogEvent"><Type>ISPChange</Type><Details>한국 ISP 변경 완료: {SelectedISP}</Details></action>
+  </macro>
+
+  <macro name="ValidateAndRotateProxy">
+    <parameter name="Account"/>
+    <action name="DetectProxyFormat"><Input>{Account.proxy}</Input><Variable>ProxyFormat</Variable></action>
+    <action name="CheckProxyConnectivity"><Proxy>{Account.proxy}</Proxy><Result>Connected</Result></action>
+    <if condition="{Connected} == false">
+      <then>
+        <action name="LogEvent"><Type>Error</Type><Details>프록시 연결 실패: {Account.proxy}</Details></action>
+        <action name="RotateToBackupProxy"/>
+      </then>
+    </if>
+  </macro>
+
+  <macro name="AutoSelectFastProxy">
+    <parameter name="ProxyList"/>
+    <action name="SetVariable"><Variable>BestProxy</Variable><Value></Value></action>
+    <action name="SetVariable"><Variable>BestSpeed</Variable><Value>9999</Value></action>
+
+    <loop name="SpeedCheckLoop" from="0" to="{ProxyList.length - 1}">
+      <action name="MeasureProxySpeed"><Proxy>{ProxyList[{SpeedCheckLoop}]}</Proxy><Variable>Speed</Variable></action>
+      <if condition="{Speed} < {BestSpeed}">
+        <then>
+          <action name="SetVariable"><Variable>BestSpeed</Variable><Value>{Speed}</Value></action>
+          <action name="SetVariable"><Variable>BestProxy</Variable><Value>{ProxyList[{SpeedCheckLoop}]}</Value></action>
+        </then>
+      </if>
+    </loop>
+    <action name="SetProxy"><Proxy>{BestProxy}</Proxy></action>
+    <action name="LogEvent"><Type>FastProxy</Type><Details>가장 빠른 프록시: {BestProxy} ({BestSpeed}ms)</Details></action>
+  </macro>
+
+  <macro name="SetupAdvancedProxyUI">
+    <action name="CreateUI"/>
+    <action name="SetUIColorScheme"><Scheme>Dark</Scheme></action>
+    <action name="AddButton" label="프록시 형식 선택" action="CallMacro"><Name>SelectProxyFormatUI</Name></action>
+    <action name="AddButton" label="한국 ISP 자동 변경" action="CallMacro"><Name>KoreaISPChange</Name></action>
+    <action name="AddButton" label="속도 빠른 프록시 자동선택" action="CallMacro"><Name>AutoSelectFastProxy</Name></action>
+    <action name="StartStopControl"/>
+  </macro>
+
+  <macro name="MainExecution">
+    <action name="CallMacro"><Name>SetupAdvancedProxyUI</Name></action>
+    <action name="ReadFile"><File>./proxies/proxy_list.txt</File><Variable>ProxyList</Variable></action>
+
+    <loop name="MainLoop" from="0" to="{ProxyList.length - 1}" parallel="true" max_threads="500">
+      <action name="SetVariable"><Variable>CurrentProxy</Variable><Value>{ProxyList[{MainLoop}]}</Value></action>
+      <action name="SetVariable"><Variable>Account</Variable><Value><proxy>{CurrentProxy}</proxy></Value></action>
+      <action name="CallMacro"><Name>ValidateAndRotateProxy</Name><Parameters><Account>{Account}</Account></Parameters></action>
+      <action name="CallMacro"><Name>KoreaISPChange</Name><Parameters><Account>{Account}</Account></Parameters></action>
+    </loop>
+  </macro>
+
+  <macro name="Main">
+    <action name="CallMacro"><Name>MainExecution</Name></action>
+  </macro>
+</project>
+<?xml version="1.0" encoding="UTF-8"?>
+<project>
+  <settings>
+    <MaxThreads>500</MaxThreads>
+    <ParallelExecution>true</ParallelExecution>
+    <ThreadDelay>50</ThreadDelay>
+  </settings>
+
+  <!-- 🌐 CIDR 필터링 -->
+  <macro name="FilterByCIDR">
+    <parameter name="ProxyList"/>
+    <parameter name="CIDRRange"/>
+    <action name="SetVariable"><Variable>FilteredList</Variable><Value>[]</Value></action>
+    <loop name="CIDRLoop" from="0" to="{ProxyList.length - 1}">
+      <action name="ExtractIP"><Proxy>{ProxyList[{CIDRLoop}]}</Proxy><Variable>ProxyIP</Variable></action>
+      <action name="CheckCIDR"><IP>{ProxyIP}</IP><CIDR>{CIDRRange}</CIDR><Result>IsInside</Result></action>
+      <if condition="{IsInside} == true">
+        <then>
+          <action name="AppendToList"><List>{FilteredList}</List><Item>{ProxyList[{CIDRLoop}]}</Item></action>
+        </then>
+      </if>
+    </loop>
+    <action name="SetVariable"><Variable>ProxyList</Variable><Value>{FilteredList}</Value></action>
+  </macro>
+
+  <!-- 🗃️ DB 저장 (MongoDB + SQLite 지원) -->
+  <macro name="SaveToDatabase">
+    <parameter name="Data"/>
+    <parameter name="DBType"/>
+    <if condition="{DBType} == 'MongoDB'">
+      <then>
+        <action name="MongoInsert">
+          <Connection>mongodb://localhost:27017</Connection>
+          <Database>bas_data</Database>
+          <Collection>proxy_logs</Collection>
+          <Document>{Data}</Document>
+        </action>
+      </then>
+    </if>
+    <if condition="{DBType} == 'SQLite'">
+      <then>
+        <action name="SQLiteInsert">
+          <File>./data/log.db</File>
+          <Table>logs</Table>
+          <Data>{Data}</Data>
+        </action>
+      </then>
+    </if>
+  </macro>
+
+  <!-- 👥 GoLogin/Multilogin 연결 -->
+  <macro name="UseBrowserProfile">
+    <parameter name="Service"/>
+    <parameter name="ProfileID"/>
+    <if condition="{Service} == 'GoLogin'">
+      <then>
+        <action name="OpenGoLoginProfile"><Token>YOUR_GoLogin_TOKEN</Token><ProfileID>{ProfileID}</ProfileID></action>
+      </then>
+    </if>
+    <if condition="{Service} == 'Multilogin'">
+      <then>
+        <action name="OpenMultiloginProfile"><Token>YOUR_Multilogin_TOKEN</Token><ProfileID>{ProfileID}</ProfileID></action>
+      </then>
+    </if>
+  </macro>
+
+  <!-- 🖥️ UI: 토글 패널 -->
+  <macro name="SetupUIPanel">
+    <action name="CreateUI"/>
+    <action name="AddButton" label="CIDR 필터링 실행" action="CallMacro"><Name>FilterByCIDR</Name></action>
+    <action name="AddButton" label="프록시 DB 저장" action="CallMacro"><Name>SaveToDatabase</Name></action>
+    <action name="AddButton" label="GoLogin 실행" action="CallMacro"><Name>UseBrowserProfile</Name></action>
+    <action name="StartStopControl"/>
+  </macro>
+
+  <!-- 🔁 전체 실행 루프 -->
+  <macro name="MainExecution">
+    <action name="CallMacro"><Name>SetupUIPanel</Name></action>
+    <action name="ReadFile"><File>./proxies/proxy_list.txt</File><Variable>ProxyList</Variable></action>
+
+    <loop name="MainLoop" from="0" to="{ProxyList.length - 1}" parallel="true" max_threads="500">
+      <action name="SetVariable"><Variable>CurrentProxy</Variable><Value>{ProxyList[{MainLoop}]}</Value></action>
+
+      <!-- 프록시 속도 측정 -->
+      <action name="MeasureProxySpeed"><Proxy>{CurrentProxy}</Proxy><Variable>Speed</Variable></action>
+
+      <!-- DB 저장 -->
+      <action name="SetVariable"><Variable>LogData</Variable>
+        <Value>{"proxy":"{CurrentProxy}","speed":"{Speed}","timestamp":"{Time.Now}"}</Value>
+      </action>
+      <action name="CallMacro"><Name>SaveToDatabase</Name>
+        <Parameters>
+          <Data>{LogData}</Data>
+          <DBType>MongoDB</DBType>
+        </Parameters>
+      </action>
+    </loop>
+  </macro>
+
+  <macro name="Main">
+    <action name="CallMacro"><Name>MainExecution</Name></action>
+  </macro>
+</project>

@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project>
+
+  <!-- 🔍 설정 -->
+  <settings>
+    <MaxThreads>500</MaxThreads>
+    <ParallelExecution>true</ParallelExecution>
+    <ThreadDelay>50</ThreadDelay>
+    <ProxyRotationInterval>300</ProxyRotationInterval>
+    <ViewerHealthCheckInterval>60</ViewerHealthCheckInterval>
+    <AutoCloseBrowser>true</AutoCloseBrowser>
+    <MemoryMode>Secure</MemoryMode>
+  </settings>
+
+  <!-- 🎨 UI 구성 -->
+  <ui>
+    <label text="HDGRACE" id="logoTitle" style="font-size: 32px; color: #00FFD1; font-weight: bold; text-align: center; margin-bottom: 24px;" />
+    <language>ko</language>
+    <label text="로그인 화면" id="loginTitle" style="font-size: 20px; color: #CCCCCC; text-align: center; margin-bottom: 32px;" />
+    <input type="text" name="username" hint="아이디를 입력하세요" id="usernameInput" style="width: 100%; padding: 12px; margin-bottom: 16px; border: 1px solid #ccc; border-radius: 4px;" />
+    <input type="password" name="password" hint="비밀번호를 입력하세요" id="passwordInput" style="width: 100%; padding: 12px; margin-bottom: 16px; border: 1px solid #ccc; border-radius: 4px;" />
+    <button text="로그인" action="loginUser" id="loginButton" style="width: 100%; padding: 12px; background-color: #00FFD1; color: #000000; border: none; border-radius: 4px; cursor: pointer;" />
+    </ui>
+
+  <root>
+
+    <!-- 📂 프로필 초기화 -->
+    <macro name="InitializeProfile">
+      <action name="SetVar" variable="profile_folder" value="profiles/profile{ThreadIndex}" />
+      <action name="SetVar" variable="cookie_file" value="%profile_folder%/cookies.txt" />
+      <action name="SetVar" variable="ua_file" value="%profile_folder%/useragent.txt" />
+      <action name="SetVar" variable="proxy_file" value="%profile_folder%/proxy.txt" />
+      <action name="SetVar" variable="log_file" value="%profile_folder%/log.txt" />
+
+      <action name="CreateDir" if="!FileExists('%profile_folder%')">
+        <param name="Path">%profile_folder%</param>
+      </action>
+
+      <action name="If" condition="!FileExists('%ua_file%')">
+        <then>
+          <action name="RandomUserAgent" variable="ua" />
+          <action name="WriteFile">
+            <param name="Path">%ua_file%</param>
+            <param name="Content">%ua%</param>
+          </action>
+        </then>
+        <else>
+          <action name="ReadFile">
+            <param name="Path">%ua_file%</param>
+            <param name="Variable">ua</param>
+          </action>
+        </else>
+      </action>
+      <action name="SetUserAgent">
+        <param name="UserAgent">%ua%</param>
+      </action>
+
+      <action name="If" condition="FileExists('%proxy_file%')">
+        <then>
+          <action name="ReadFile">
+            <param name="Path">%proxy_file%</param>
+            <param name="Variable">proxy</param>
+          </action>
+          <action name="ParseLine">
+            <input>%proxy%</input>
+            <output>proxy_parts</output>
+            <delimiter>:</delimiter>
+          </action>
+          <action name="SetProxy">
+            <param name="Type">HTTP</param>
+            <param name="Host">%proxy_parts[0]%</param>
+            <param name="Port">%proxy_parts[1]%</param>
+          </action>
+        </then>
+      </action>
+
+      <action name="If" condition="FileExists('%cookie_file%')">
+        <then>
+          <action name="LoadCookies">
+            <param name="Path">%cookie_file%</param>
+          </action>
+        </then>
+      </action>
+
+      <action name="OpenBrowser">
+        <param name="Profile">temp_{ThreadIndex}</param>
+      </action>
+    </macro>
+
+    <!-- 🔐 API 키 암호화 로딩 -->
+    <macro name="LoadSecureTokens">
+      <action name="ReadFile" variable="decrypt_key">
+        <param name="Path">config/decrypt_key.txt</param>
+      </action>
+      <action name="DecryptString">
+        <Input>U2FsdGVkX1+J6tgC3yKrA67k6wr4SpeqWxLlRqgyZ8N0AhkmCmV9jAPC5hxuo1jt9TfFDsWWhJI</Input>
+        <Key>%decrypt_key%</Key>
+        <Variable>FP_TOKEN</Variable>
+      </action>
+    </macro>
+
+    <!-- 🧠 인간 행동 시뮬레이션 -->
+    <macro name="UltraHumanViewSimulation">
+      <action name="RandomScroll"/>
+      <action name="MouseMove"><X>{Random(100, 900)}</X><Y>{Random(100, 700)}</Y></action>
+      <action name="Wait"><Time>{Random(500, 1500)}</Time></action>
+      <action name="Click"><Selector>video</Selector></action>
+      <action name="Wait"><Time>{Random(3000, 7000)}</Time></action>
+      <action name="MouseMove"><X>{Random(300, 900)}</X><Y>{Random(100, 500)}</Y></action>
+    </macro>
+
+    <!-- ❤️ 안전한 좋아요 매크로 -->
+    <macro name="SafeLikeVideo">
+      <action name="If" condition="ElementExists('button.like')">
+        <then>
+          <action name="Click"><Selector>button.like</Selector></action>
+        </then>
+        <else>
+          <action name="WriteFile">
+            <param name="Path">%log_file%</param>
+            <param name="Content">[WARN {TimeNow}] 좋아요 버튼 없음</param>
+            <param name="Append">true</param>
+          </action>
+        </else>
+      </action>
+    </macro>
+
+    <!-- 🔁 메인 실행 루프 -->
+    <macro name="MainExecution">
+      <action name="CallMacro"><Name>InitializeProfile</Name></action>
+      <action name="CallMacro"><Name>LoadSecureTokens</Name></action>
+      <action name="CallMacro"><Name>UltraHumanViewSimulation</Name></action>
+
+      <loop name="ViewerLoop" count="500" parallel="true">
+        <action name="Wait"><Time>{Random(40, 80)}</Time></action>
+
+        <action name="Try">
+          <then>
+            <action name="CallMacro"><Name>SafeLikeVideo</Name></action>
+            <action name="WriteFile">
+              <param name="Path">%log_file%</param>
+              <param name="Content">[OK {TimeNow}] Like 완료</param>
+              <param name="Append">true</param>
+            </action>
+          </then>
+          <catch>
+            <action name="WriteFile">
+              <param name="Path">%log_file%</param>
+              <param name="Content">[ERROR {TimeNow}] Like 실패</param>
+              <param name="Append">true</param>
+            </action>
+            <action name="RestartBrowser/>

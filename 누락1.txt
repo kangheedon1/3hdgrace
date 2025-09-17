@@ -1,0 +1,1094 @@
+
+ version="29.0.0
+  <!-- ======================== 설정 섹션 ======================== -->
+  <settings>
+    <FingerprintAPIKey>apiff893e3d-5f3e-43d9-8ac4-b12890fcb72f</FingerprintAPIKey>
+    <CaptchaAPIKey>32182a8277ab53355c49192af58c4b7b2b8c69cdc735ad217ed46c5f58d608c5</CaptchaAPIKey>
+    <SMSAPIKey>a81e7999e7a24ff88434c716b7b7ce51</SMSAPIKey>
+    <ProxyService>pyproxy.com</ProxyService>
+    <ProxyAPIKey>your_pyproxy_api_key</ProxyAPIKey>
+    <Language>ko,en</Language>
+    <MaxThreads>500</MaxThreads>
+    <ThreadDelay>50</ThreadDelay>
+    <ParallelExecution>true</ParallelExecution>
+    <TTLPerViewer>3600</TTLPerViewer>
+    <ViewerHealthCheckInterval>60</ViewerHealthCheckInterval>
+    <LogFile>./logs/activity.log</LogFile>
+    <DataFolder>./data/</DataFolder>
+    <DefaultTimeout>150</DefaultTimeout>
+    <MinDelay>10</MinDelay>
+    <MaxDelay>60</MaxDelay>
+    <ISPs>SKTelecom,KT,LGUplus</ISPs>
+    <IPRanges>
+      <SKTelecom>103.22.200.0/24,103.22.201.0/24,103.22.202.0/24</SKTelecom>
+      <KT>112.175.1.0/24,112.175.2.0/24,112.175.3.0/24</KT>
+      <LGUplus>211.115.0.0/24,211.115.1.0/24,211.115.2.0/24</LGUplus>
+    </IPRanges>
+  </settings>
+
+  <!-- ======================== 007 추가 기능 9개 ======================== -->
+  
+  <!-- 1. 생성일자 조작 (신규 계정 회피) -->
+  <macro name="SimulateOldGmailAccount">
+    <action name="SetVariable">
+      <Variable>AccountBirthYear</Variable>
+      <Value>{Random(2000, 2020)}</Value>
+    </action>
+    <action name="SetVariable">
+      <Variable>AccountAge</Variable>
+      <Value>{2025 - AccountBirthYear}</Value>
+    </action>
+    <action name="Navigate">
+      <Url>https://myaccount.google.com/personal-info/birthdate</Url>
+    </action>
+    <action name="WaitFor">
+      <Selector>input[name='birthYear']</Selector>
+      <Timeout>10000</Timeout>
+    </action>
+    <action name="Type">
+      <Selector>input[name='birthYear']</Selector>
+      <Text>{AccountBirthYear}</Text>
+    </action>
+    <action name="Click">
+      <Selector>button:contains('다음')</Selector>
+    </action>
+    <action name="LogEvent">
+      <Type>AccountAge</Type>
+      <Details>계정 연령 조작 완료: {AccountAge}세 ({AccountBirthYear}년생)</Details>
+    </action>
+  </macro>
+
+  <!-- 2. 성별 프로필 부여 (남성/여성 구분) -->
+  <macro name="AssignGenderToEduEmail">
+    <action name="SetVariable">
+      <Variable>UserGender</Variable>
+      <Value>{RandomItem('남성', '여성')}</Value>
+    </action>
+    <action name="SetVariable">
+      <Variable>GenderAvatarFolder</Variable>
+      <Value>./data/avatars/{UserGender}/</Value>
+    </action>
+    <action name="SetVariable">
+      <Variable>GenderDisplayName</Variable>
+      <Value>{RandomKoreanName({UserGender})}</Value>
+    </action>
+    <action name="Navigate">
+      <Url>https://myaccount.google.com/profile</Url>
+    </action>
+    <action name="WaitFor">
+      <Selector>#profile-name</Selector>
+      <Timeout>10000</Timeout>
+    </action>
+    <action name="Type">
+      <Selector>#profile-name input</Selector>
+      <Text>{GenderDisplayName}</Text>
+    </action>
+    <action name="Click">
+      <Selector>#profile-photo-button</Selector>
+    </action>
+    <action name="Delay">
+      <Min>1000</Min>
+      <Max>2000</Max>
+    </action>
+    <action name="SetVariable">
+      <Variable>SelectedAvatar</Variable>
+      <Value>{RandomLine('{GenderAvatarFolder}*.jpg')}</Value>
+    </action>
+    <action name="UploadFile">
+      <Selector>input[type='file']</Selector>
+      <Path>{SelectedAvatar}</Path>
+    </action>
+    <action name="LogEvent">
+      <Type>GenderProfile</Type>
+      <Details>에듀지메일 → {UserGender} 프로필 적용됨: {GenderDisplayName}</Details>
+    </action>
+  </macro>
+
+  <!-- 3. 성인 콘텐츠 시청 우회 -->
+  <macro name="BypassAgeRestriction">
+    <action name="Navigate">
+      <Url>https://www.youtube.com/verify_age?next_url=/</Url>
+    </action>
+    <action name="WaitFor">
+      <Selector>form[method='POST'], #button</Selector>
+      <Timeout>15000</Timeout>
+    </action>
+    <If condition="document.querySelector('text=이 콘텐츠는 18세 이상만 시청할 수 있습니다') or document.querySelector('form[action=\"/verify-age\"]')">
+      <Then>
+        <action name="Select">
+          <Selector>select[name='birth_month']</Selector>
+          <Value>{Random(1,12)}</Value>
+        </action>
+        <action name="Select">
+          <Selector>select[name='birth_day']</Selector>
+          <Value>{Random(1,28)}</Value>
+        </action>
+        <action name="Select">
+          <Selector>select[name='birth_year']</Selector>
+          <Value>{AccountBirthYear}</Value>
+        </action>
+        <action name="Click">
+          <Selector>#submit-button, button[type='submit']</Selector>
+        </action>
+        <action name="Delay">
+          <Min>3000</Min>
+          <Max>5000</Max>
+        </action>
+        <If condition="document.querySelector('text=시청하려면 로그인하세요')">
+          <Then>
+            <call macro="LoginToGoogle"/>
+          </Then>
+        </If>
+        <action name="LogEvent">
+          <Type>AgeBypass</Type>
+          <Details>성인 인증 우회 성공: {Account.id}</Details>
+        </action>
+      </Then>
+    </If>
+  </macro>
+
+  <!-- 4. 구독 유지 전략 -->
+  <macro name="PreventSubscriptionRemoval">
+    <action name="LogEvent">
+      <Type>AntiRemoval</Type>
+      <Details>구독 유지 전략 시작: {Account.id}</Details>
+    </action>
+    <action name="Navigate">
+      <Url>{TargetChannelURL}/shorts</Url>
+    </action>
+    <action name="Delay">
+      <Min>5000</Min>
+      <Max>10000</Max>
+    </action>
+    <action name="Click">
+      <Selector>ytd-reel-item-renderer:nth-child({Random(1,5)}) #video-title</Selector>
+    </action>
+    <action name="Delay">
+      <Min>30000</Min>
+      <Max>90000</Max>
+    </action>
+    <If condition="{Random(1,100)} &gt; 70">
+      <Then>
+        <action name="Click">
+          <Selector>#segmented-like-button button</Selector>
+        </action>
+        <action name="Delay">
+          <Min>1000</Min>
+          <Max>2000</Max>
+        </action>
+      </Then>
+    </If>
+  </macro>
+
+  <!-- 5. 세션 중 IP 변경 금지 및 동일 IP 유지 -->
+  <macro name="MaintainSameIP">
+    <action name="SetVariable">
+      <Variable>InitialIP</Variable>
+      <Value>{GetCurrentIP()}</Value>
+    </action>
+    <action name="LogEvent">
+      <Type>IPCheck</Type>
+      <Details>초기 IP 설정: {InitialIP}</Details>
+    </action>
+    <loop name="IPCheckLoop" count="10">
+      <action name="SetVariable">
+        <Variable>CurrentIP</Variable>
+        <Value>{GetCurrentIP()}</Value>
+      </action>
+      <If condition="CurrentIP != InitialIP">
+        <Then>
+          <action name="LogEvent">
+            <Type>IPChanged</Type>
+            <Details>IP 변경 감지: {InitialIP} → {CurrentIP}</Details>
+          </action>
+          <action name="RestartBrowser"/>
+          <action name="SetVariable">
+            <Variable>InitialIP</Variable>
+            <Value>{GetCurrentIP()}</Value>
+          </action>
+          <action name="LogEvent">
+            <Type>IPRestored</Type>
+            <Details>IP 복원 완료: {InitialIP}</Details>
+          </action>
+        </Then>
+      </If>
+      <action name="Delay">
+        <Min>3000</Min>
+        <Max>5000</Max>
+      </action>
+    </loop>
+  </macro>
+
+  <!-- 6. IP 연결 상태 확인 -->
+  <macro name="CheckIPConnection">
+    <action name="SetVariable">
+      <Variable>CurrentIP</Variable>
+      <Value>{GetCurrentIP()}</Value>
+    </action>
+    <If condition="CurrentIP == ''">
+      <Then>
+        <action name="LogEvent">
+          <Type>IPError</Type>
+          <Details>IP 연결 실패. 재시도 중...</Details>
+        </action>
+        <action name="RestartBrowser"/>
+        <call macro="CheckIPConnection"/>
+      </Then>
+    </If>
+    <action name="LogEvent">
+      <Type>IPConnected</Type>
+      <Details>IP 연결 성공: {CurrentIP}</Details>
+    </action>
+  </macro>
+
+  <!-- 7. CheckProxyConnectivity 입력방법 -->
+  <macro name="CheckProxyConnectivity">
+    <action name="SetVariable">
+      <Variable>ProxyStatus</Variable>
+      <Value>{CheckProxy()}</Value>
+    </action>
+    <If condition="ProxyStatus == 'connected'">
+      <Then>
+        <action name="LogEvent">
+          <Type>ProxyConnected</Type>
+          <Details>프록시 연결 성공: {CURRENT_PROXY}</Details>
+        </action>
+      </Then>
+    </If>
+    <If condition="ProxyStatus == 'disconnected'">
+      <Then>
+        <action name="LogEvent">
+          <Type>ProxyError</Type>
+          <Details>프록시 연결 실패. 재시도 중...</Details>
+        </action>
+        <action name="RestartBrowser"/>
+        <call macro="CheckProxyConnectivity"/>
+      </Then>
+    </If>
+  </macro>
+
+  <!-- 8. 텍스트 파일 또는 폴더 목록 입력 -->
+  <macro name="LoadListFromFile">
+    <action name="ReadFile">
+      <File>{KEYWORDS_FILE}</File>
+      <Variable>ListData</Variable>
+    </action>
+    <action name="LogEvent">
+      <Type>ListLoaded</Type>
+      <Details>리스트 파일 로드 완료: {KEYWORDS_FILE}</Details>
+    </action>
+  </macro>
+
+  <!-- 9. 사진 폴더에서 사진을 유튜브 채널 프로필 사진으로 삽입 -->
+  <macro name="UploadProfilePhotos">
+    <action name="SetVariable">
+      <Variable>PhotoList</Variable>
+      <Value>{GetFiles('./data/photos/*.jpg')}</Value>
+    </action>
+    <action name="SetVariable">
+      <Variable>SelectedPhoto</Variable>
+      <Value>{RandomLine('${PhotoList}')}</Value>
+    </action>
+    <action name="Navigate">
+      <Url>https://myaccount.google.com/profile</Url>
+    </action>
+    <action name="WaitFor">
+      <Selector>#profile-photo-button</Selector>
+      <Timeout>10000</Timeout>
+    </action>
+    <action name="Click">
+      <Selector>#profile-photo-button</Selector>
+    </action>
+    <action name="Delay">
+      <Min>1000</Min>
+      <Max>2000</Max>
+    </action>
+    <action name="UploadFile">
+      <Selector>input[type='file']</Selector>
+      <Path>{SelectedPhoto}</Path>
+    </action>
+    <action name="LogEvent">
+      <Type>ProfilePhotoUploaded</Type>
+      <Details>프로필 사진 업로드 완료: {SelectedPhoto}</Details>
+    </action>
+  </macro>
+
+  <!-- ======================== 국가별 프록시 할당 매크로 ======================== -->
+  
+  <!-- 영국 무료 프록시 할당 -->
+  <macro name="AssignUKFreeProxy">
+    <parameter name="Account"/>
+    <action name="SetList">
+      <List>UKISPs</List>
+      <Values>BT,Virgin,Sky</Values>
+    </action>
+    <action name="RandomListItem">
+      <List>UKISPs</List>
+      <Variable>SelectedISP</Variable>
+    </action>
+    <action name="CallMacro">
+      <Name>AssignProxyByISP</Name>
+      <Parameters>
+        <Account>{Account}</Account>
+        <ISP>{SelectedISP}</ISP>
+      </Parameters>
+    </action>
+  </macro>
+
+  <!-- 베트남 무료 프록시 할당 -->
+  <macro name="AssignVietnameseFreeProxy">
+    <parameter name="Account"/>
+    <action name="SetList">
+      <List>VietnamISPs</List>
+      <Values>Viettel,VNPT,FPT</Values>
+    </action>
+    <action name="RandomListItem">
+      <List>VietnamISPs</List>
+      <Variable>SelectedISP</Variable>
+    </action>
+    <action name="CallMacro">
+      <Name>AssignProxyByISP</Name>
+      <Parameters>
+        <Account>{Account}</Account>
+        <ISP>{SelectedISP}</ISP>
+      </Parameters>
+    </action>
+  </macro>
+
+  <!-- 태국 무료 프록시 할당 -->
+  <macro name="AssignThaiFreeProxy">
+    <parameter name="Account"/>
+    <action name="SetList">
+      <List>ThaiISPs</List>
+      <Values>AIS,TrueMove,DTAC</Values>
+    </action>
+    <action name="RandomListItem">
+      <List>ThaiISPs</List>
+      <Variable>SelectedISP</Variable>
+    </action>
+    <action name="CallMacro">
+      <Name>AssignProxyByISP</Name>
+      <Parameters>
+        <Account>{Account}</Account>
+        <ISP>{SelectedISP}</ISP>
+      </Parameters>
+    </action>
+  </macro>
+
+  <!-- 필리핀 무료 프록시 할당 -->
+  <macro name="AssignPhilippineFreeProxy">
+    <parameter name="Account"/>
+    <action name="SetList">
+      <List>PhilippineISPs</List>
+      <Values>PLDT,Globe,Smart</Values>
+    </action>
+    <action name="RandomListItem">
+      <List>PhilippineISPs</List>
+      <Variable>SelectedISP</Variable>
+    </action>
+    <action name="CallMacro">
+      <Name>AssignProxyByISP</Name>
+      <Parameters>
+        <Account>{Account}</Account>
+        <ISP>{SelectedISP}</ISP>
+      </Parameters>
+    </action>
+  </macro>
+
+  <!-- 독일 무료 프록시 할당 -->
+  <macro name="AssignGermanFreeProxy">
+    <parameter name="Account"/>
+    <action name="SetList">
+      <List>GermanISPs</List>
+      <Values>Telekom,Vodafone,O2</Values>
+    </action>
+    <action name="RandomListItem">
+      <List>GermanISPs</List>
+      <Variable>SelectedISP</Variable>
+    </action>
+    <action name="CallMacro">
+      <Name>AssignProxyByISP</Name>
+      <Parameters>
+        <Account>{Account}</Account>
+        <ISP>{SelectedISP}</ISP>
+      </Parameters>
+    </action>
+  </macro>
+
+  <!-- 한국 무료 프록시 할당 -->
+  <macro name="AssignKoreanFreeProxy">
+    <parameter name="Account"/>
+    <action name="SetList">
+      <List>KoreanISPs</List>
+      <Values>SKTelecom,KT,LGUplus</Values>
+    </action>
+    <action name="RandomListItem">
+      <List>KoreanISPs</List>
+      <Variable>SelectedISP</Variable>
+    </action>
+    <action name="CallMacro">
+      <Name>AssignProxyByISP</Name>
+      <Parameters>
+        <Account>{Account}</Account>
+        <ISP>{SelectedISP}</ISP>
+      </Parameters>
+    </action>
+  </macro>
+
+  <!-- ======================== UI 섹션 ======================== -->
+  <ui>
+    <language>ko</language>
+    
+    <!-- 메인 기능 버튼들 -->
+    <button label="🟢 LIVE 고정 시청자 유지" variable="LIVE_VIEWERS" default="true" />
+    <button label="🟣 Shorts 시청 최적화" variable="SHORTS_OPTIMIZE" default="true" />
+    <button label="❤️ 댓글/좋아요/구독 자동화" variable="AUTO_ENGAGE" default="true" />
+    <button label="🔁 조회수 반복 입장/이탈" variable="LOOP_VIEW" default="true" />
+    <button label="📩 지메일 계정 생성" variable="CREATE_GMAIL" default="false" />
+    <button label="📷 유튜브 채널 생성" variable="CREATE_CHANNEL" default="true" />
+    <button label="🧠 자동 댓글봇" variable="AUTO_COMMENT" default="true" />
+    <button label="🌐 다국어 번역 기능" variable="MULTI_LANG" default="true" />
+    <button label="📡 IMEI + 회전 프록시 설정" variable="ROTATE_PROXY" default="true" />
+    
+    <!-- 추가 기능 버튼들 -->
+    <button label="🔍 유튜브 검색창에 키워드 및 제목 입력" variable="SEARCH_AND_PLAY" default="true" />
+    <button label="🖱️ 쇼츠 섹션 클릭 및 영상 클릭" variable="CLICK_SHORTS_SECTION" default="true" />
+    <button label="🔁 제목 리스트 기반 자동 반복 시청" variable="TITLE_BASED_AUTO_REPEAT" default="true" />
+    <button label="🆕 최신 영상 판단 및 시청 갯수 설정" variable="DETERMINE_LATEST_VIDEOS" default="true" />
+    <button label="🔙 백스페이스 기반 뒤로 이동" variable="BACKSPACE_NAVIGATION" default="true" />
+    <button label="⏱️ 시청 시간 범위 설정 (최소/최대)" variable="VIEW_TIME_RANGE_SETTING" default="true" />
+    <button label="👍 쇼츠 좋아요 (랜덤계정 / 전체계정)" variable="SHORTS_LIKE_AUTO" default="true" />
+    <button label="📺 유튜브 채널 리스트 방문 및 최신영상 시청" variable="VISIT_YOUTUBE_CHANNELS" default="true" />
+    <button label="📋 계정 + 프록시 체크 + 구분 txt 출력" variable="ACCOUNT_PROXY_CHECK" default="true" />
+    <button label="👤 지메일 프로필 사진 / 채널명 변경 기능" variable="CHANGE_GMAIL_PROFILE" default="true" />
+    <button label="🌾 파밍기능 (뉴스레터, 캘린더, 팟캐스트 등)" variable="FARMING_ACTIVITIES" default="true" />
+    <button label="🖥️ 랜덤 브라우저 환경 (PC, 안드로이드 등)" variable="RANDOM_BROWSER_ENVIRONMENT" default="true" />
+    <button label="👥 라이브 시청자 증가 기능" variable="INCREASE_LIVE_VIEWERS" default="true" />
+    <button label="⚖️ 지메일 자동 항소 기능" variable="AUTO_APPEAL_GMAIL" default="true" />
+    <button label="📱 SMS 인증 연동 (조건만 포함)" variable="SMS_AUTHENTICATION" default="true" />
+    <button label="💬 댓글 작성 자동화 기능" variable="AUTO_COMMENT_WRITING" default="true" />
+    <button label="📈 조회수 알고리즘 자동 실행" variable="AUTO_VIEWCOUNT_ALGORITHM" default="true" />
+    <button label="🔀 사용자 입력 기반 자동분기" variable="USER_INPUT_BASED_BRANCHING" default="true" />
+    <button label="📝 실행 로그 기록 및 텍스트 출력" variable="EXECUTION_LOG_RECORDING" default="true" />
+    <button label="⏰ 스케줄러 실행 (시간 분배)" variable="SCHEDULER_EXECUTION" default="true" />
+    <button label="⏯️ UI 버튼 기반 시작 / 종료 기능" variable="UI_BUTTON_BASED_START_STOP" default="true" />
+    <button label="🎛️ 모듈별 켜고 끌 수 있는 세팅" variable="MODULE_TOGGLE_SETTINGS" default="true" />
+    <button label="🔄 프록시 조건 분기 자동화" variable="PROXY_CONDITION_BRANCHING" default="true" />
+    
+    <!-- 프록시 관련 버튼 -->
+    <button label="프록시 형식 선택" action="CallMacro"><Name>SelectProxyFormat</Name></button>
+    <button label="한국 ISP 변경" action="CallMacro"><Name>ChangeToKoreanISP</Name></button>
+    <button label="프록시 사용 설명" action="CallMacro"><Name>ShowProxyUsageExplanation</Name></button>
+    
+    <!-- YouTube 자동화 실행 버튼 -->
+    <button label="📺 YouTube 자동화 실행" action="CallMacro"><Name>YoutubeViewEngine</Name></button>
+    <!-- 프로필 관리 버튼 -->
+    <button label="👤 프로필 관리" action="CallMacro"><n>ProfileManagement</n></button>
+    <button label="💾 프로필 저장" action="CallMacro"><n>SaveProfile</n></button>
+    <button label="🔄 프로필 전환" action="CallMacro"><n>SwitchProfile</n></button>
+    <button label="📦 프로필 백업" action="CallMacro"><n>BackupProfiles</n></button>
+    <button label="📥 프로필 복원" action="CallMacro"><n>RestoreProfiles</n></button>
+    <button label="🚀 멀티 프로필 실행" action="CallMacro"><n>RunMultiProfile</n></button>
+    
+    <!-- DB 저장 옵션 버튼 -->
+    <button label="💾 MongoDB 저장" action="SetMode"><Mode>MongoDB</Mode></button>
+    <button label="💾 SQLite 저장" action="SetMode"><Mode>SQLite</Mode></button>
+    <button label="🔐 Fingerprint API 사용" variable="USE_FINGERPRINT" default="true" />
+    <button label="🌐 CIDR 필터링" variable="USE_CIDR_FILTER" default="false" />
+    <button label="🎯 URL 전략 적용" variable="USE_URL_STRATEGY" default="true" />
+  </ui>
+
+  <!-- ======================== 프로필 관리 시스템 ======================== -->
+  
+  <!-- 프로필 자동 관리 매크로 -->
+  <macro name="ProfileManagement">
+    <parameter name="ProfileName"/>
+    
+    <!-- 프로필 경로 설정 -->
+    <action name="SetVar">
+      <variable>profile_folder</variable>
+      <value>profiles/{ProfileName}</value>
+    </action>
+    <action name="SetVar">
+      <variable>cookie_file</variable>
+      <value>{profile_folder}/cookies.txt</value>
+    </action>
+    <action name="SetVar">
+      <variable>ua_file</variable>
+      <value>{profile_folder}/useragent.txt</value>
+    </action>
+    <action name="SetVar">
+      <variable>proxy_file</variable>
+      <value>{profile_folder}/proxy.txt</value>
+    </action>
+    <action name="SetVar">
+      <variable>fingerprint_file</variable>
+      <value>{profile_folder}/fingerprint.json</value>
+    </action>
+    
+    <!-- 프로필 폴더 생성 -->
+    <action name="CreateDir">
+      <condition>!FileExists('{profile_folder}')</condition>
+      <Path>{profile_folder}</Path>
+    </action>
+    
+    <!-- UserAgent 자동 생성 또는 로드 -->
+    <If condition="!FileExists('{ua_file}')">
+      <Then>
+        <action name="RandomUserAgent">
+          <variable>ua</variable>
+          <Country>Korea</Country>
+          <Browser>Chrome</Browser>
+          <Version>Latest</Version>
+        </action>
+        <action name="WriteFile">
+          <Path>{ua_file}</Path>
+          <Content>{ua}</Content>
+        </action>
+        <action name="LogEvent">
+          <Type>Profile</Type>
+          <Details>새 UserAgent 생성: {ProfileName}</Details>
+        </action>
+      </Then>
+      <Else>
+        <action name="ReadFile">
+          <Path>{ua_file}</Path>
+          <Variable>ua</Variable>
+        </action>
+        <action name="LogEvent">
+          <Type>Profile</Type>
+          <Details>기존 UserAgent 로드: {ProfileName}</Details>
+        </action>
+      </Else>
+    </If>
+    
+    <!-- UserAgent 적용 -->
+    <action name="SetUserAgent">
+      <UserAgent>{ua}</UserAgent>
+    </action>
+    
+    <!-- Proxy 자동 로드 -->
+    <If condition="FileExists('{proxy_file}')">
+      <Then>
+        <action name="ReadFile">
+          <Path>{proxy_file}</Path>
+          <Variable>proxy</Variable>
+        </action>
+        <action name="ParseLine">
+          <input>{proxy}</input>
+          <output>proxy_parts</output>
+          <delimiter>:</delimiter>
+        </action>
+        <action name="SetProxy">
+          <Type>HTTP</Type>
+          <Host>{proxy_parts[0]}</Host>
+          <Port>{proxy_parts[1]}</Port>
+          <Username>{proxy_parts[2]}</Username>
+          <Password>{proxy_parts[3]}</Password>
+        </action>
+        <action name="LogEvent">
+          <Type>Profile</Type>
+          <Details>프록시 로드 완료: {ProfileName}</Details>
+        </action>
+      </Then>
+      <Else>
+        <action name="LogEvent">
+          <Type>Profile</Type>
+          <Details>프록시 없음: {ProfileName}</Details>
+        </action>
+      </Else>
+    </If>
+    
+    <!-- 쿠키 로딩 -->
+    <If condition="FileExists('{cookie_file}')">
+      <Then>
+        <action name="LoadCookies">
+          <Path>{cookie_file}</Path>
+        </action>
+        <action name="LogEvent">
+          <Type>Profile</Type>
+          <Details>쿠키 로드 완료: {ProfileName}</Details>
+        </action>
+      </Then>
+      <Else>
+        <action name="LogEvent">
+          <Type>Profile</Type>
+          <Details>쿠키 없음 (신규): {ProfileName}</Details>
+        </action>
+      </Else>
+    </If>
+    
+    <!-- Fingerprint 로드 또는 생성 -->
+    <If condition="FileExists('{fingerprint_file}')">
+      <Then>
+        <action name="ReadFile">
+          <Path>{fingerprint_file}</Path>
+          <Variable>fingerprint_data</Variable>
+        </action>
+        <action name="ApplyFingerprint">
+          <Profile>{fingerprint_data}</Profile>
+        </action>
+      </Then>
+      <Else>
+        <action name="CallMacro">
+          <n>FetchFingerprint</n>
+        </action>
+        <action name="SaveFingerprint">
+          <Path>{fingerprint_file}</Path>
+          <Data>{FinalFingerprint}</Data>
+        </action>
+      </Else>
+    </If>
+  </macro>
+  
+  <!-- 프로필 저장 매크로 -->
+  <macro name="SaveProfile">
+    <parameter name="ProfileName"/>
+    
+    <!-- 경로 설정 -->
+    <action name="SetVar">
+      <variable>profile_folder</variable>
+      <value>profiles/{ProfileName}</value>
+    </action>
+    <action name="SetVar">
+      <variable>cookie_file</variable>
+      <value>{profile_folder}/cookies.txt</value>
+    </action>
+    <action name="SetVar">
+      <variable>session_file</variable>
+      <value>{profile_folder}/session.json</value>
+    </action>
+    
+    <!-- 쿠키 저장 -->
+    <action name="SaveCookies">
+      <Path>{cookie_file}</Path>
+    </action>
+    
+    <!-- 세션 정보 저장 -->
+    <action name="SetVariable">
+      <Variable>SessionData</Variable>
+      <Value>{
+        "profile": "{ProfileName}",
+        "timestamp": "{Timestamp}",
+        "last_url": "{CurrentURL}",
+        "total_views": "{TotalViews}",
+        "status": "active"
+      }</Value>
+    </action>
+    <action name="WriteFile">
+      <Path>{session_file}</Path>
+      <Content>{SessionData}</Content>
+    </action>
+    
+    <action name="LogEvent">
+      <Type>Profile</Type>
+      <Details>프로필 저장 완료: {ProfileName}</Details>
+    </action>
+  </macro>
+  
+  <!-- 프로필 전환 매크로 -->
+  <macro name="SwitchProfile">
+    <parameter name="FromProfile"/>
+    <parameter name="ToProfile"/>
+    
+    <!-- 현재 프로필 저장 -->
+    <action name="CallMacro">
+      <n>SaveProfile</n>
+      <Parameters>
+        <ProfileName>{FromProfile}</ProfileName>
+      </Parameters>
+    </action>
+    
+    <!-- 브라우저 초기화 -->
+    <action name="ClearCache"/>
+    <action name="ClearCookies"/>
+    
+    <!-- 새 프로필 로드 -->
+    <action name="CallMacro">
+      <n>ProfileManagement</n>
+      <Parameters>
+        <ProfileName>{ToProfile}</ProfileName>
+      </Parameters>
+    </action>
+    
+    <action name="LogEvent">
+      <Type>ProfileSwitch</Type>
+      <Details>프로필 전환: {FromProfile} → {ToProfile}</Details>
+    </action>
+  </macro>
+  
+  <!-- 멀티 프로필 병렬 실행 -->
+  <macro name="RunMultiProfile">
+    <parameter name="ProfileList"/>
+    <parameter name="TargetURL"/>
+    
+    <loop name="ProfileLoop" parallel="true" max_threads="50">
+      <action name="GetNextItem">
+        <List>{ProfileList}</List>
+        <Variable>CurrentProfile</Variable>
+      </action>
+      
+      <!-- 각 프로필로 세션 시작 -->
+      <action name="CallMacro">
+        <n>ProfileManagement</n>
+        <Parameters>
+          <ProfileName>{CurrentProfile}</ProfileName>
+        </Parameters>
+      </action>
+      
+      <!-- 작업 수행 -->
+      <action name="Navigate">
+        <URL>{TargetURL}</URL>
+      </action>
+      
+      <!-- YouTube 자동화 실행 -->
+      <If condition="{TargetURL}.contains('youtube.com')">
+        <Then>
+          <action name="CallMacro">
+            <n>YoutubeViewEngine</n>
+          </action>
+        </Then>
+      </If>
+      
+      <!-- 프로필 저장 -->
+      <action name="CallMacro">
+        <n>SaveProfile</n>
+        <Parameters>
+          <ProfileName>{CurrentProfile}</ProfileName>
+        </Parameters>
+      </action>
+    </loop>
+  </macro>
+  
+  <!-- 프로필 백업/복원 -->
+  <macro name="BackupProfiles">
+    <action name="SetVariable">
+      <Variable>BackupName</Variable>
+      <Value>backup_{Date}_{Time}</Value>
+    </action>
+    
+    <action name="CreateZip">
+      <Source>profiles/</Source>
+      <Destination>backups/{BackupName}.zip</Destination>
+    </action>
+    
+    <action name="LogEvent">
+      <Type>Backup</Type>
+      <Details>프로필 백업 완료: {BackupName}</Details>
+    </action>
+  </macro>
+  
+  <macro name="RestoreProfiles">
+    <parameter name="BackupFile"/>
+    
+    <action name="ExtractZip">
+      <Source>backups/{BackupFile}</Source>
+      <Destination>profiles/</Destination>
+    </action>
+    
+    <action name="LogEvent">
+      <Type>Restore</Type>
+      <Details>프로필 복원 완료: {BackupFile}</Details>
+    </action>
+  </macro>
+
+  <!-- ======================== 고급 기능 추가 ======================== -->
+  
+  <!-- 📌 실행 모드 선택 UI -->
+  <macro name="SetupExecutionOptions">
+    <action name="CreatePopup">
+      <Title>실행 옵션 선택</Title>
+      <Message>DB 저장 방식, 브라우저 프로필링 및 전략을 선택하세요</Message>
+    </action>
+    <action name="AddChoice"><Option>MongoDB</Option></action>
+    <action name="AddChoice"><Option>SQLite</Option></action>
+    <action name="AddChoice"><Option>Multilogin 프로필</Option></action>
+    <action name="AddChoice"><Option>GoLogin 프로필</Option></action>
+    <action name="ShowPopup"/>
+    <action name="GetUserChoice"><Variable>SelectedMode</Variable></action>
+    <action name="LogEvent"><Type>Mode</Type><Details>선택된 모드: {SelectedMode}</Details></action>
+  </macro>
+
+  <!-- 🔐 Bablosoft / ProxyGeo Fingerprint API 호출 -->
+  <macro name="FetchFingerprint">
+    <action name="HTTPRequest">
+      <Method>GET</Method>
+      <URL>https://fp.bablosoft.com/api/v1/fingerprint?token=J6tgC3yKrA67k6wr4SpeqWxLlRqgyZ8N0AhkmCmV9jAPC5hxuo1jt9TfFDsWWhJI</URL>
+      <ResponseVariable>FP1</ResponseVariable>
+    </action>
+    <action name="HTTPRequest">
+      <Method>GET</Method>
+      <URL>https://proxygeo.com/api/browser-fingerprint?apikey=ff893e3d-5f3e-43d9-8ac4-b12890fcb72f</URL>
+      <ResponseVariable>FP2</ResponseVariable>
+    </action>
+    <action name="ParseJSON"><JSON>{FP1}</JSON><Key>fingerprint</Key><Variable>Data1</Variable></action>
+    <action name="ParseJSON"><JSON>{FP2}</JSON><Key>fingerprint</Key><Variable>Data2</Variable></action>
+    <action name="Merge"><Base>{Data1}</Base><Overlay>{Data2}</Overlay><Variable>FinalFingerprint</Variable></action>
+    <action name="ApplyFingerprint"><Profile>{FinalFingerprint}</Profile></action>
+    <action name="LogEvent"><Type>Fingerprint</Type><Details>Fingerprint 적용 완료</Details></action>
+  </macro>
+
+  <!-- 🧬 브라우저 프로파일 초기화 -->
+  <macro name="StartBrowserSession">
+    <if condition="{SelectedMode} == 'Multilogin 프로필'">
+      <then><action name="StartMultiloginProfile"><ProfileId>auto_{ThreadIndex}</ProfileId></action></then>
+    </if>
+    <if condition="{SelectedMode} == 'GoLogin 프로필'">
+      <then><action name="StartGoLoginProfile"><ProfileId>auto_{ThreadIndex}</ProfileId></action></then>
+    </if>
+  </macro>
+
+  <!-- 🎯 URL 집중/분산 전략 -->
+  <macro name="URLStrategy">
+    <parameter name="URL"/>
+    <if condition="{URL}.contains('priority')">
+      <then>
+        <action name="SetVariable"><Variable>WatchDuration</Variable><Value>{Random(3600,5400)}</Value></action>
+        <action name="LogEvent"><Type>Strategy</Type><Details>집중 시청: {URL}</Details></action>
+      </then>
+      <else>
+        <action name="SetVariable"><Variable>WatchDuration</Variable><Value>{Random(600,1800)}</Value></action>
+        <action name="LogEvent"><Type>Strategy</Type><Details>분산 시청: {URL}</Details></action>
+      </else>
+    </if>
+  </macro>
+
+  <!-- 🧰 CIDR 기반 프록시 필터링 -->
+  <macro name="CIDRFilter">
+    <action name="ReadFile"><File>./rules/cidr_rules.txt</File><Variable>CIDRList</Variable></action>
+    <action name="ExtractIP"><Proxy>{Account.proxy}</Proxy><Variable>ProxyIP</Variable></action>
+    <action name="CheckCIDR"><IP>{ProxyIP}</IP><CIDRs>{CIDRList}</CIDRs><Result>Allowed</Result></action>
+    <if condition="{Allowed} == false">
+      <then>
+        <action name="LogEvent"><Type>CIDR</Type><Details>필터 제외됨: {ProxyIP}</Details></action>
+        <action name="Exit"/>
+      </then>
+    </if>
+  </macro>
+
+  <!-- 🗃️ DB 저장 -->
+  <macro name="SaveActivity">
+    <parameter name="RecordJson"/>
+    <if condition="{SelectedMode} == 'MongoDB'">
+      <then>
+        <action name="MongoInsert">
+          <Connection>mongodb://localhost:27017</Connection>
+          <Database>bas_logs</Database>
+          <Collection>activities</Collection>
+          <Document>{RecordJson}</Document>
+        </action>
+      </then>
+    </if>
+    <if condition="{SelectedMode} == 'SQLite'">
+      <then>
+        <action name="SQLiteInsert">
+          <File>./data/log.db</File>
+          <Table>activity_logs</Table>
+          <Data>{RecordJson}</Data>
+        </action>
+      </then>
+    </if>
+  </macro>
+
+  <!-- 🔄 전체 시청 루프 -->
+  <macro name="RunViewSessions">
+    <action name="CallMacro"><Name>SetupExecutionOptions</Name></action>
+    <action name="ReadFile"><File>./data/target_urls.txt</File><Variable>TargetURLs</Variable></action>
+
+    <loop name="Sessions" count="500">
+      <action name="SetVariable"><Variable>TargetURL</Variable><Value>{TargetURLs[{ThreadIndex} % TargetURLs.length]}</Value></action>
+      <action name="CallMacro"><Name>URLStrategy</Name><Parameters><URL>{TargetURL}</URL></Parameters></action>
+      <action name="CallMacro"><Name>FetchFingerprint</Name></action>
+      <action name="CallMacro"><Name>StartBrowserSession</Name></action>
+      <action name="OpenURL"><URL>{TargetURL}</URL></action>
+      <action name="Delay"><Seconds>{WatchDuration}</Seconds></action>
+      <action name="CloseBrowser"/>
+
+      <action name="SetVariable"><Variable>LogRecord</Variable>
+        <Value>{"url":"{TargetURL}","duration":"{WatchDuration}","fingerprint_used":"yes","timestamp":"{Timestamp}"}</Value>
+      </action>
+      <action name="CallMacro"><Name>SaveActivity</Name><Parameters><RecordJson>{LogRecord}</RecordJson></Parameters></action>
+    </loop>
+  </macro>
+
+  <!-- ======================== 메인 실행 매크로 ======================== -->
+  
+  <!-- 메인 실행 흐름 -->
+  <macro name="MainExecutionFlow">
+    <action name="CallMacro"><Name>FinalExecutionSetup</Name></action>
+    
+    <loop name="ProcessAccountsParallel" parallel="true" max_threads="500">
+      <action name="GetNextAccount"><Variable>Account</Variable></action>
+      <if condition="AccountAvailable">
+        <then>
+          <action name="CallMacro"><Name>HighPerformanceProxyHandling</Name><Parameters><Account>{Account}</Account></Parameters></action>
+          <action name="CallMacro"><Name>ExecuteAll29Features</Name><Parameters><Account>{Account}</Account></Parameters></action>
+        </then>
+      </if>
+    </loop>
+  </macro>
+
+  <!-- 초기 환경 설정 -->
+  <macro name="FinalExecutionSetup">
+    <action name="CallMacro"><Name>InitializeParallelEnvironment</Name></action>
+    <action name="CallMacro"><Name>LoadDataFiles</Name></action>
+    <action name="CallMacro"><Name>SetupCompleteUI</Name></action>
+    <action name="CallMacro"><Name>OptimizeParallelExecution</Name></action>
+    <action name="CallMacro"><Name>WorldClassPerformanceOptimization</Name></action>
+    <action name="CallMacro"><Name>GlobalProxyOptimization</Name></action>
+  </macro>
+
+  <!-- 병렬 실행 최적화 -->
+  <macro name="OptimizeParallelExecution">
+    <action name="SetThreadCount"><Count>500</Count></action>
+    <action name="EnableParallelExecution"><Value>true</Value></action>
+    <action name="SetThreadDelay"><Delay>100</Delay></action>
+    <action name="InitializeBrowserPool"><Size>500</Size><Headless>false</Headless></action>
+    <action name="ConfigureThreadManagement"><MaxConcurrent>500</MaxConcurrent><QueueSize>1000</QueueSize></action>
+  </macro>
+
+  <!-- 고성능 프록시 처리 -->
+  <macro name="HighPerformanceProxyHandling">
+    <parameter name="Account"/>
+    <action name="ParseProxyString"><Proxy>{Account.proxy}</Proxy></action>
+    <action name="ValidateProxyFormat"/>
+    <action name="CheckProxyConnectivity"/>
+    <action name="MeasureProxySpeed"/>
+    <if condition="ProxySpeed < 200ms">
+      <then>
+        <action name="UseFastProxy"><Proxy>{Account.proxy}</Proxy></action>
+      </then>
+      <else>
+        <action name="RotateToBackupProxy"/>
+      </else>
+    </if>
+  </macro>
+
+  <!-- ======================== 29개 기능 통합 실행 ======================== -->
+  
+  <macro name="ExecuteAll29Features">
+    <parameter name="Account"/>
+    
+    <!-- 1-29번 기능 실행 (조건부) -->
+    <if condition="{CREATE_GMAIL_ACCOUNT}">
+      <then><action name="CallMacro"><Name>CreateGmailAccountAutomated</Name><Parameters><Account>{Account}</Account></Parameters></action></then>
+    </if>
+    
+    <!-- 나머지 28개 기능도 동일한 패턴으로 추가 -->
+    <!-- ... -->
+    
+    <!-- 데이터 저장 -->
+    <action name="SaveData">
+      <Cookies>./data/cookies/{Account.id}.txt</Cookies>
+      <UserAgent>./data/ua/{Account.id}.txt</UserAgent>
+    </action>
+  </macro>
+
+  <!-- ======================== YouTube 자동화 엔진 ======================== -->
+  
+  <macro name="YoutubeViewEngine">
+    <!-- UI 입력 -->
+    <action name="CreatePopup">
+      <Title>📺 YouTube 자동화</Title>
+      <Message>필수값을 입력하세요</Message>
+    </action>
+    <action name="AddInput"><Label>🔍 키워드</Label><Variable>yt_keyword</Variable></action>
+    <action name="AddInput"><Label>📌 제목 (정확히 입력)</Label><Variable>yt_title</Variable></action>
+    <action name="AddInput"><Label>📍 포지션 (1=Top1 → N)</Label><DefaultValue>3</DefaultValue><Variable>yt_position</Variable></action>
+    <action name="AddChoice"><Option>📡 라이브</Option></action>
+    <action name="AddChoice"><Option>🎞️ 쇼츠</Option></action>
+    <action name="AddChoice"><Option>🎬 비디오</Option></action>
+    <action name="ShowPopup"/>
+    <action name="GetUserChoice"><Variable>yt_mode</Variable></action>
+
+    <!-- 시청 시간 설정 -->
+    <action name="CreatePopup">
+      <Title>⏱️ 시청 시간 설정</Title>
+      <Message>최소~최대 시청시간(초)</Message>
+    </action>
+    <action name="AddInput"><Label>Min</Label><DefaultValue>60</DefaultValue><Variable>min_time</Variable></action>
+    <action name="AddInput"><Label>Max</Label><DefaultValue>180</DefaultValue><Variable>max_time</Variable></action>
+    <action name="ShowPopup"/>
+
+    <!-- YouTube 검색 및 시청 -->
+    <action name="Navigate"><param name="URL">https://www.youtube.com</param></action>
+    <action name="Wait"><param name="Time">3</param></action>
+    <action name="Type"><param name="Selector">input#search</param><param name="Text">{yt_keyword}</param></action>
+    <action name="Click"><param name="Selector">button#search-icon-legacy</param></action>
+    <action name="Wait"><param name="Time">3</param></action>
+
+    <!-- 필터 설정 -->
+    <if condition="{yt_mode} == '📡 라이브'">
+      <then>
+        <action name="Click"><param name="Selector">ytd-toggle-button-renderer.style-scope</param></action>
+        <action name="Click"><param name="Selector">yt-formatted-string:contains('라이브')</param></action>
+      </then>
+    </if>
+    
+    <!-- 포지션 스크롤 -->
+    <loop name="scroll" from="1" to="{yt_position}">
+      <action name="ScrollPage"/>
+      <action name="Wait"><Time>1</Time></action>
+    </loop>
+
+    <!-- 영상 클릭 및 시청 -->
+    <action name="ClickByText"><param name="Text">{yt_title}</param></action>
+    <action name="Wait"><param name="Time">2</param></action>
+    <action name="SetVariable"><Variable>watch_time</Variable><Value>{Random(min_time, max_time)}</Value></action>
+    <action name="Wait"><Time>{watch_time}</Time></action>
+
+    <!-- 좋아요/구독/댓글 -->
+    <action name="ClickIfExists"><param name="Selector">ytd-toggle-button-renderer:contains('좋아요')</param></action>
+    <action name="ClickIfExists"><param name="Selector">ytd-subscribe-button-renderer</param></action>
+    
+    <!-- 로그 출력 -->
+    <action name="LogEvent">
+      <Type>완료</Type>
+      <Details>🎯 {yt_title} 영상 {watch_time}초 시청 완료</Details>
+    </action>
+  </macro>
+
+  <!-- ======================== 계정 체커 리포터 ======================== -->
+  
+  <macro name="AccountCheckerWithReporter">
+    <action name="CreateFolder"><Name>account_checker_reporter</Name></action>
+    <action name="CheckAccountStatus"/>
+
+    <if condition="LoginSuccess">
+      <then>
+        <action name="CreateFile"><Name>login_success_gmail_proxy.txt</Name><Format>id|pass|recovery|recovery_pass|proxy</Format></action>
+      </then>
+    </if>
+
+    <if condition="BadProxy">
+      <then>
+        <action name="CreateFile"><Name>bad_proxy.txt</Name><Format>proxy</Format></action>
+      </then>
+    </if>
+
+    <if condition="DisabledAccount">
+      <then>
+        <action name="CreateFile"><Name>disabled_accounts.txt</Name><Format>id|pass|recovery|recovery_pass</Format></action>
+      </then>
+    </if>
+
+    <if condition="PhoneVerificationNeeded">
+      <then>
+        <action name="CreateFile"><Name>phone_verification_needed.txt</Name><Format>proxy</Format></action>
+      </then>
+    </if>
+  </macro>
+
+  <!-- ======================== 데이터 파일 로드 ======================== -->
+  
+  <macro name="LoadDataFiles">
+    <action name="LoadAccounts"><File>gaccounts.txt</File><Format>id|pass|recovery_email|recovery_pass|proxy</Format></action>
+    <action name="LoadShortsLinks"><File>shorts-url-Link.txt</File></action>
+    <action name="LoadLiveStreams"><File>live-streams.txt</File></action>
+    <action name="LoadComments"><File>comments.txt</File></action>
+    <action name="LoadKeywords"><File>keywords.txt</File></action>
+    <action name="LoadProfiles"><File>profiles.txt</File></action>
+    <action name="CreateDataFolders"><Folders>cookies,ua,reports,logs</Folders></action>
+  </macro>
+
+</project>

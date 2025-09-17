@@ -1,0 +1,419 @@
+```jsx
+import React, { useState } from 'react';
+
+const App = () => {
+  const [activeTab, setActiveTab] = useState('overview');
+
+  const securityFeatures = [
+    {
+      title: "UA-CH 채택",
+      description: "Sec-CH-UA, Sec-CH-UA-Platform, Model, Arch, Full-Version 등 요청 시그널만 확인(일관성 체크)",
+      status: "good",
+      details: "요청 헤더를 기반으로 브라우저/기기 정보를 검증하며, 일관성을 기반으로 자동화 탐지"
+    },
+    {
+      title: "Accept-CH 헤더",
+      description: "힌트 요청, 불일치만 리스크 가점(즉시 차단 X)",
+      status: "good",
+      details: "차단보다는 리스크 점수화에 초점, 정상 사용자에게 더 나은 경험 제공"
+    },
+    {
+      title: "로케일/타임존 보호",
+      description: "콘텐츠 최적화에만 사용(차단 근거로 사용 안 함)",
+      status: "excellent",
+      details: "사용자 경험을 해치지 않으면서 보안 강화"
+    },
+    {
+      title: "CSRF/Origin 보호",
+      description: "SameSite=Lax/Strict + CSRF 토큰(더블 서브밋). CORS/Origin 검증: Origin 우선, 없으면 Referer 보조",
+      status: "excellent",
+      details: "전통적인 보안 방식과 현대적인 접근법을 결합한 효과적인 방어"
+    },
+    {
+      title: "민감 메서드 보호",
+      description: "**민감 메서드(POST/PUT/DELETE)**는 CSRF 토큰 필수",
+      status: "excellent",
+      details: "핵심 기능의 보안 강화를 위한 결정적인 조치"
+    },
+    {
+      title: "자동화/남용 방지",
+      description: "리스크 점수화 신호만 사용: 요청 속도, ASN/프록시 평판, 불가능한 이동(짧은 시간-먼 거리), 장치 키 불일치. 점수 임계 초과 시 MFA·메일 확인·속도 제한 등 스텝업 챌린지 → 정상 사용자는 통과, 자동화는 비용 증가",
+      status: "excellent",
+      details: "정교한 단계적 보안 전략으로 자동화 공격을 효과적으로 억제하면서 정상 사용자 경험 유지"
+    },
+    {
+      title: "저장/로그/가시성",
+      description: "서버 세션 저장소(예: Redis) + TTL, 사용자당 동시 세션 개수 제한. 감사 로그: 토큰 회전·MFA·장치 변경 이벤트",
+      status: "excellent",
+      details: "보안 이벤트의 추적 가능성을 확보하고, 내부 감사 및 문제 해결을 용이하게 함"
+    }
+  ];
+
+  const implementationStatus = [
+    {
+      feature: "UA-CH 채택",
+      ourImplementation: "미구현",
+      competitor: "완료",
+      improvement: "빠른 구현 필요"
+    },
+    {
+      feature: "Accept-CH 헤더",
+      ourImplementation: "부분 구현",
+      competitor: "완료",
+      improvement: "불일치 처리 로직 추가 필요"
+    },
+    {
+      feature: "로케일/타임존 보호",
+      ourImplementation: "미구현",
+      competitor: "완료",
+      improvement: "실시간 데이터 수집 및 분석 기능 도입"
+    },
+    {
+      feature: "CSRF/Origin 보호",
+      ourImplementation: "완료",
+      competitor: "완료",
+      improvement: "최신 표준 준수 여부 점검"
+    },
+    {
+      feature: "민감 메서드 보호",
+      ourImplementation: "완료",
+      competitor: "완료",
+      improvement: "모든 민감 메서드에 대한 토큰 검증 강화"
+    },
+    {
+      feature: "자동화/남용 방지",
+      ourImplementation: "부분 구현",
+      competitor: "완료",
+      improvement: "리스크 점수 알고리즘 최적화"
+    },
+    {
+      feature: "저장/로그/가시성",
+      ourImplementation: "부분 구현",
+      competitor: "완료",
+      improvement: "모든 보안 이벤트에 대한 감사 로그 기록 확대"
+    }
+  ];
+
+  const getBadgeColor = (status) => {
+    switch (status) {
+      case 'excellent': return 'bg-green-100 text-green-800';
+      case 'good': return 'bg-yellow-100 text-yellow-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getStatusIcon = (status) => {
+    switch (status) {
+      case 'excellent':
+        return (
+          <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+          </svg>
+        );
+      case 'good':
+        return (
+          <svg className="w-5 h-5 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+          </svg>
+        );
+      default:
+        return (
+          <svg className="w-5 h-5 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+          </svg>
+        );
+    }
+  };
+
+  const renderComparisonTable = () => (
+    <div className="bg-white rounded-lg shadow-md overflow-hidden">
+      <div className="px-6 py-4 border-b bg-gray-50">
+        <h3 className="text-lg font-semibold text-gray-900">보안 기능 비교</h3>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">기능</th>
+              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">우리 구현</th>
+              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">경쟁사</th>
+              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">개선 사항</th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {implementationStatus.map((item, index) => (
+              <tr key={index} className="hover:bg-gray-50 transition-colors duration-150">
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.feature}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-700">
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${item.ourImplementation === '완료' ? 'bg-green-100 text-green-800' : item.ourImplementation === '부분 구현' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'}`}>
+                    {item.ourImplementation}
+                  </span>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-700">
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${item.competitor === '완료' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                    {item.competitor}
+                  </span>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{item.improvement}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+      {/* Header */}
+      <header className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-3 rounded-xl">
+                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">보안 기능 검토 리포트</h1>
+                <p className="text-gray-600 mt-1">현재 우리 시스템과 경쟁사 대비 보안 수준 분석</p>
+              </div>
+            </div>
+            <div className="hidden md:flex items-center space-x-4">
+              <div className="bg-green-100 text-green-800 px-4 py-2 rounded-lg text-sm font-medium">
+                우수: {securityFeatures.filter(f => f.status === 'excellent').length}/7
+              </div>
+              <div className="bg-yellow-100 text-yellow-800 px-4 py-2 rounded-lg text-sm font-medium">
+                개선 필요: {securityFeatures.filter(f => f.status === 'good').length}/7
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Navigation Tabs */}
+      <nav className="bg-white border-b sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex space-x-8">
+            {[
+              { id: 'overview', label: '개요', icon: '📊' },
+              { id: 'features', label: '기능 상세', icon: '🔧' },
+              { id: 'comparison', label: '비교 분석', icon: '📈' },
+              { id: 'recommendations', label: '개선 제안', icon: '💡' }
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${
+                  activeTab === tab.id
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                <span>{tab.icon}</span>
+                <span>{tab.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </nav>
+
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {activeTab === 'overview' && (
+          <div className="space-y-8">
+            <div className="bg-white rounded-lg shadow-md p-8">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">전체 보안 수준 평가</h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-lg p-6 text-white">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="font-semibold text-green-100">우수 기능</h3>
+                    <div className="bg-white bg-opacity-20 rounded-full p-2">
+                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                  </div>
+                  <p className="text-green-100 text-lg font-bold">{securityFeatures.filter(f => f.status === 'excellent').length}</p>
+                  <p className="text-green-100 text-sm mt-1">총 7개 중</p>
+                </div>
+
+                <div className="bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-lg p-6 text-white">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="font-semibold text-yellow-100">개선 필요 기능</h3>
+                    <div className="bg-white bg-opacity-20 rounded-full p-2">
+                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                  </div>
+                  <p className="text-yellow-100 text-lg font-bold">{securityFeatures.filter(f => f.status === 'good').length}</p>
+                  <p className="text-yellow-100 text-sm mt-1">총 7개 중</p>
+                </div>
+
+                <div className="bg-gradient-to-br from-red-500 to-red-600 rounded-lg p-6 text-white">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="font-semibold text-red-100">우수한 점</h3>
+                    <div className="bg-white bg-opacity-20 rounded-full p-2">
+                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                  </div>
+                  <p className="text-red-100 text-lg font-bold">100%</p>
+                  <p className="text-red-100 text-sm mt-1">우수 기능 비율</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-lg shadow-md p-8">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">핵심 인사이트</h2>
+              <div className="space-y-6">
+                <div className="flex items-start space-x-4">
+                  <div className="bg-green-100 p-2 rounded-full flex-shrink-0">
+                    <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">우수한 보안 설계</h3>
+                    <p className="text-gray-600 mt-1">
+                      UA-CH 채택, Accept-CH 헤더, 로케일/타임존 보호 등 현대적인 보안 프레임워크를 잘 반영하고 있습니다.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start space-x-4">
+                  <div className="bg-yellow-100 p-2 rounded-full flex-shrink-0">
+                    <svg className="w-5 h-5 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">개선 필요 영역</h3>
+                    <p className="text-gray-600 mt-1">
+                      일부 핵심 기능(예: 자동화/남용 방지, 저장/로그)에서 경쟁사 대비 미흡한 구현 수준을 확인했습니다.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start space-x-4">
+                  <div className="bg-red-100 p-2 rounded-full flex-shrink-0">
+                    <svg className="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">우위 확보 전략</h3>
+                    <p className="text-gray-600 mt-1">
+                      현재 경쟁사보다 우수한 기능을 기반으로 하여, 개선 영역에 집중하면 시장에서의 경쟁력을 더욱 강화할 수 있습니다.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'features' && (
+          <div className="space-y-8">
+            <div className="bg-white rounded-lg shadow-md p-8">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">보안 기능 상세 분석</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {securityFeatures.map((feature, index) => (
+                  <div
+                    key={index}
+                    className="border border-gray-200 rounded-lg p-6 hover:shadow-lg transition-shadow duration-200"
+                  >
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-semibold text-gray-900">{feature.title}</h3>
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getBadgeColor(feature.status)}`}>
+                        {getStatusIcon(feature.status)}
+                        <span className="ml-1">{feature.status.toUpperCase()}</span>
+                      </span>
+                    </div>
+                    <p className="text-gray-600 mb-4">{feature.description}</p>
+                    <div className="bg-gray-50 rounded-lg p-3">
+                      <p className="text-xs text-gray-500">상세 설명:</p>
+                      <p className="text-xs text-gray-700 mt-1">{feature.details}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'comparison' && (
+          <div className="space-y-8">
+            <div className="bg-white rounded-lg shadow-md p-8">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">우리 시스템 vs 경쟁사 비교</h2>
+              {renderComparisonTable()}
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'recommendations' && (
+          <div className="space-y-8">
+            <div className="bg-white rounded-lg shadow-md p-8">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">개선 제안</h2>
+              <div className="space-y-6">
+                <div className="bg-blue-50 border-l-4 border-blue-500 p-6 rounded-r-lg">
+                  <h3 className="text-lg font-semibold text-blue-900 mb-2">우선순위 1: 자동화/남용 방지 시스템 강화</h3>
+                  <p className="text-blue-800">
+                    리스크 점수 알고리즘을 최적화하여, 자동화 공격을 더 정교하게 탐지하고 차단해야 합니다.
+                  </p>
+                  <ul className="list-disc list-inside mt-3 text-blue-800 space-y-1">
+                    <li>요청 속도, ASN/프록시 평판, 이동 패턴 분석 강화</li>
+                    <li>스텝업 챌린지의 다양한 유형 도입</li>
+                    <li>정상 사용자 경험을 해치지 않는 최적화</li>
+                  </ul>
+                </div>
+
+                <div className="bg-green-50 border-l-4 border-green-500 p-6 rounded-r-lg">
+                  <h3 className="text-lg font-semibold text-green-900 mb-2">우선순위 2: 저장/로그/가시성 확대</h3>
+                  <p className="text-green-800">
+                    모든 보안 이벤트에 대한 감사 로그 기록을 확대하고, 실시간 모니터링 시스템을 도입해야 합니다.
+                  </p>
+                  <ul className="list-disc list-inside mt-3 text-green-800 space-y-1">
+                    <li>토큰 회전, MFA, 장치 변경 이벤트 모두 기록</li>
+                    <li>Redis를 활용한 서버 세션 저장소 운영</li>
+                    <li>사용자당 동시 세션 개수 제한 적용</li>
+                  </ul>
+                </div>
+
+                <div className="bg-yellow-50 border-l-4 border-yellow-500 p-6 rounded-r-lg">
+                  <h3 className="text-lg font-semibold text-yellow-900 mb-2">우선순위 3: UA-CH 채택 완전 구현</h3>
+                  <p className="text-yellow-800">
+                    현재 부분 구현 상태에서 완전한 구현으로 전환하여, 브라우저/기기 정보 일관성 검사를 강화해야 합니다.
+                  </p>
+                  <ul className="list-disc list-inside mt-3 text-yellow-800 space-y-1">
+                    <li>Sec-CH-UA, Sec-CH-UA-Platform, Model, Arch, Full-Version 등 전체 요청 시그널 확인</li>
+                    <li>일관성 체크 로직 강화</li>
+                    <li>Accept-CH 헤더 처리 로직 개선</li>
+                  </ul>
+                </div>
+
+                <div className="bg-purple-50 border-l-4 border-purple-500 p-6 rounded-r-lg">
+                  <h3 className="text-lg font-semibold text-purple-900 mb-2">추가 제안: 보안 성능 모니터링 도구 도입</h3>
+                  <p className="text-purple-800">
+                    보안 기능의 성능을 실시간으로 모니터링하고, 지표 기반의 개선을 추진해야 합니다.
+                  </p>
+                  <ul className="list-disc list-inside mt-3 text-purple-800 space-y-1">
+                    <li>리스크 점수 분포 모니터링</li>
+                    <li>차단률, 정상 사용자 통과율 지표 설정</li>
+                    <li>자동화된 보고서 생성 기능 도입</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </main>
+    </div>
+  );
+};
+
+export default App;
+```

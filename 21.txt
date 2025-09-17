@@ -1,0 +1,792 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="hdgrace-youtube" version="25.7.217">
+  <settings>
+    <FingerprintAPIKey>apiff893e3d-5f3e-43d9-8ac4-b12890fcb72f</FingerprintAPIKey>
+    <CaptchaAPIKey>32182a8277ab53355c49192af58c4b7b2b8c69cdc735ad217ed46c5f58d608c5</CaptchaAPIKey>
+    <SMSAPIKey>a81e7999e7a24ff88434c716b7b7ce51</SMSAPIKey>
+    <ProxyService>pyproxy.com</ProxyService>
+    <ProxyAPIKey>your_pyproxy_api_key</ProxyAPIKey>
+    <Language>ko,en</Language>
+    <MaxThreads>500</MaxThreads>
+    <TTLPerViewer>3600</TTLPerViewer>
+    <LogFile>./logs/activity.log</LogFile>
+    <DataFolder>./data/</DataFolder>
+  </settings>
+
+  <macro name="MainFlow">
+    <action name="LoadAccounts" file="gaccounts.txt" format="id|pass|recovery_email|recovery_pass|proxy" />
+    <action name="LoadShortsLinks" file="shorts-url-Link.txt" />
+    <action name="InitializeBrowser" engine="Chromium" headless="false" fingerprint="PinkFingerprint" fingerprint_key="{settings.FingerprintAPIKey}" />
+    <action name="SetProxy" source="API" url="https://pyproxy.com/api" auth_key="{settings.ProxyAPIKey}" rotation_interval="60s" />
+
+    <loop name="ProcessEachAccount" variable="Account">
+      <action name="LoginToGoogle" email="{Account.id}" password="{Account.pass}" recovery_email="{Account.recovery_email}" />
+      <if condition="LoginFailed">
+        <then>
+          <action name="ChangeFingerprint" />
+          <action name="ChangeProxy" />
+          <action name="RestartBrowser" />
+          <action name="LogEvent" type="LoginRecovery" details="Login failed - recovery executed" />
+        </then>
+      </if>
+
+      <loop name="ViewShorts" count="1000000">
+        <action name="NavigateTo" url="https://www.youtube.com/shorts/{Shorts.VideoID}" />
+        <action name="WaitFor" selector="video" timeout="15000" />
+        <action name="ExecuteJS" code="document.querySelector('video').play()" />
+        <action name="Delay" seconds="{Random(30, 60)}" />
+      </loop>
+
+      <action name="LikeAndSubscribe" video_url="{Shorts.VideoID}" />
+      <action name="PostComment" text="{RandomLine(comments.txt)}" />
+
+      <action name="YouTubeLiveWatch" live_id="{LiveID}" duration="{settings.TTLPerViewer}" />
+      <action name="AutoReplyToLiveChat" keyword="?" reply="감사합니다! 더 보여주세요!" />
+      <action name="AutoReplyToLiveChat" keyword="가격" reply="DM 주세요! 🙏" />
+
+      <action name="CreateYouTubeChannel" channel_name="{RandomKoreanName}" />
+      <action name="UpdateProfile" photo="random_korean_face.jpg" />
+      <action name="FarmActivity" interval="3600s" />
+
+      <action name="SaveData" cookies="./data/cookies/{Account.id}.txt" user_agent="./data/ua/{Account.id}.txt" />
+      <action name="UploadToGoogleSheets" sheet_id="1aBcDeFgHiJkLmNoPqRsTuVwXyZ" range="A1" data="Account,Views,Comments,Time" />
+    </loop>
+  </macro>
+
+  <macro name="UseSMSVerification">
+    <action name="HTTP" method="GET" url="https://vak-sms.com/api/getNumber?apiKey={settings.SMSAPIKey}&amp;service=gmail" />
+    <action name="WaitForSMS" timeout="120" />
+    <action name="HTTP" method="POST" url="https://vak-sms.com/api/setCode" body="apiKey={settings.SMSAPIKey}&amp;code={SMS_CODE}" />
+  </macro>
+
+  <macro name="Run2Captcha">
+    <action name="HTTP" method="GET" url="http://2captcha.com/in.php?key={settings.CaptchaAPIKey}&amp;method=userrecaptcha&amp;googlekey=6Lds5yIUAAAAAGnHkZD0lIyGZQbq_u9C7V-AfUkU&amp;pageurl=https://accounts.google.com" />
+    <action name="WaitFor" condition="CaptchaSolved" timeout="120" />
+    <action name="ExecuteJS" code="document.getElementById('g-recaptcha-response').innerHTML='{CAPTCHA_SOLUTION}';" />
+  </macro>
+
+  <macro name="ErrorRecovery">
+    <if condition="ProxyIsSlow">
+      <then>
+        <action name="RotateProxy" />
+        <action name="LogEvent" type="ProxyRotation" details="Proxy changed due to slow response" />
+      </then>
+    </if>
+    <if condition="AccountDisabled">
+      <then>
+        <action name="MarkAsBad" account="{Account.id}" />
+        <action name="UseNextAccount" />
+      </then>
+    </if>
+    <if condition="SMSFailure">
+      <then>
+        <action name="SwitchSMSProvider" providers="sms-activate.io,vak-sms.com,5sim.net" />
+      </then>
+    </if>
+  </macro>
+
+  <macro name="ProxyRotation">
+    <action name="ChangeProxy" service="pyproxy.com" />
+    <action name="MonitorProxyQuality" threshold="200ms" />
+  </macro>
+
+  <macro name="GoogleSheetsUpload">
+    <action name="HTTP" method="POST" url="https://sheets.googleapis.com/v4/spreadsheets/{sheet_id}/values/{range}:append" headers="Authorization: Bearer {access_token}, Content-Type: application/json" body="{&quot;values&quot;: [[&quot;{Account}&quot;, &quot;{Views}&quot;, &quot;{Comments}&quot;, &quot;{Time}&quot;]]}" />
+  </macro>
+
+  <macro name="AccountBuilder">
+    <action name="CreateGmailAccount" />
+    <action name="VerifyWithSMS" providers="sms-activate.ru,5sim.net,smshub.org,sms-reg.com,vak-sms.com,sms-man.ru,smspva.com,onlinesim.ru,simsms.org,smsonline.cloud,smspool.net,plivo.com" />
+    <action name="SetupRecoveryEmail" />
+    <action name="EnablePOPIMAP" />
+    <action name="ChangePassword" />
+    <action name="SaveAccount" format="id|pass|recovery|recovery_pass|proxy" />
+  </macro>
+
+  <macro name="CheckAccountStatus">
+    <action name="LoadAccount" file="gaccounts.txt" />
+    <action name="CheckLoginStatus" />
+    <if condition="LoginFailed">
+      <then>
+        <action name="CategorizeAccount" category="bad_gmail" />
+      </then>
+    </if>
+    <action name="CheckProxyStatus" />
+    <if condition="ProxyFailed">
+      <then>
+        <action name="CategorizeProxy" category="bad_proxy" />
+      </then>
+    </if>
+    <action name="GenerateReports" />
+  </macro>
+
+  <macro name="FarmingActivity">
+    <action name="SubscribeNewsletter" url="https://developers.google.com/newsletter/subscribe" />
+    <action name="CreateCalendarEvent" url="https://calendar.google.com/calendar" />
+    <action name="FollowPodcast" url="https://podcasts.google.com/" />
+    <action name="RegisterDeveloper" url="https://developers.google.com/" />
+    <action name="SearchYouTube" keywords="{RandomLine(keywords.txt)}" />
+  </macro>
+
+  <macro name="ProfileManagement">
+    <action name="ChangeProfilePhoto" photo="random_korean_face.jpg" />
+    <action name="ChangeProfileName" name="{RandomKoreanName}" />
+    <action name="CreateYouTubeChannel" name="{RandomKoreanName}" />
+    <action name="ChangePassword" new_password="{RandomPassword}" />
+  </macro>
+
+  <macro name="AppealDisabledAccounts">
+    <action name="DetectDisabledAccount" />
+    <action name="SubmitAppeal" url="https://support.google.com/accounts/contact/disabled" />
+    <action name="WaitForRecovery" timeout="86400" />
+    <action name="VerifyRecovery" />
+  </macro>
+
+  <macro name="AdvancedProxyManagement">
+    <action name="UseFixedProxy" location="UK" count="100" bandwidth="unlimited" />
+    <action name="SeparateProxyForYouTube" />
+    <action name="SeparateProxyForGmail" />
+    <action name="ValidateProxyAccess" />
+  </macro>
+
+  <macro name="SearchAndWatch">
+    <action name="SearchYouTube" keyword="{RandomLine(keywords.txt)}" />
+    <action name="ClickShortsSection" />
+    <action name="FindVideoByTitle" title="{RandomLine(titles.txt)}" />
+    <action name="ClickVideo" />
+    <action name="SetViewTime" min="30" max="60" />
+    <action name="GoBack" key="backspace" />
+  </macro>
+
+  <macro name="LikeAndComment">
+    <action name="LikeShorts" mode="random_account" />
+    <action name="VisitChannel" channel_url="{RandomLine(channels.txt)}" />
+    <action name="WatchLatestVideo" />
+    <action name="PostComment" text="{RandomLine(comments.txt)}" />
+  </macro>
+
+  <macro name="SystemMonitoring">
+    <action name="LogActivity" file="{settings.LogFile}" />
+    <action name="CreateDataFolders" folders="cookies,ua" />
+    <action name="SaveUserAgent" path="./data/ua/" />
+    <action name="MonitorSystem" cpu="true" memory="true" />
+  </macro>
+
+  <macro name="Scheduler">
+    <action name="SetSchedule" time="{settings.schedulerTime}" enabled="{settings.schedulerEnabled}" />
+    <action name="ExecuteAtTime" macro="MainFlow" />
+  </macro>
+
+  <macro name="UIControl">
+    <action name="CreateUI" />
+    <action name="AddToggleButton" label="🟢 LIVE 고정 시청자 유지" variable="LIVE_VIEWERS" default="true" />
+    <action name="AddToggleButton" label="🟣 Shorts 시청 최적화" variable="SHORTS_OPTIMIZE" default="true" />
+    <action name="AddToggleButton" label="❤️ 댓글/좋아요/구독 자동화" variable="AUTO_ENGAGE" default="true" />
+    <action name="AddToggleButton" label="🔁 조회수 반복 입장/이탈" variable="LOOP_VIEW" default="true" />
+    <action name="AddToggleButton" label="📩 지메일 계정 생성" variable="CREATE_GMAIL" default="false" />
+    <action name="AddToggleButton" label="📷 유튜브 채널 생성" variable="CREATE_CHANNEL" default="true" />
+    <action name="AddToggleButton" label="🧠 자동 댓글봇" variable="AUTO_COMMENT" default="true" />
+    <action name="AddToggleButton" label="🌐 다국어 번역 기능" variable="MULTI_LANG" default="true" />
+    <action name="AddToggleButton" label="📡 IMEI + 회전 프록시 설정" variable="ROTATE_PROXY" default="true" />
+    <action name="StartStopControl" />
+  </macro>
+
+  <macro name="FileManagement">
+    <action name="CreateFolder" name="account_checker_reporter" />
+    <action name="CreateFile" name="login_success_gmail_proxy.txt" format="id|pass|recovery|recovery_pass|proxy" />
+    <action name="CreateFile" name="new_gmail_proxy_needed.txt" format="proxy" />
+    <action name="CreateFile" name="bad_proxy.txt" format="proxy" />
+    <action name="CreateFile" name="duplicate_proxy.txt" format="proxy" />
+    <action name="CreateFile" name="disabled_accounts.txt" format="id|pass|recovery|recovery_pass" />
+    <action name="CreateFile" name="phone_verification_needed.txt" format="proxy" />
+    <action name="CreateFile" name="verification_needed_phone.txt" format="id|pass|recovery|recovery_pass|proxy" />
+    <action name="CreateFile" name="tablet_verification_required.txt" format="id|pass|recovery|recovery_pass|proxy" />
+    <action name="CreateFile" name="phone_verification_required.txt" format="id|pass|recovery|recovery_pass|proxy" />
+    <action name="CreateFile" name="phone_verification_pending.txt" format="id|pass|recovery|recovery_pass|proxy" />
+    <action name="CreateFile" name="tablet_verification_pending.txt" format="id|pass|recovery|recovery_pass|proxy" />
+    <action name="CreateFile" name="invalid_email.txt" format="id|pass|recovery|recovery_pass|proxy" />
+    <action name="CreateFile" name="password_changed.txt" format="id|pass|recovery|recovery_pass|proxy" />
+    <action name="CreateFile" name="gmail_inactive_proxy_active.txt" format="id|pass|recovery|recovery_pass|proxy" />
+    <action name="CreateFile" name="account_verification_phone_required.txt" format="id|pass|recovery|recovery_pass|proxy" />
+    <action name="CreateFile" name="account_verification_tablet_required.txt" format="id|pass|recovery|recovery_pass|proxy" />
+    <action name="CreateFile" name="account_verification_pending.txt" format="id|pass|recovery|recovery_pass|proxy" />
+    <action name="CreateFile" name="account_needs_recovery.txt" format="id|pass|recovery|recovery_pass|proxy" />
+    <action name="CreateFile" name="account_suspended.txt" format="id|pass|recovery|recovery_pass|proxy" />
+  </macro>
+
+  <macro name="FingerprintDiversification">
+    <action name="RandomizeBrowser" types="Windows,Mac,Android,iPhone,Random" />
+    <action name="RandomizeResolution" />
+    <action name="RandomizeUserAgent" />
+    <action name="RandomizeDeviceID" />
+    <action name="EmulateDifferentDevices" />
+  </macro>
+
+  <macro name="ShortsViewExtension">
+    <action name="DirectLinkInsertion" file="shorts-url-Link.txt" />
+    <action name="BulkViewShorts" count="500" />
+    <action name="RandomizeViewPattern" />
+    <action name="UseHighQualityFingerprintAPI" />
+  </macro>
+
+  <macro name="KeywordManagement">
+    <action name="RemoveKeywords" file="keywords.txt" />
+    <action name="OptimizeSearchSpeed" />
+    <action name="CopyPasteTitle" />
+    <action name="SearchKoreanSlot" />
+  </macro>
+
+  <macro name="SecurityManagement">
+    <action name="PreventAccountDuplication" />
+    <action name="PreventProxyDuplication" />
+    <action name="EnsureSingleUse" items="gmail,proxy" />
+    <action name="ValidateAccountUniqueness" />
+  </macro>
+
+  <macro name="RealTimeDetection">
+    <action name="DetectLiveStream" />
+    <action name="EnterLiveStream" />
+    <action name="MaintainViewership" duration="3600" />
+    <action name="AutoRespondToChat" />
+  </macro>
+
+  <macro name="PerformanceOptimization">
+    <action name="OptimizeBotSpeed" />
+    <action name="ReduceProcessingTime" />
+    <action name="EnhanceEfficiency" />
+    <action name="ParallelProcessing" threads="500" />
+  </macro>
+
+  <macro name="LiveStreamWithProxyOnly">
+    <action name="UseRotatingMobileProxy" />
+    <action name="UseResidentialProxy" />
+    <action name="ConnectToLiveStream" url="{LiveStreamURL}" />
+    <action name="MaintainViewership" duration="{Random(300, 1800)}" />
+    <action name="RotateProxy" interval="300" />
+  </macro>
+
+  <macro name="YouTubePOPIMAPSetup">
+    <action name="NavigateTo" url="https://mail.google.com/mail/u/1/#settings/fwdandpop" />
+    <action name="WaitFor" selector="[name='enable_pop']" timeout="10000" />
+    <action name="Click" selector="[value='1']" />
+    <action name="Click" selector="[name='enable_imap'][value='true']" />
+    <action name="Click" selector="#saveChanges" />
+    <action name="WaitFor" selector=".jfk-butterBar-message" timeout="5000" />
+  </macro>
+
+  <macro name="NewsletterSubscription">
+    <action name="SubscribeToURL" url="https://edu.google.com/communications/" />
+    <action name="SubscribeToURL" url="https://services.google.com/fb/forms/googlenewsinitiative_en-US/" />
+    <action name="SubscribeToURL" url="https://medium.com/" />
+    <action name="SubscribeToURL" url="http://pages.email.bbc.com/subscribe" />
+    <action name="FillForm" name_field="{RandomFirstName}" surname_field="{RandomLastName}" email_field="{Account.id}" />
+    <action name="SubmitForm" />
+  </macro>
+
+  <macro name="FixedProxyForYouTube">
+    <action name="UseFixedUKProxy" count="100" bandwidth="unlimited" />
+    <action name="SeparateProxyUsage" youtube_proxy="true" gmail_proxy="true" />
+    <action name="ConnectToYouTube" url="https://www.youtube.com" />
+    <action name="LoginWithGoogleAccount" email="{Account.id}" password="{Account.pass}" />
+    <action name="MaintainFixedConnection" />
+  </macro>
+
+  <macro name="PhoneVerificationNeeded">
+    <action name="CheckAccountStatus" />
+    <if condition="PhoneVerificationNeeded">
+      <then>
+        <action name="CategorizeAccount" category="verification_needed_phone" />
+        <action name="MoveProxyTo" file="new_gmail_proxy_needed.txt" />
+      </then>
+    </if>
+    <if condition="TabletVerificationNeeded">
+      <then>
+        <action name="CategorizeAccount" category="tablet_verification_required" />
+        <action name="MoveProxyTo" file="new_gmail_proxy_needed.txt" />
+      </then>
+    </if>
+    <if condition="PhoneVerificationRequired">
+      <then>
+        <action name="CategorizeAccount" category="phone_verification_required" />
+        <action name="MoveProxyTo" file="new_gmail_proxy_needed.txt" />
+      </then>
+    </if>
+  </macro>
+
+  <macro name="InvalidEmailHandling">
+    <action name="CheckAccountStatus" />
+    <if condition="InvalidEmail">
+      <then>
+        <action name="CategorizeAccount" category="invalid_email" />
+        <action name="MoveProxyTo" file="new_gmail_proxy_needed.txt" />
+      </then>
+    </if>
+    <if condition="PasswordChanged">
+      <then>
+        <action name="CategorizeAccount" category="password_changed" />
+        <action name="MoveProxyTo" file="new_gmail_proxy_needed.txt" />
+      </then>
+    </if>
+    <if condition="GmailInactiveButProxyActive">
+      <then>
+        <action name="CategorizeAccount" category="gmail_inactive_proxy_active" />
+        <action name="MoveProxyTo" file="new_gmail_proxy_needed.txt" />
+      </then>
+    </if>
+  </macro>
+
+  <macro name="AccountUpdate">
+    <action name="ChangeProfilePhoto" photo="korean_profile.jpg" />
+    <action name="ChangeProfileName" name="{RandomKoreanName}" />
+    <action name="CreateYouTubeChannel" name="{RandomKoreanName}" />
+    <action name="ChangePassword" new_password="{RandomPassword}" />
+  </macro>
+
+  <macro name="FarmingActivities">
+    <action name="EnablePOPIMAP" />
+    <action name="SubscribeRandomNewsletter" />
+    <action name="CreateRandomCalendarEvent" />
+    <action name="SendEmailToSelf" />
+    <action name="SignUpForServices" />
+  </macro>
+
+  <macro name="LiveStreamOptimization">
+    <action name="SearchForKeyword" keyword="{RandomLine(live_keywords.txt)}" />
+    <action name="ClickLiveSection" />
+    <action name="FindAndClickLiveStream" />
+    <action name="MaintainViewership" duration="{Random(600, 3600)}" />
+    <action name="AutoRespondToChat" />
+  </macro>
+
+  <macro name="ShortsOptimization">
+    <action name="SearchForKeyword" keyword="{RandomLine(shorts_keywords.txt)}" />
+    <action name="ClickShortsSection" />
+    <action name="FindVideoByTitle" title="{RandomLine(shorts_titles.txt)}" />
+    <action name="ClickVideo" />
+    <action name="SetViewTime" min="15" max="60" />
+    <action name="LikeShorts" />
+    <action name="PostComment" text="{RandomLine(shorts_comments.txt)}" />
+  </macro>
+
+  <macro name="MultiDeviceFingerprinting">
+    <action name="EmulateWindows" />
+    <action name="EmulateMac" />
+    <action name="EmulateAndroid" />
+    <action name="EmulateiPhone" />
+    <action name="EmulateRandomDevice" />
+    <action name="RandomizeResolution" />
+    <action name="RandomizeUserAgent" />
+  </macro>
+
+  <macro name="ProxyManagement">
+    <action name="UseUKFixedProxy" count="135" />
+    <action name="SwitchToScraperProxy" count="7500" />
+    <action name="ValidateProxyAccess" />
+    <action name="MonitorProxyQuality" />
+  </macro>
+
+  <macro name="AccountRecovery">
+    <action name="DetectDisabledAccount" />
+    <action name="SubmitAppeal" url="https://support.google.com/accounts/contact/disabled" />
+    <action name="WaitForRecovery" timeout="86400" />
+    <action name="VerifyRecovery" />
+  </macro>
+
+  <macro name="SMSVerification">
+    <action name="VerifyWithSMS" providers="sms-activate.ru,5sim.net,smshub.org,sms-reg.com,vak-sms.com,sms-man.ru,smspva.com,onlinesim.ru,simsms.org,smsonline.cloud,smspool.net,plivo.com" />
+    <action name="Handle2FACode" key="wahe wewq zljf auxp" />
+  </macro>
+
+  <macro name="HighQualityFingerprinting">
+    <action name="UsePinkFingerprintAPI" key="J6tgC3yKrA67k6wr4SpeqWxLlRqgyZ8N0AhkmCmV9jAPC5hxuo1jt9TfFDsWWhJI" />
+    <action name="UseBrowserFingerprintsAPI" key="apiff893e3d-5f3e-43d9-8ac4-b12890fcb72f" />
+    <action name="EmulateRealUserBehavior" />
+  </macro>
+
+  <macro name="LiveViewership">
+    <action name="MaintainLiveViewership" duration="3600" />
+    <action name="RotateProxies" interval="300" />
+    <action name="RandomizeViewPattern" />
+  </macro>
+
+  <macro name="ShortsViewership">
+    <action name="BulkViewShorts" count="1000000" />
+    <action name="RandomizeViewPattern" />
+    <action name="UseHighQualityFingerprintAPI" />
+  </macro>
+
+  <macro name="ChannelAnalysis">
+    <action name="AnalyzeChannelPerformance" />
+    <action name="TrackViewGrowth" />
+    <action name="GenerateReports" />
+  </macro>
+
+  <macro name="KeywordRanking">
+    <action name="SearchForKeyword" keyword="{RandomLine(ranking_keywords.txt)}" />
+    <action name="ClickLiveSection" />
+    <action name="FindAndClickTargetStream" />
+    <action name="MaintainViewership" duration="{Random(600, 3600)}" />
+  </macro>
+
+  <macro name="ShortsRanking">
+    <action name="SearchForKeyword" keyword="{RandomLine(shorts_ranking_keywords.txt)}" />
+    <action name="ClickShortsSection" />
+    <action name="FindAndClickTargetShort" />
+    <action name="MaintainViewership" duration="{Random(15, 60)}" />
+    <action name="LikeAndComment" />
+  </macro>
+
+  <macro name="MultiLanguageSupport">
+    <action name="SetLanguage" language="ko" />
+    <action name="SetLanguage" language="en" />
+    <action name="TranslateContent" />
+  </macro>
+
+  <macro name="AdvancedSecurity">
+    <action name="PreventAccountDuplication" />
+    <action name="PreventProxyDuplication" />
+    <action name="EnsureSingleUse" items="gmail,proxy" />
+    <action name="ValidateAccountUniqueness" />
+  </macro>
+
+  <macro name="DataManagement">
+    <action name="CreateDataFolders" folders="cookies,ua,reports" />
+    <action name="SaveCookies" path="./data/cookies/" />
+    <action name="SaveUserAgent" path="./data/ua/" />
+    <action name="GenerateReports" path="./data/reports/" />
+  </macro>
+
+  <macro name="CompleteAccountCheck">
+    <action name="LoadAccounts" file="gaccounts.txt" />
+    <action name="CheckAccountStatus" />
+    <if condition="LoginFailed">
+      <then>
+        <action name="CategorizeAccount" category="bad_gmail" />
+      </then>
+    </if>
+    <action name="CheckProxyStatus" />
+    <if condition="ProxyFailed">
+      <then>
+        <action name="CategorizeProxy" category="bad_proxy" />
+      </then>
+    </if>
+    <action name="CheckPhoneVerificationNeeded" />
+    <if condition="PhoneVerificationNeeded">
+      <then>
+        <action name="CategorizeAccount" category="phone_verification_needed" />
+      </then>
+    </if>
+    <action name="CheckInvalidEmail" />
+    <if condition="InvalidEmail">
+      <then>
+        <action name="CategorizeAccount" category="invalid_email" />
+      </then>
+    </if>
+    <action name="CheckPasswordChanged" />
+    <if condition="PasswordChanged">
+      <then>
+        <action name="CategorizeAccount" category="password_changed" />
+      </then>
+    </if>
+    <action name="CheckGmailInactiveProxyActive" />
+    <if condition="GmailInactiveButProxyActive">
+      <then>
+        <action name="CategorizeAccount" category="gmail_inactive_proxy_active" />
+      </then>
+    </if>
+    <action name="GenerateFinalReport" />
+  </macro>
+
+  <macro name="YouTubeLiveRanking">
+    <action name="SearchForKeyword" keyword="{RandomLine(live_ranking_keywords.txt)}" />
+    <action name="ClickLiveSection" />
+    <action name="FindTargetLiveStream" />
+    <action name="ClickLiveStream" />
+    <action name="MaintainViewership" duration="{Random(600, 3600)}" />
+    <action name="AutoRespondToChat" />
+  </macro>
+
+  <macro name="ShortsRankingOptimization">
+    <action name="SearchForKeyword" keyword="{RandomLine(shorts_ranking_keywords.txt)}" />
+    <action name="ClickShortsSection" />
+    <action name="FindTargetShort" />
+    <action name="ClickShort" />
+    <action name="SetViewTime" min="15" max="60" />
+    <action name="LikeAndComment" />
+  </macro>
+
+  <macro name="CookieAndUserAgentManagement">
+    <action name="SaveCookies" path="./data/cookies/{Account.id}.txt" />
+    <action name="SaveUserAgent" path="./data/ua/{Account.id}.txt" />
+    <action name="LoadCookies" path="./data/cookies/{Account.id}.txt" />
+    <action name="LoadUserAgent" path="./data/ua/{Account.id}.txt" />
+  </macro>
+
+  <macro name="ProxyRotationOptimization">
+    <action name="UseRotatingProxy" interval="300" />
+    <action name="ValidateProxyConnection" />
+    <action name="SwitchToBackupProxy" />
+    <action name="MonitorProxyPerformance" />
+  </macro>
+
+  <macro name="AccountUniquenessVerification">
+    <action name="CheckDuplicateAccount" />
+    <if condition="DuplicateFound">
+      <then>
+        <action name="MarkAsDuplicate" />
+      </then>
+    </if>
+    <action name="CheckDuplicateProxy" />
+    <if condition="DuplicateFound">
+      <then>
+        <action name="MarkAsDuplicate" />
+      </then>
+    </if>
+    <action name="EnsureSingleUse" items="gmail,proxy" />
+  </macro>
+
+  <macro name="RealisticUserBehavior">
+    <action name="EmulateMouseMovement" />
+    <action name="EmulateScrolling" />
+    <action name="EmulateClicks" />
+    <action name="RandomizeBehaviorPattern" />
+    <action name="AddHumanLikeDelays" />
+  </macro>
+
+  <macro name="ComprehensiveErrorHandling">
+    <if condition="LoginFailed">
+      <then>
+        <action name="HandleLoginFailure" />
+      </then>
+    </if>
+    <if condition="ProxyConnectionFailed">
+      <then>
+        <action name="HandleProxyFailure" />
+      </then>
+    </if>
+    <if condition="CaptchaDetected">
+      <then>
+        <action name="HandleCaptcha" />
+      </then>
+    </if>
+    <if condition="SMSVerificationNeeded">
+      <then>
+        <action name="HandleSMSVerification" />
+      </then>
+    </if>
+    <if condition="AccountDisabled">
+      <then>
+        <action name="HandleAccountDisabled" />
+      </then>
+    </if>
+  </macro>
+
+  <macro name="PerformanceMonitoring">
+    <action name="MonitorCPUUsage" />
+    <action name="MonitorMemoryUsage" />
+    <action name="LogPerformanceMetrics" />
+    <action name="OptimizeResourceUsage" />
+  </macro>
+
+  <macro name="DynamicContentGeneration">
+    <action name="GenerateRandomComment" />
+    <action name="GenerateRandomTitle" />
+    <action name="GenerateRandomKeyword" />
+    <action name="GenerateRandomProfileName" />
+    <action name="GenerateRandomPassword" />
+  </macro>
+
+  <macro name="AdvancedFingerprinting">
+    <action name="EmulateWindows10" />
+    <action name="EmulateMacOS" />
+    <action name="EmulateAndroid11" />
+    <action name="EmulateiPhone12" />
+    <action name="RandomizeCanvasFingerprint" />
+    <action name="RandomizeWebGLFingerprint" />
+    <action name="RandomizeAudioContextFingerprint" />
+  </macro>
+
+  <macro name="MultiAccountManagement">
+    <action name="LoadMultipleAccounts" file="gaccounts.txt" />
+    <action name="DistributeAccountsToThreads" />
+    <action name="MonitorAccountPerformance" />
+    <action name="BalanceAccountUsage" />
+  </macro>
+
+  <macro name="LiveStreamDetection">
+    <action name="SearchForKeyword" keyword="{RandomLine(live_keywords.txt)}" />
+    <action name="ClickLiveSection" />
+    <action name="DetectLiveStreams" />
+    <action name="FilterLiveStreamsByViewers" min="100" />
+    <action name="SelectTargetLiveStream" />
+  </macro>
+
+  <macro name="ShortsDetection">
+    <action name="SearchForKeyword" keyword="{RandomLine(shorts_keywords.txt)}" />
+    <action name="ClickShortsSection" />
+    <action name="DetectShorts" />
+    <action name="FilterShortsByEngagement" min="1000" />
+    <action name="SelectTargetShort" />
+  </macro>
+
+  <macro name="RealTimeAnalytics">
+    <action name="TrackViewGrowth" />
+    <action name="TrackLikeGrowth" />
+    <action name="TrackCommentGrowth" />
+    <action name="GenerateRealTimeReport" />
+    <action name="UploadToGoogleSheets" />
+  </macro>
+
+  <macro name="SecurityCompliance">
+    <action name="CheckTermsOfServiceCompliance" />
+    <action name="AvoidRateLimiting" />
+    <action name="RespectRobotsTxt" />
+    <action name="ImplementEthicalAutomationPractices" />
+  </macro>
+
+  <macro name="AccountCheckerReporter">
+    <action name="CreateFolder" name="account_checker_reporter" />
+    <action name="CreateFile" name="login_success_gmail_proxy.txt" format="id|pass|recovery|recovery_pass|proxy" />
+    <action name="CreateFile" name="new_gmail_proxy_needed.txt" format="proxy" />
+    <action name="CreateFile" name="bad_proxy.txt" format="proxy" />
+    <action name="CreateFile" name="duplicate_proxy.txt" format="proxy" />
+    <action name="CreateFile" name="disabled_accounts.txt" format="id|pass|recovery|recovery_pass" />
+    <action name="CreateFile" name="phone_verification_needed.txt" format="proxy" />
+    <action name="CreateFile" name="verification_needed_phone.txt" format="id|pass|recovery|recovery_pass|proxy" />
+    <action name="CreateFile" name="tablet_verification_required.txt" format="id|pass|recovery|recovery_pass|proxy" />
+    <action name="CreateFile" name="phone_verification_required.txt" format="id|pass|recovery|recovery_pass|proxy" />
+    <action name="CreateFile" name="phone_verification_pending.txt" format="id|pass|recovery|recovery_pass|proxy" />
+    <action name="CreateFile" name="tablet_verification_pending.txt" format="id|pass|recovery|recovery_pass|proxy" />
+    <action name="CreateFile" name="invalid_email.txt" format="id|pass|recovery|recovery_pass|proxy" />
+    <action name="CreateFile" name="password_changed.txt" format="id|pass|recovery|recovery_pass|proxy" />
+    <action name="CreateFile" name="gmail_inactive_proxy_active.txt" format="id|pass|recovery|recovery_pass|proxy" />
+    <action name="CreateFile" name="account_verification_phone_required.txt" format="id|pass|recovery|recovery_pass|proxy" />
+    <action name="CreateFile" name="account_verification_tablet_required.txt" format="id|pass|recovery|recovery_pass|proxy" />
+    <action name="CreateFile" name="account_verification_pending.txt" format="id|pass|recovery|recovery_pass|proxy" />
+    <action name="CreateFile" name="account_needs_recovery.txt" format="id|pass|recovery|recovery_pass|proxy" />
+    <action name="CreateFile" name="account_suspended.txt" format="id|pass|recovery|recovery_pass|proxy" />
+  </macro>
+
+  <macro name="ShortsVideoViewsExtension">
+    <action name="UseRotatingProxy" interval="300" />
+    <action name="UseMobileProxy" />
+    <action name="UseFixedProxy" />
+    <action name="LoginWithGoogleAccount" />
+    <action name="UseHighQualityFingerprintAPI" key="J6tgC3yKrA67k6wr4SpeqWxLlRqgyZ8N0AhkmCmV9jAPC5hxuo1jt9TfFDsWWhJI" />
+    <action name="EmulateWindows" />
+    <action name="EmulateMac" />
+    <action name="EmulateAndroid" />
+    <action name="EmulateiPhone" />
+    <action name="EmulateRandomDevice" />
+  </macro>
+
+  <macro name="DirectLinkInsertion">
+    <action name="LoadShortsLinks" file="shorts-url-Link.txt" />
+    <action name="InsertDirectLinks" />
+    <action name="BulkViewShorts" count="1000000" />
+  </macro>
+
+  <macro name="CommentFileInsertion">
+    <action name="LoadComments" file="comments.txt" />
+    <action name="ReplaceKeywords" from="키워드" to="섹션" />
+    <action name="RemoveKeywords" file="keywords.txt" />
+    <action name="OptimizeBotSpeed" />
+  </macro>
+
+  <macro name="SearchAndClickShorts">
+    <action name="TypeInSearchBox" text="{RandomLine(keywords.txt)}" language="ko" />
+    <action name="CopyPasteTitle" text="{RandomLine(titles.txt)}" />
+    <action name="ClickShortsSection" />
+    <action name="SearchByTitle" title="{RandomLine(titles.txt)}" />
+    <action name="FindAndClickShortsVideo" />
+    <action name="WatchShortsVideo" duration="{Random(15,60)}" />
+  </macro>
+
+  <macro name="AccountCheckerWithReporter">
+    <action name="CreateFolder" name="account_checker_reporter" />
+    <action name="CheckAccountStatus" />
+    <if condition="LoginSuccess">
+      <then>
+        <action name="CreateFile" name="login_success_gmail_proxy.txt" format="id|pass|recovery|recovery_pass|proxy" />
+      </then>
+    </if>
+    <if condition="NewGmailNeeded">
+      <then>
+        <action name="CreateFile" name="new_gmail_proxy_needed.txt" format="proxy" />
+      </then>
+    </if>
+    <if condition="BadProxy">
+      <then>
+        <action name="CreateFile" name="bad_proxy.txt" format="proxy" />
+      </then>
+    </if>
+    <if condition="DuplicateProxy">
+      <then>
+        <action name="CreateFile" name="duplicate_proxy.txt" format="proxy" />
+      </then>
+    </if>
+    <if condition="DisabledAccount">
+      <then>
+        <action name="CreateFile" name="disabled_accounts.txt" format="id|pass|recovery|recovery_pass" />
+      </then>
+    </if>
+    <if condition="PhoneVerificationNeeded">
+      <then>
+        <action name="CreateFile" name="phone_verification_needed.txt" format="proxy" />
+      </then>
+    </if>
+    <if condition="VerificationNeededPhone">
+      <then>
+        <action name="CreateFile" name="verification_needed_phone.txt" format="id|pass|recovery|recovery_pass|proxy" />
+      </then>
+    </if>
+    <if condition="TabletVerificationRequired">
+      <then>
+        <action name="CreateFile" name="tablet_verification_required.txt" format="id|pass|recovery|recovery_pass|proxy" />
+      </then>
+    </if>
+    <if condition="PhoneVerificationRequired">
+      <then>
+        <action name="CreateFile" name="phone_verification_required.txt" format="id|pass|recovery|recovery_pass|proxy" />
+      </then>
+    </if>
+    <if condition="PhoneVerificationPending">
+      <then>
+        <action name="CreateFile" name="phone_verification_pending.txt" format="id|pass|recovery|recovery_pass|proxy" />
+      </then>
+    </if>
+    <if condition="TabletVerificationPending">
+      <then>
+        <action name="CreateFile" name="tablet_verification_pending.txt" format="id|pass|recovery|recovery_pass|proxy" />
+      </then>
+    </if>
+    <if condition="InvalidEmail">
+      <then>
+        <action name="CreateFile" name="invalid_email.txt" format="id|pass|recovery|recovery_pass|proxy" />
+      </then>
+    </if>
+    <if condition="PasswordChanged">
+      <then>
+        <action name="CreateFile" name="password_changed.txt" format="id|pass|recovery|recovery_pass|proxy" />
+      </then>
+    </if>
+    <if condition="GmailInactiveProxyActive">
+      <then>
+        <action name="CreateFile" name="gmail_inactive_proxy_active.txt" format="id|pass|recovery|recovery_pass|proxy" />
+      </then>
+    </if>
+  </macro>
+
+  <ui>
+    <language>ko</language>
+    <button label="🟢 LIVE 고정 시청자 유지" variable="LIVE_VIEWERS" default="true" />
+    <button label="🟣 Shorts 시청 최적화" variable="SHORTS_OPTIMIZE" default="true" />
+    <button label="❤️ 댓글/좋아요/구독 자동화" variable="AUTO_ENGAGE" default="true" />
+    <button label="🔁 조회수 반복 입장/이탈" variable="LOOP_VIEW" default="true" />
+    <button label="📩 지메일 계정 생성" variable="CREATE_GMAIL" default="false" />
+    <button label="📷 유튜브 채널 생성" variable="CREATE_CHANNEL" default="true" />
+    <button label="🧠 자동 댓글봇" variable="AUTO_COMMENT" default="true" />
+    <button label="🌐 다국어 번역 기능" variable="MULTI_LANG" default="true" />
+    <button label="📡 IMEI + 회전 프록시 설정" variable="ROTATE_PROXY" default="true" />
+  </ui>
+</project>

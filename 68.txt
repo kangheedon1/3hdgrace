@@ -1,0 +1,143 @@
+# Create a *copy* of bas_final_full.xml and inject a <resources> block
+# tailored for BAS 29.0.0, without touching the original.
+from pathlib import Path
+import re
+
+src = Path("/mnt/data/bas_outputs/bas_final_full.xml")
+dst = Path("/mnt/data/bas_outputs/bas_with_resources.xml")
+
+text = src.read_text(encoding="utf-8", errors="strict")
+
+injection_point = None
+m = re.search(r"<language>.*?</language>\s*\n", text)
+if m:
+    injection_point = m.end()
+else:
+    # fallback: after first line
+    injection_point = 0
+
+resources_block = """\
+  <resources>
+    <!-- Text / URL inputs -->
+    <resource name="CHANNEL_URL" type="String" label="채널 URL" required="false" default="" />
+    <resource name="VIDEO_URLS" type="List" subtype="String" label="영상 URL 목록(줄바꿈 구분)" delimiter="\\n" required="false" />
+
+    <!-- Files -->
+    <resource name="PROXY_LIST" type="File" label="프록시 리스트(.txt, ip:port)" required="false" />
+    <resource name="USER_AGENTS" type="File" label="User-Agent 목록(.txt)" required="false" />
+
+    <!-- Numbers -->
+    <resource name="THREADS" type="Number" label="동시 스레드 수" min="1" max="20" default="1" />
+    <resource name="VIEW_DURATION_SEC" type="Number" label="시청 시간(초)" min="10" max="7200" default="300" />
+    <resource name="DELAY_MIN_MS" type="Number" label="지연 최소(ms)" min="0" max="60000" default="500" />
+    <resource name="DELAY_MAX_MS" type="Number" label="지연 최대(ms)" min="0" max="120000" default="1500" />
+
+    <!-- Booleans mapped to existing variables -->
+    <resource name="LIVE_VIEWERS" type="Boolean" label="🟢 LIVE 고정 시청자 유지" default="true" />
+    <resource name="SHORTS_OPTIMIZE" type="Boolean" label="🟣 Shorts 시청 최적화" default="true" />
+    <resource name="AUTO_ENGAGE" type="Boolean" label="❤️ 댓글/좋아요/구독 자동화" default="true" />
+    <resource name="LOOP_VIEW" type="Boolean" label="🔁 조회수 반복 입장/이탈" default="true" />
+
+    <!-- Selects / Options -->
+    <resource name="BROWSER_PROFILE" type="Select" label="브라우저 프로파일" required="false">
+      <option value="default">기본</option>
+      <option value="mobile">모바일</option>
+      <option value="desktop">데스크탑</option>
+    </resource>
+    <resource name="LANGUAGE" type="Select" label="언어" required="false">
+      <option value="ko">한국어</option>
+      <option value="en">English</option>
+      <option value="ja">日本語</option>
+    </resource>
+  </resources>
+"""
+
+# Inject after the <language> tag block
+new_text = text[:injection_point] + resources_block + text[injection_point:]
+
+dst.write_text(new_text, encoding="utf-8")
+
+print("생성 완료:", str(dst))
+print("리소스 블록 바이트 수:", len(resources_block.encode('utf-8')))
+# Create a new copy that includes BOTH <resources> and <interface> blocks
+# without removing or altering any existing content.
+from pathlib import Path
+import re
+
+src = Path("/mnt/data/bas_outputs/bas_final_full.xml")
+dst = Path("/mnt/data/bas_outputs/bas_with_ui.xml")
+
+text = src.read_text(encoding="utf-8", errors="strict")
+
+# Decide injection point: right after <language>...</language>
+lang_match = re.search(r"<language>.*?</language>\s*\n", text)
+if lang_match:
+    insert_pos = lang_match.end()
+else:
+    insert_pos = 0  # as earliest safe point
+
+resources_block = """\
+  <resources>
+    <!-- Text / URL inputs -->
+    <resource name="CHANNEL_URL" type="String" label="채널 URL" required="false" default="" />
+    <resource name="VIDEO_URLS" type="List" subtype="String" label="영상 URL 목록(줄바꿈 구분)" delimiter="\\n" required="false" />
+
+    <!-- Files -->
+    <resource name="PROXY_LIST" type="File" label="프록시 리스트(.txt, ip:port)" required="false" />
+    <resource name="USER_AGENTS" type="File" label="User-Agent 목록(.txt)" required="false" />
+
+    <!-- Numbers -->
+    <resource name="THREADS" type="Number" label="동시 스레드 수" min="1" max="20" default="1" />
+    <resource name="VIEW_DURATION_SEC" type="Number" label="시청 시간(초)" min="10" max="7200" default="300" />
+    <resource name="DELAY_MIN_MS" type="Number" label="지연 최소(ms)" min="0" max="60000" default="500" />
+    <resource name="DELAY_MAX_MS" type="Number" label="지연 최대(ms)" min="0" max="120000" default="1500" />
+
+    <!-- Booleans mapped to existing variables -->
+    <resource name="LIVE_VIEWERS" type="Boolean" label="🟢 LIVE 고정 시청자 유지" default="true" />
+    <resource name="SHORTS_OPTIMIZE" type="Boolean" label="🟣 Shorts 시청 최적화" default="true" />
+    <resource name="AUTO_ENGAGE" type="Boolean" label="❤️ 댓글/좋아요/구독 자동화" default="true" />
+    <resource name="LOOP_VIEW" type="Boolean" label="🔁 조회수 반복 입장/이탈" default="true" />
+
+    <!-- Selects / Options -->
+    <resource name="BROWSER_PROFILE" type="Select" label="브라우저 프로파일" required="false">
+      <option value="default">기본</option>
+      <option value="mobile">모바일</option>
+      <option value="desktop">데스크탑</option>
+    </resource>
+    <resource name="LANGUAGE" type="Select" label="언어" required="false">
+      <option value="ko">한국어</option>
+      <option value="en">English</option>
+      <option value="ja">日本語</option>
+    </resource>
+  </resources>
+"""
+
+interface_block = """\
+  <interface>
+    <group label="메인 제어">
+      <button label="🟢 LIVE 고정 시청자 유지" variable="LIVE_VIEWERS" default="true" />
+      <button label="🟣 Shorts 시청 최적화" variable="SHORTS_OPTIMIZE" default="true" />
+      <button label="❤️ 댓글/좋아요/구독 자동화" variable="AUTO_ENGAGE" default="true" />
+      <button label="🔁 조회수 반복 입장/이탈" variable="LOOP_VIEW" default="true" />
+    </group>
+    <group label="실행 설정">
+      <text label="채널 URL" variable="CHANNEL_URL" />
+      <textarea label="영상 URL 목록(줄바꿈)" variable="VIDEO_URLS" />
+      <file label="프록시 리스트(.txt)" variable="PROXY_LIST" />
+      <file label="User-Agent 목록(.txt)" variable="USER_AGENTS" />
+      <number label="동시 스레드 수" variable="THREADS" />
+      <number label="시청 시간(초)" variable="VIEW_DURATION_SEC" />
+      <number label="지연 최소(ms)" variable="DELAY_MIN_MS" />
+      <number label="지연 최대(ms)" variable="DELAY_MAX_MS" />
+      <select label="브라우저 프로파일" variable="BROWSER_PROFILE" />
+      <select label="언어" variable="LANGUAGE" />
+    </group>
+  </interface>
+"""
+
+insertion = resources_block + "\n" + interface_block + "\n"
+new_text = text[:insert_pos] + insertion + text[insert_pos:]
+dst.write_text(new_text, encoding="utf-8")
+
+print("생성 완료:", str(dst))
+print("추가된 블록 총 바이트:", len(insertion.encode("utf-8")))

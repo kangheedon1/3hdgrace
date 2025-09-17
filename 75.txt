@@ -1,0 +1,3156 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="hdgrace-youtube" version="29.0.0">
+    <settings>
+        <FingerprintAPIKey>apiff893e3d-5f3e-43d9-8ac4-b12890fcb72f</FingerprintAPIKey>
+        <CaptchaAPIKey>32182a8277ab53355c49192af58c4b7b2b8c69cdc735ad217ed46c5f58d608c5</CaptchaAPIKey>
+        <SMSAPIKey>a81e7999e7a24ff88434c716b7b7ce51</SMSAPIKey>
+        <ProxyService>pyproxy.com</ProxyService>
+        <ProxyAPIKey>your_pyproxy_api_key</ProxyAPIKey>
+        <Language>ko,en</Language>
+        <MaxThreads>500</MaxThreads>
+        <ThreadDelay>100</ThreadDelay>
+        <ParallelExecution>true</ParallelExecution>
+        <TTLPerViewer>3600</TTLPerViewer>
+        <LogFile>./logs/activity.log</LogFile>
+        <DataFolder>./data/</DataFolder>
+        <DefaultTimeout>150</DefaultTimeout>
+        <MinDelay>10</MinDelay>
+        <MaxDelay>60</MaxDelay>
+        <ISPs>SKTelecom,KT,LGUplus</ISPs>
+        <IPRanges>
+            <SKTelecom>103.22.200.0/24,103.22.201.0/24,103.22.202.0/24</SKTelecom>
+            <KT>112.175.1.0/24,112.175.2.0/24,112.175.3.0/24</KT>
+            <LGUplus>211.115.0.0/24,211.115.1.0/24,211.115.2.0/24</LGUplus>
+        </IPRanges>
+    </settings>
+
+    <!-- 한국 ISP로 프록시 변경 매크로 -->
+    <macro name="ChangeToKoreanISP">
+        <parameter name="Account"/>
+        <action name="SelectRandomISP">
+            <ISPList>{settings.ISPs}</ISPList>
+        </action>
+    </macro>
+
+    <!-- 프록시 형식 선택 UI -->
+    <macro name="ShowProxyFormatSelection">
+        <action name="CreatePopup">
+            <Title>프록시 형식 선택</Title>
+            <Message>다음 중 사용할 프록시 형식을 선택하세요:
+                1. host:port:username:password
+                2. username:password:host:port
+                3. host:port
+                IPv4, IPv6, SOCKS 모두 지원됩니다.
+            </Message>
+        </action>
+        <action name="AddChoice">
+            <Option>host:port:username:password</Option>
+        </action>
+        <action name="AddChoice">
+            <Option>username:password:host:port</Option>
+        </action>
+        <action name="AddChoice">
+            <Option>host:port</Option>
+        </action>
+    </macro>
+
+    <!-- 프록시 형식 선택 기능 -->
+    <macro name="SelectProxyFormat">
+        <action name="ShowProxyFormatSelection"/>
+        <action name="GetUserChoice">
+            <Variable>SelectedFormat</Variable>
+        </action>
+    </macro>
+
+    <!-- 한국 ISP로 프록시 변경 설명 팝업 -->
+    <macro name="ShowProxyUsageExplanation">
+        <action name="CreatePopup">
+            <Title>프록시 사용 설명</Title>
+            <Message>이 기능은 모든 프록시 형식을 정상적으로 사용할 수 있도록 합니다.
+                지원 형식:
+                - IPv4: 192.168.1.1:8080:username:password
+                - IPv6: [2001:db8::1]:8080:username:password
+                - SOCKS4: socks4://192.168.1.1:1080
+                - SOCKS5: socks5://192.168.1.1:1080:username:password
+                프록시는 자동으로 회전 및 검증됩니다.
+            </Message>
+        </action>
+        <action name="ShowPopup"/>
+    </macro>
+
+    <!-- 프록시 회전 및 검증 매크로 -->
+    <macro name="RotateProxy">
+        <action name="CheckProxyType">
+            <Proxy>{ProxyString}</Proxy>
+        </action>
+        <if condition="IPv6">
+            <then>
+                <action name="HandleIPv6Proxy">
+                    <Proxy>{ProxyString}</Proxy>
+                </action>
+            </then>
+        </if>
+        <if condition="IPv4">
+            <then>
+                <action name="HandleIPv4Proxy">
+                    <Proxy>{ProxyString}</Proxy>
+                </action>
+            </then>
+        </if>
+        <if condition="SOCKS">
+            <then>
+                <action name="HandleSOCKSProxy">
+                    <Proxy>{ProxyString}</Proxy>
+                </action>
+            </then>
+        </if>
+    </macro>
+
+    <!-- SMS API 검사 및 전환 -->
+    <macro name="SMSPAPIHealthCheck">
+        <if condition="SMSFailureDetected">
+            <then>
+                <action name="SwitchSMSProvider"/>
+                <action name="LogEvent">
+                    <Type>SMSRecovery</Type>
+                    <Details>Switched SMS API due to failure</Details>
+                </action>
+            </then>
+        </if>
+    </macro>
+
+    <!-- ReCAPTCHA 검사 및 전환 -->
+    <macro name="RecaptchaDetection">
+        <if condition="RecaptchaPresent">
+            <then>
+                <action name="Run2Captcha">
+                    <Proxy>{ProxyString}</Proxy>
+                </action>
+                <action name="LogEvent">
+                    <Type>CaptchaBypassed</Type>
+                    <Details>2Captcha used to solve ReCaptcha</Details>
+                </action>
+            </then>
+        </if>
+    </macro>
+
+    <!-- 사용자 로그인 상태 체크 -->
+    <macro name="CheckLoginStatus">
+        <if condition="LoginFailed">
+            <then>
+                <action name="ChangeFingerprint"/>
+                <action name="ChangeProxy"/>
+                <action name="RestartBrowser"/>
+                <action name="LogEvent">
+                    <Type>LoginRecovery</Type>
+                    <Details>Login failed - recovery executed</Details>
+                </action>
+            </then>
+        </if>
+    </macro>
+
+    <!-- 프록시 품질 모니터링 -->
+    <macro name="MonitorProxyQuality">
+        <if condition="ProxyIsSlow">
+            <then>
+                <action name="RotateProxy"/>
+                <action name="LogEvent">
+                    <Type>ProxyRotation</Type>
+                    <Details>Proxy changed due to slow response</Details>
+                </action>
+            </then>
+        </if>
+    </macro>
+
+    <!-- 메인 실행 매크로 -->
+    <macro name="MainExecution">
+        <action name="SelectProxyFormat"/>
+        <action name="ShowProxyUsageExplanation"/>
+        <action name="RotateProxy"/>
+        <action name="SMSPAPIHealthCheck"/>
+        <action name="RecaptchaDetection"/>
+        <action name="CheckLoginStatus"/>
+        <action name="MonitorProxyQuality"/>
+    </macro>
+</project>
+<macro name="SelectRandomForeignProxy">
+    <action name="SetVariable">
+        <Variable>ProxyList</Variable>
+        <Value>{ReadFile('./proxies/foreign_proxies.txt')}</Value>
+    </
+	<!-- 랜덤 프록시 선택 및 적용 -->
+<macro name="SelectRandomProxyFromList">
+    <action name="SetVariable">
+        <Variable>ProxyList</Variable>
+        <Value>{ReadFile('./proxies/proxy_list.txt')}</Value>
+    </action>
+    <action name="SetVariable">
+        <Variable>SelectedProxy</Variable>
+        <Value>{RandomLine(ProxyList)}</Value>
+    </action>
+    <action name="SetProxy">
+        <Source>Manual</Source>
+        <Address>{SelectedProxy}</Address>
+    </action>
+</macro>
+<!-- 랜덤 IP 대역 선택 및 적용 -->
+<macro name="SelectRandomIPRange">
+    <action name="SetVariable">
+        <Variable>IPRanges</Variable>
+        <Value>{ReadFile('./proxies/ip_ranges.txt')}</Value>
+    </action>
+    <action name="SetVariable">
+        <Variable>SelectedIPRange</Variable>
+        <Value>{RandomLine(IPRanges)}</Value>
+    </action>
+    <action name="SetProxy">
+        <Source>Manual</Source>
+        <Address>{SelectedIPRange}</Address>
+    </action>
+</macro>
+<settings>
+    <FingerprintAPIKey>apiff893e3d-5f3e-43d9-8ac4-b12890fcb72f</FingerprintAPIKey>
+    <CaptchaAPIKey>32182a8277ab53355c49192af58c4b7b2b8c69cdc735ad217ed46c5f58d608c5</CaptchaAPIKey>
+    <ISPs>
+        <SKTelecom>103.22.200.0/24,103.22.201.0/24,103.22.202.0/24</SKTelecom>
+        <KT>112.175.1.0/24,112.175.2.0/24,112.175.3.0/24</KT>
+        <LGUplus>211.115.0.0/24,211.115.1.0/24,211.115.2.0/24</LGUplus>
+    </ISPs>
+</settings>
+<!-- 랜덤 IP 대역 선택 -->
+<macro name="SelectRandomIPRange">
+    <action name="SetVariable">
+        <Variable>IPRanges</Variable>
+        <Value>{ReadFile('./proxies/ip_ranges.txt')}</Value>
+    </action>
+    <action name="SetVariable">
+        <Variable>SelectedIPRange</Variable>
+        <Value>{RandomLine(IPRanges)}</Value>
+    </action>
+    <action name="SetProxy">
+        <Source>Manual</Source>
+        <Address>{SelectedIPRange}</Address>
+    </action>
+</macro>
+<!-- 랜덤 프록시 선택 및 IP 대역 분산 -->
+<macro name="SelectRandomProxyFromList">
+    <action name="SetVariable">
+        <Variable>ProxyList</Variable>
+        <Value>{ReadFile('./proxies/proxy_list.txt')}</Value>
+    </action>
+    <action name="SetVariable">
+        <Variable>SelectedProxy</Variable>
+        <Value>{RandomLine(ProxyList)}</Value>
+    </action>
+    <action name="SetProxy">
+        <Source>Manual</Source>
+        <Address>{SelectedProxy}</Address>
+    </action>
+</macro>
+<!-- 한국 ISP로 프록시 변경 매크로 -->
+<macro name="ChangeToKoreanISP">
+    <action name="SelectRandomISP">
+        <ISPList>{settings.ISPs}</ISPList>
+    </action>
+    <action name="FilterProxiesByISP">
+        <ISP>{SelectedISP}</ISP>
+        <ProxiesList>{Account.proxies}</ProxiesList>
+        <FilteredProxies>{FilteredProxies}</FilteredProxies>
+    </action>
+    <action name="SelectRandomProxyFromList">
+        <ProxiesList>{FilteredProxies}</ProxiesList>
+        <SelectedProxy>{SelectedProxy}</SelectedProxy>
+    </action>
+    <action name="ChangeProxy">
+        <Source>API</Source>
+        <URL>{SelectedProxy}</URL>
+        <AuthKey>{settings.ProxyAPIKey}</AuthKey>
+    </action>
+    <action name="LogEvent">
+        <Type>ProxyChange</Type>
+        <Details>Changed to Korean ISP proxy: {SelectedISP}, {SelectedProxy}</Details>
+    </action>
+</macro>
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="hdgrace-youtube" version="25.7.217">
+    <settings>
+        <FingerprintAPIKey>apiff893e3d-5f3e-43d9-8ac4-b12890fcb72f</FingerprintAPIKey>
+        <ProxyService>pyproxy.com</ProxyService>
+        <ProxyAPIKey>your_pyproxy_api_key</ProxyAPIKey>
+        <Language>ko,en</Language>
+        <MaxThreads>500</MaxThreads>
+        <ThreadDelay>100</ThreadDelay>
+        <ParallelExecution>true</ParallelExecution>
+        <TTLPerViewer>3600</TTLPerViewer>
+        <LogFile>./logs/activity.log</LogFile>
+        <DataFolder>./data/</DataFolder>
+        <DefaultTimeout>150</DefaultTimeout>
+        <MinDelay>10</MinDelay>
+        <MaxDelay>60</MaxDelay>
+        <ISPs>SKTelecom,KT,LGUplus</ISPs>
+        <IPRanges>
+            <SKTelecom>
+                103.22.200.0/24,103.22.201.0/24,103.22.202.0/24
+            </SKTelecom>
+            <KT>
+                112.175.1.0/24,112.175.2.0/24,112.175.3.0/24
+            </KT>
+            <LGUplus>
+                211.115.0.0/24,211.115.1.0/24,211.115.2.0/24
+            </LGUplus>
+        </IPRanges>
+    </settings>
+
+    <!-- === [추가 코드] 한국 ISP로 프록시 변경 === -->
+    <macro name="ChangeToKoreanISP">
+        <parameter name="Account"/>
+        <action name="SelectRandomISP">
+            <ISPList>{settings.ISPs}</ISPList>
+        </action>
+        <action name="FilterProxiesByISP">
+            <ISP>{SelectedISP}</ISP>
+            <ProxiesList>{Account.proxies}</ProxiesList>
+            <FilteredProxies>{FilteredProxies}</FilteredProxies>
+        </action>
+        <action name="SelectRandomProxyFromList">
+            <ProxiesList>{FilteredProxies}</ProxiesList>
+            <SelectedProxy>{SelectedProxy}</SelectedProxy>
+        </action>
+        <action name="ChangeProxy">
+            <Source>API</Source>
+            <URL>{SelectedProxy}</URL>
+            <AuthKey>{settings.ProxyAPIKey}</AuthKey>
+        </action>
+        <action name="LogEvent">
+            <Type>ISPChange</Type>
+            <Details>Changed to {SelectedISP} proxy: {SelectedProxy}</Details>
+        </action>
+    </macro>
+
+    <!-- === [추가 코드] 한국 ISP 변경 UI === -->
+    <macro name="ShowKoreanISPChange">
+        <action name="CreatePopup">
+            <Title>한국 ISP 변경</Title>
+            <Message>한국 프록시 대역대를 서로 다른 대역(KT, SKT, LGU+)으로 변경합니다.</Message>
+        </action>
+        <action name="AddButton">
+            <Label>변경 시작</Label>
+            <Action>CallMacro</Action>
+            <Parameters>
+                <Name>ChangeToKoreanISP</Name>
+            </Parameters>
+        </action>
+        <action name="ShowPopup"/>
+    </macro>
+
+    <!-- === [추가 코드] 프록시 형식 선택 UI === -->
+    <macro name="ShowProxyFormatSelection">
+        <action name="CreatePopup">
+            <Title>프록시 형식 선택</Title>
+            <Message>
+                다음 중 사용할 프록시 형식을 선택하세요:
+                1. host:port:username:password
+                2. username:password:host:port
+                3. host:port
+                IPv4, IPv6, SOCKS 모두 지원됩니다.
+            </Message>
+        </action>
+        <action name="AddChoice">
+            <Option>host:port:username:password</Option>
+        </action>
+        <action name="AddChoice">
+            <Option>username:password:host:port</Option>
+        </action>
+        <action name="AddChoice">
+            <Option>host:port</Option>
+        </action>
+        <action name="ShowPopup"/>
+    </macro>
+
+    <!-- === [추가 코드] 한국 ISP로 프록시 변경 매크로 === -->
+    <macro name="ChangeToKoreanISP">
+        <parameter name="Account"/>
+        <action name="SelectRandomISP">
+            <ISPList>{settings.ISPs}</ISPList>
+        </action>
+        <action name="FilterProxiesByISP">
+            <ISP>{SelectedISP}</ISP>
+            <ProxiesList>{Account.proxies}</ProxiesList>
+            <FilteredProxies>{FilteredProxies}</FilteredProxies>
+        </action>
+        <action name="SelectRandomProxyFromList">
+            <ProxiesList>{FilteredProxies}</ProxiesList>
+            <SelectedProxy>{SelectedProxy}</SelectedProxy>
+        </action>
+        <action name="ChangeProxy">
+            <Source>API</Source>
+            <URL>{SelectedProxy}</URL>
+            <AuthKey>{settings.ProxyAPIKey}</AuthKey>
+        </action>
+        <action name="LogEvent">
+            <Type>ISPChange</Type>
+            <Details>Changed to {SelectedISP} proxy: {SelectedProxy}</Details>
+        </action>
+    </macro>
+
+    <!-- === [추가 코드] 사용자 지문 한국화 === -->
+    <macro name="RandomizeKoreanFingerprint">
+        <parameter name="Account"/>
+        <action name="RandomizeUserAgent">
+            <Country>Korea</Country>
+        </
+		<?xml version="1.0" encoding="UTF-8"?>
+<project name="hdgrace-youtube" version="25.7.217">
+    <settings>
+        <FingerprintAPIKey>apiff893e3d-5f3e-43d9-8ac4-b12890fcb72f</FingerprintAPIKey>
+        <ProxyService>pyproxy.com</ProxyService>
+        <ProxyAPIKey>your_pyproxy_api_key</ProxyAPIKey>
+        <Language>ko,en</Language>
+        <MaxThreads>500</MaxThreads>
+        <ThreadDelay>100</ThreadDelay>
+        <ParallelExecution>true</ParallelExecution>
+        <TTLPerViewer>3600</TTLPerViewer>
+        <LogFile>./logs/activity.log</LogFile>
+        <DataFolder>./data/</DataFolder>
+        <DefaultTimeout>150</DefaultTimeout>
+        <MinDelay>10</MinDelay>
+        <MaxDelay>60</MaxDelay>
+        <ISPs>SKTelecom,KT,LGUplus</ISPs>
+        <IPRanges>
+            <SKTelecom>
+                103.22.200.0/24,103.22.201.0/24,103.22.202.0/24
+            </SKTelecom>
+            <KT>
+                112.175.1.0/24,112.175.2.0/24,112.175.3.0/24
+            </KT>
+            <LGUplus>
+                211.115.0.0/24,211.115.1.0/24,211.115.2.0/24
+            </LGUplus>
+        </IPRanges>
+    </settings>
+
+    <!-- === [추가 코드] 한국 ISP로 프록시 변경 === -->
+    <macro name="ChangeToKoreanISP">
+        <parameter name="Account"/>
+        <action name="SelectRandomISP">
+            <ISPList>{settings.ISPs}</ISPList>
+        </action>
+        <action name="FilterProxiesByISP">
+            <ISP>{SelectedISP}</ISP>
+            <ProxiesList>{Account.proxies}</ProxiesList>
+            <FilteredProxies>{FilteredProxies}</FilteredProxies>
+        </action>
+        <action name="SelectRandomProxyFromList">
+            <ProxiesList>{FilteredProxies}</ProxiesList>
+            <SelectedProxy>{SelectedProxy}</SelectedProxy>
+        </action>
+        <action name="ChangeProxy">
+            <Source>API</Source>
+            <URL>{SelectedProxy}</URL>
+            <AuthKey>{settings.ProxyAPIKey}</AuthKey>
+        </action>
+        <action name="LogEvent">
+            <Type>ISPChange</Type>
+            <Details>Changed to {SelectedISP} proxy: {SelectedProxy}</Details>
+        </action>
+    </macro>
+
+    <!-- === [추가 코드] 한국 ISP 변경 UI === -->
+    <macro name="ShowKoreanISPChange">
+        <action name="CreatePopup">
+            <Title>한국 ISP 변경</Title>
+            <Message>한국 프록시 대역대를 서로 다른 대역(KT, SKT, LGU+)으로 변경합니다.</Message>
+        </action>
+        <action name="AddButton">
+            <Label>변경 시작</Label>
+            <Action>CallMacro</Action>
+            <Parameters>
+                <Name>ChangeToKoreanISP</Name>
+            </Parameters>
+        </action>
+        <action name="ShowPopup"/>
+    </macro>
+
+    <!-- === [추가 코드] 프록시 형식 선택 UI === -->
+    <macro name="ShowProxyFormatSelection">
+        <action name="CreatePopup">
+            <Title>프록시 형식 선택</Title>
+            <Message>
+                다음 중 사용할 프록시 형식을 선택하세요:
+                1. host:port:username:password
+                2. username:password:host:port
+                3. host:port
+                IPv4, IPv6, SOCKS 모두 지원됩니다.
+            </Message>
+        </action>
+        <action name="AddChoice">
+            <Option>host:port:username:password</Option>
+        </action>
+        <action name="AddChoice">
+            <Option>username:password:host:port</Option>
+        </action>
+        <action name="AddChoice">
+            <Option>host:port</Option>
+        </action>
+        <action name="ShowPopup"/>
+    </macro>
+
+    <!-- === [추가 코드] 한국 ISP로 프록시 변경 매크로 === -->
+    <macro name="ChangeToKoreanISP">
+        <parameter name="Account"/>
+        <action name="SelectRandomISP">
+            <ISPList>{settings.ISPs}</ISPList>
+        </action>
+        <action name="FilterProxiesByISP">
+            <ISP>{SelectedISP}</ISP>
+            <ProxiesList>{Account.proxies}</ProxiesList>
+            <FilteredProxies>{FilteredProxies}</FilteredProxies>
+        </action>
+        <action name="SelectRandomProxyFromList">
+            <ProxiesList>{FilteredProxies}</ProxiesList>
+            <SelectedProxy>{SelectedProxy}</SelectedProxy>
+        </action>
+        <action name="ChangeProxy">
+            <Source>API</Source>
+            <URL>{SelectedProxy}</URL>
+            <AuthKey>{settings.ProxyAPIKey}</AuthKey>
+        </action>
+        <action name="LogEvent">
+            <Type>ISPChange</Type>
+            <Details>Changed to {SelectedISP} proxy: {SelectedProxy}</Details>
+        </action>
+    </macro>
+
+    <!-- === [추가 코드] 사용자 지문 한국화 === -->
+    <macro name="RandomizeKoreanFingerprint">
+        <parameter name="Account"/>
+        <action name="RandomizeUserAgent">
+            <Country>Korea</Country>
+        </
+		<?xml version="1.0" encoding="UTF-8"?>
+<project name="hdgrace-youtube" version="29.0.0">
+    <settings>
+        <FingerprintAPIKey>apiff893e3d-5f3e-43d9-8ac4-b12890fcb72f</FingerprintAPIKey>
+        <CaptchaAPIKey>32182a8277ab53355c49192af58c4b7b2b8c69cdc735ad217ed46c5f58d608c5</CaptchaAPIKey>
+        <SMSAPIKey>a81e7999e7a24ff88434c716b7b7ce51</SMSAPIKey>
+        <ProxyService>pyproxy.com</ProxyService>
+        <ProxyAPIKey>your_pyproxy_api_key</ProxyAPIKey>
+        <Language>ko,en</Language>
+        <MaxThreads>500</MaxThreads>
+        <ThreadDelay>100</ThreadDelay>
+        <ParallelExecution>true</ParallelExecution>
+        <TTLPerViewer>3600</TTLPerViewer>
+        <LogFile>./logs/activity.log</LogFile>
+        <DataFolder>./data/</DataFolder>
+        <DefaultTimeout>150</DefaultTimeout>
+        <MinDelay>10</MinDelay>
+        <MaxDelay>60</MaxDelay>
+        <ISPs>SKTelecom,KT,LGUplus</ISPs>
+        <IPRanges>
+            <SKTelecom>103.22.200.0/24,103.22.201.0/24,103.22.202.0/24</SKTelecom>
+            <KT>112.175.1.0/24,112.175.2.0/24,112.175.3.0/24</KT>
+            <LGUplus>211.115.0.0/24,211.115.1.0/24,211.115.2.0/24</LGUplus>
+        </IPRanges>
+    </settings>
+
+    <ui>
+        <label text="HDGRACE" id="logoTitle" style="font-size: 32px; color: #00FFD1; font-weight: bold; text-align: center; margin-bottom: 24px;" />
+        <language>ko</language>
+        <label text="로그인 화면" id="loginTitle" style="font-size: 20px; color: #CCCCCC; text-align: center; margin-bottom: 32px;" />
+        <input type="text" name="username" hint="아이디를 입력하세요" id="usernameInput" style="width: 100%; padding: 12px; margin-bottom: 16px; border: 1px solid #ccc; border-radius: 4px;" />
+        <input type="password" name="password" hint="비밀번호를 입력하세요" id="passwordInput" style="width: 100%; padding: 12px; margin-bottom: 16px; border: 1px solid #ccc; border-radius: 4px;" />
+        <button text="로그인" action="loginUser" id="loginButton" style="width: 100%; padding: 12px; background-color: #00FFD1; color: #000000; border: none; border-radius: 4px; cursor: pointer;" />
+    </ui>
+
+    <macro name="SetPyProxy">
+        <If condition="USE_PYPROXY_API == true">
+            <Then>
+                <action name="SetVariable">
+                    <Variable>ProxyUser</Variable>
+                    <Value>{PYPROXY_USER}-zone-{PYPROXY_ZONE}</Value>
+                </action>
+                <If condition="PYPROXY_REGION != ''">
+                    <Then>
+                        <action name="SetVariable">
+                            <Variable>ProxyUser</Variable>
+                            <Value>{ProxyUser}-region-{PYPROXY_REGION}</Value>
+                        </action>
+                    </Then>
+                </If>
+                <If condition="PYPROXY_CITY != ''">
+                    <Then>
+                        <action name="SetVariable">
+                            <Variable>ProxyUser</Variable>
+                            <Value>{ProxyUser}-city-{PYPROXY_CITY}</Value>
+                        </action>
+                    </Then>
+                </If>
+                <action name="SetProxy">
+                    <Source>API</Source>
+                    <Service>{settings.ProxyService}</Service>
+                    <User>{ProxyUser}</User>
+                    <Password>{settings.ProxyAPIKey}</Password>
+                    <Host>gate.pyproxy.com</Host>
+                    <Port>7000</Port>
+                    <Protocol>http</Protocol>
+                </action>
+            </Then>
+        </If>
+    </macro>
+
+    <macro name="SMSPAPIHealthCheck">
+        <If condition="SMSFailureDetected">
+            <Then>
+                <action name="SwitchSMSProvider"/>
+                <action name="LogEvent">
+                    <Type>SMSRecovery</Type>
+                    <Details>Switched SMS API due to failure</Details>
+                </action>
+            </Then>
+        </If>
+    </macro>
+
+    <macro name="RecaptchaDetection">
+        <If condition="RecaptchaPresent">
+            <Then>
+                <action name="Run2Captcha">
+                    <Proxy>{ProxyString}</Proxy>
+                </action>
+                <action name="LogEvent">
+                    <Type>CaptchaBypassed</Type>
+                    <Details>2Captcha used to solve ReCaptcha</Details>
+                </action>
+            </Then>
+        </If>
+    </macro>
+
+    <macro name="CheckLoginStatus">
+        <If condition="LoginFailed">
+            <Then>
+                <action name="ChangeFingerprint"/>
+                <action name="ChangeProxy"/>
+                <action name="RestartBrowser"/>
+                <action name="LogEvent">
+                    <Type>LoginRecovery</Type>
+                    <Details>Login failed - recovery executed</Details>
+                </action>
+            </Then>
+        </If>
+    </macro>
+
+    <macro name="MonitorProxyQuality">
+        <If condition="ProxyIsSlow">
+            <Then>
+                <action name="RotateProxy"/>
+                <action name="LogEvent">
+                    <Type>ProxyRotation</Type>
+                    <Details>Proxy changed due to slow response</Details>
+                </action>
+            </Then>
+        </If>
+    </macro>
+
+    <macro name="HandleLoginFailure">
+        <action name="ChangeFingerprint"/>
+        <action name="ChangeProxy"/>
+        <action name="RestartBrowser"/>
+        <action name="LogEvent">
+            <Type>LoginRecovery</Type>
+            <Details>Login failed - recovery executed</Details>
+        </action>
+    </macro>
+
+    <macro name="ChangeToKoreanISP">
+        <parameter name="Account"/>
+        <action name="SelectRandomISP">
+            <ISPList>{settings.ISPs}</ISPList>
+        </action>
+        <action name="FilterProxiesByISP">
+            <ISP>{SelectedISP}</ISP>
+            <ProxiesList>{Account.proxies}</ProxiesList>
+            <FilteredProxies>{FilteredProxies}</FilteredProxies>
+        </action>
+        <action name="SelectRandomProxyFromList">
+            <ProxiesList>{FilteredProxies}</ProxiesList>
+            <SelectedProxy>{SelectedProxy}</SelectedProxy>
+        </action>
+        <action name="ChangeProxy">
+            <Source>API</Source>
+            <URL>{SelectedProxy}</URL>
+            <AuthKey>{settings.ProxyAPIKey}</AuthKey>
+        </action>
+        <action name="LogEvent">
+            <Type>ISPChange</Type>
+            <Details>Changed to {SelectedISP} proxy: {SelectedProxy}</Details>
+        </action>
+    </macro>
+
+    <macro name="ShowKoreanISPChange">
+        <action name="CreatePopup">
+            <Title>한국 ISP 변경</Title>
+            <Message>한국 프록시 대역대를 서로 다른 대역(KT, SKT, LGU+)으로 변경합니다.</Message>
+        </action>
+        <action name="AddButton">
+            <Label>변경 시작</Label>
+            <Action>CallMacro</Action>
+            <Parameters>
+                <Name>ChangeToKoreanISP</Name>
+            </Parameters>
+        </action>
+        <action name="ShowPopup"/>
+    </macro>
+
+    <macro name="ShowProxyFormatSelection">
+        <action name="CreatePopup">
+            <Title>프록시 형식 선택</Title>
+            <Message>
+                다음 중 사용할 프록시 형식을 선택하세요:
+                1. host:port:username:password
+                2. username:password:host:port
+                3. host:port
+                IPv4, IPv6, SOCKS 모두 지원됩니다.
+            </Message>
+        </action>
+        <action name="AddChoice">
+            <Option>host:port:username:password</Option>
+        </action>
+        <action name="AddChoice">
+            <Option>username:password:host:port</Option>
+        </action>
+        <action name="AddChoice">
+            <Option>host:port</Option>
+        </action>
+        <action name="ShowPopup"/>
+    </macro>
+
+    <macro name="RandomizeKoreanFingerprint">
+        <parameter name="Account"/>
+        <action name="RandomizeUserAgent">
+            <Country>Korea</Country>
+        </action>
+        <action name="SetVariable">
+            <Variable>TimeZone</Variable>
+            <Value>{RandomItem('Asia/Seoul')}</Value>
+        </action>
+        <action name="SetVariable">
+            <Variable>Language</Variable>
+            <Value>{RandomItem('ko-KR')}</Value>
+        </action>
+        <action name="SetVariable">
+            <Variable>AcceptLanguage</Variable>
+            <Value>ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7</Value>
+        </action>
+        <action name="SetVariable">
+            <Variable>ScreenResolution</Variable>
+            <Value>{RandomItem('1920x1080','1366x768','1536x864')}</Value>
+        </action>
+        <action name="SetVariable">
+            <Variable>ColorDepth</Variable>
+            <Value>24</Value>
+        </action>
+        <action name="SetVariable">
+            <Variable>HardwareConcurrency</Variable>
+            <Value>{Random(4,8)}</Value>
+        </action>
+        <action name="SetVariable">
+            <Variable>DeviceMemory</Variable>
+            <Value>{RandomItem('4','8')}</Value>
+        </action>
+        <action name="SetVariable">
+            <Variable>TouchSupport</Variable>
+            <Value>false</Value>
+        </action>
+        <action name="SetVariable">
+            <Variable>DoNotTrack</Variable>
+            <Value>false</Value>
+        </action>
+        <action name="SetVariable">
+            <Variable>WebGLVendor</Variable>
+            <Value>{RandomItem('Google Inc.','Intel Inc.','NVIDIA')}</Value>
+        </action>
+        <action name="SetVariable">
+            <Variable>WebGLRenderer</Variable>
+            <Value>{RandomItem('ANGLE (Intel, Intel(R) UHD Graphics Direct3D11 vs_5_0 ps_5_0)','ANGLE (NVIDIA, NVIDIA GeForce RTX 3060 Direct3D11 vs_5_0 ps_5_0)')}</Value>
+        </action>
+        <action name="LogEvent">
+            <Type>FingerprintApplied</Type>
+            <Details>Korean fingerprint applied to {Account.id}</Details>
+        </action>
+    </macro>
+
+    <macro name="UltraHumanViewSimulation">
+        <action name="MouseMove">
+            <X>{Random(100, 800)}</X>
+            <Y>{Random(200, 600)}</Y>
+            <Duration>500</Duration>
+        </action>
+        <action name="Scroll">
+            <Distance>{Random(100, 500)}</Distance>
+            <Duration>1000</Duration>
+        </action>
+        <If condition="{Random(1,100)} > 70">
+            <Then>
+                <action name="ExecuteJS">
+                    <Code>document.querySelector('video').pause()</Code>
+                </action>
+                <action name="Delay">
+                    <Min>5</Min>
+                    <Max>15</Max>
+                </action>
+                <action name="ExecuteJS">
+                    <Code>document.querySelector('video').play()</Code>
+                </action>
+            </Then>
+        </If>
+        <If condition="{Random(1,100)} > 50">
+            <Then>
+                <action name="Click">
+                    <Selector>#segmented-like-button button</Selector>
+                </action>
+            </Then>
+        </If>
+        <If condition="{Random(1,100)} > 70">
+            <Then>
+                <action name="Click">
+                    <Selector>#comment-button</Selector>
+                </action>
+                <action name="Type">
+                    <Selector>#contenteditable-root</Selector>
+                    <Text>{RandomLine('./data/comments.txt')}</Text>
+                </action>
+                <action name="Click">
+                    <Selector>#submit-button</Selector>
+                </action>
+            </Then>
+        </If>
+        <action name="SetVariable">
+            <Variable>NextVisitTime</Variable>
+            <Value>{Timestamp + 86400}</Value>
+        </action>
+        <action name="LogEvent">
+            <Type>VisitScheduled</Type>
+            <Details>재방문 예약됨: {NextVisitTime}</Details>
+        </action>
+    </macro>
+
+    <macro name="Report_GenerateFiles">
+        <action name="CreateFolder">
+            <Name>account_checker_reporter</Name>
+        </action>
+        <If condition="LoginSuccess">
+            <Then>
+                <action name="CreateFile">
+                    <Name>login_success_gmail_proxy.txt</Name>
+                    <Header>id|pass|recovery|recovery_pass|proxy</Header>
+                    <Data>{Account.id}|{Account.pass}|{Account.recovery_email}|{Account.recovery_pass}|{CURRENT_PROXY}</Data>
+                </action>
+            </Then>
+        </If>
+        <If condition="BadProxy">
+            <Then>
+                <action name="CreateFile">
+                    <Name>bad_proxy.txt</Name>
+                    <Header>proxy</Header>
+                    <Data>{CURRENT_PROXY}</Data>
+                </action>
+            </Then>
+        </If>
+        <If condition="DisabledAccount">
+            <Then>
+                <action name="CreateFile">
+                    <Name>disabled_accounts.txt</Name>
+                    <Header>id|pass|recovery|recovery_pass</Header>
+                    <Data>{Account.id}|{Account.pass}|{Account.recovery_email}|{Account.recovery_pass}</Data>
+                </action>
+            </Then>
+        </If>
+        <If condition="PhoneVerificationNeeded">
+            <Then>
+                <action name="CreateFile">
+                    <Name>phone_verification_needed.txt</Name>
+                    <Header>id|pass|recovery|recovery_pass|proxy</Header>
+                    <Data>{Account.id}|{Account.pass}|{Account.recovery_email}|{Account.recovery_pass}|{CURRENT_PROXY}</Data>
+                </action>
+            </Then>
+        </If>
+        <If condition="TabletVerificationRequired">
+            <Then>
+                <action name="CreateFile">
+                    <Name>tablet_verification_required.txt</Name>
+                    <Header>id|pass|recovery|recovery_pass|proxy</Header>
+                    <Data>{Account.id}|{Account.pass}|{Account.recovery_email}|{Account.recovery_pass}|{CURRENT_PROXY}</Data>
+                </action>
+            </Then>
+        </If>
+        <If condition="DuplicateProxy">
+            <Then>
+                <action name="CreateFile">
+                    <Name>duplicate_proxy.txt</Name>
+                    <Header>proxy</Header>
+                    <Data>{CURRENT_PROXY}</Data>
+                </action>
+            </Then>
+        </If>
+        <If condition="InvalidEmail">
+            <Then>
+                <action name="CreateFile">
+                    <Name>invalid_email.txt</Name>
+                    <Header>id|pass|recovery|recovery_pass</Header>
+                    <Data>{Account.id}|{Account.pass}|{Account.recovery_email}|{Account.recovery_pass}</Data>
+                </action>
+            </Then>
+        </If>
+    </macro>
+
+    <macro name="StartAccountSession">
+        <call macro="SetPyProxy"/>
+        <call macro="SMSPAPIHealthCheck"/>
+        <call macro="RecaptchaDetection"/>
+        <call macro="CheckLoginStatus"/>
+        <call macro="MonitorProxyQuality"/>
+        <call macro="RandomizeKoreanFingerprint"/>
+        <call macro="UltraHumanViewSimulation"/>
+        <call macro="Report_GenerateFiles"/>
+    </macro>
+</project>
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="hdgrace-youtube" version="29.0.0">
+    <settings>
+        <FingerprintAPIKey>apiff893e3d-5f3e-43d9-8ac4-b12890fcb72f</FingerprintAPIKey>
+        <CaptchaAPIKey>32182a8277ab53355c49192af58c4b7b2b8c69cdc735ad217ed46c5f58d608c5</CaptchaAPIKey>
+        <SMSAPIKey>a81e7999e7a24ff88434c716b7b7ce51</SMSAPIKey>
+        <ProxyService>pyproxy.com</ProxyService>
+        <ProxyAPIKey>your_pyproxy_api_key</ProxyAPIKey>
+        <Language>ko,en</Language>
+        <MaxThreads>500</MaxThreads>
+        <ThreadDelay>100</ThreadDelay>
+        <ParallelExecution>true</ParallelExecution>
+        <TTLPerViewer>3600</TTLPerViewer>
+        <LogFile>./logs/activity.log</LogFile>
+        <DataFolder>./data/</DataFolder>
+        <DefaultTimeout>150</DefaultTimeout>
+        <MinDelay>10</MinDelay>
+        <MaxDelay>60</MaxDelay>
+    </settings>
+    
+    <!-- 🎛️ UI 버튼 생성 -->
+    <macro name="SetupUI">
+        <action name="CreateUI"/>
+        <action name="SetUIColorScheme">
+            <Scheme>Dark</Scheme>
+        </action>
+        <action name="SetUIButtonStyle">
+            <Style>Modern</Style>
+        </action>
+        
+        <!-- 1. 지메일 계정 생성 자동화 -->
+        <action name="AddToggleButton" label="1. 지메일 계정 생성 자동화" variable="CREATE_GMAIL_ACCOUNT" default="true"/>
+        
+        <!-- 2. 계정 복구 이메일/전화번호 설정 -->
+        <action name="AddToggleButton" label="2. 계정 복구 이메일/전화번호 설정" variable="SET_RECOVERY_INFO" default="true"/>
+        
+        <!-- 3. 지메일 보안 설정 자동화 (2차 인증 등) -->
+        <action name="AddToggleButton" label="3. 지메일 보안 설정 자동화 (2차 인증 등)" variable="SECURE_GMAIL" default="true"/>
+        
+        <!-- 4. 지메일 프로필 이미지 / 채널명 설정 -->
+        <action name="AddToggleButton" label="4. 지메일 프로필 이미지 / 채널명 설정" variable="SET_PROFILE_IMAGE_NAME" default="true"/>
+        
+        <!-- 5. 유튜브 채널 생성 -->
+        <action name="AddToggleButton" label="5. 유튜브 채널 생성" variable="CREATE_CHANNEL" default="true"/>
+        
+        <!-- 6. 자동 댓글/좋아요/구독 -->
+        <action name="AddToggleButton" label="6. 댓글/좋아요/구독 자동화" variable="AUTO_ENGAGE" default="true"/>
+        
+        <!-- 7. 조회수 반복 입장/이탈 -->
+        <action name="AddToggleButton" label="7. 조회수 반복 입장/이탈" variable="LOOP_VIEW" default="true"/>
+        
+        <!-- 8. 지메일 계정 생성 -->
+        <action name="AddToggleButton" label="8. 지메일 계정 생성" variable="CREATE_GMAIL" default="false"/>
+        
+        <!-- 9. 자동 댓글봇 -->
+        <action name="AddToggleButton" label="9. 자동 댓글봇" variable="AUTO_COMMENT" default="true"/>
+        
+        <!-- 10. 다국어 번역 기능 -->
+        <action name="AddToggleButton" label="10. 다국어 번역 기능" variable="MULTI_LANG" default="true"/>
+        
+        <!-- 11. IMEI + 회전 프록시 설정 -->
+        <action name="AddToggleButton" label="11. IMEI + 회전 프록시 설정" variable="ROTATE_PROXY" default="true"/>
+        
+        <!-- 12. Shorts 시청 최적화 -->
+        <action name="AddToggleButton" label="12. Shorts 시청 최적화" variable="SHORTS_OPTIMIZE" default="true"/>
+        
+        <!-- 13. LIVE 고정 시청자 유지 -->
+        <action name="AddToggleButton" label="13. LIVE 고정 시청자 유지" variable="LIVE_VIEWERS" default="true"/>
+        
+        <!-- 14. POP/IMAP 활성화 -->
+        <action name="AddToggleButton" label="14. POP/IMAP 활성화" variable="ENABLE_POP_IMAP" default="true"/>
+        
+        <!-- 15. 뉴스레터 구독 -->
+        <action name="AddToggleButton" label="15. 뉴스레터 구독" variable="SUBSCRIBE_NEWSLETTER" default="true"/>
+        
+        <!-- 16. 캘린더 이벤트 생성 -->
+        <action name="AddToggleButton" label="16. 캘린더 이벤트 생성" variable="CREATE_CALENDAR_EVENTS" default="true"/>
+        
+        <!-- 17. 자동 항소 -->
+        <action name="AddToggleButton" label="17. 자동 항소" variable="AUTO_APPEAL" default="true"/>
+        
+        <!-- 18. 계정 상태 점검 -->
+        <action name="AddToggleButton" label="18. 계정 상태 점검" variable="CHECK_ACCOUNT_STATUS" default="true"/>
+        
+        <!-- 19. 활동 로그 강제 유지 -->
+        <action name="AddToggleButton" label="19. 활동 로그 강제 유지" variable="FORCE_LOG_MAINTENANCE" default="true"/>
+        
+        <!-- 20. 활동 기록 자동 삭제 비활성화 -->
+        <action name="AddToggleButton" label="20. 활동 기록 자동 삭제 비활성화" variable="DISABLE_AUTO_DELETE_ACTIVITIES" default="true"/>
+        
+        <!-- 21. 동시 로그인 유지 -->
+        <action name="AddToggleButton" label="21. 동시 로그인 유지" variable="MAINTAIN_SIMULTANEOUS_LOGINS" default="true"/>
+        
+        <!-- 22. 계정/프록시 저장 -->
+        <action name="AddToggleButton" label="22. 계정/프록시 저장" variable="SAVE_ACCOUNT_PROXIES" default="true"/>
+        
+        <!-- 23. 유튜브 채널 관련 기능 추가 -->
+        <action name="AddToggleButton" label="23. 유튜브 채널 관련 기능 추가" variable="YOUTUBE_CHANNEL_FEATURES" default="true"/>
+        
+        <!-- 24. 자동 항소 -->
+        <action name="AddToggleButton" label="24. 자동 항소" variable="AUTO_APPEAL" default="true"/>
+        
+        <!-- 25. 계정 상태 점검 -->
+        <action name="AddToggleButton" label="25. 계정 상태 점검" variable="CHECK_ACCOUNT_STATUS" default="true"/>
+        
+        <!-- 26. 활동 로그 강제 유지 -->
+        <action name="AddToggleButton" label="26. 활동 로그 강제 유지" variable="FORCE_LOG_MAINTENANCE" default="true"/>
+        
+        <!-- 27. 활동 기록 자동 삭제 비활성화 -->
+        <action name="AddToggleButton" label="27. 활동 기록 자동 삭제 비활성화" variable="DISABLE_AUTO_DELETE_ACTIVITIES" default="true"/>
+        
+        <!-- 28. 동시 로그인 유지 -->
+        <action name="AddToggleButton" label="28. 동시 로그인 유지" variable="MAINTAIN_SIMULTANEOUS_LOGINS" default="true"/>
+        
+        <!-- 29. 계정/프록시 저장 -->
+        <action name="AddToggleButton" label="29. 계정/프록시 저장" variable="SAVE_ACCOUNT_PROXIES" default="true"/>
+    </macro>
+    
+    <!-- 🎛️ 로그인 화면 -->
+    <ui>
+        <language>ko</language>
+        <label text="HDGRACE" id="logoTitle" style="font-size: 32px; color: #00FFD1; font-weight: bold; text-align: center; margin-bottom: 24px;" />
+        <label text="로그인 화면" id="loginTitle" style="font-size: 20px; color: #CCCCCC; text-align: center; margin-bottom: 32px;" />
+        <input type="text" name="username" hint="아이디를 입력하세요" id="usernameInput" style="width: 100%; padding: 12px; margin-bottom: 16px; border: 1px solid #ccc; border-radius: 4px;" />
+        <input type="password" name="password" hint="비밀번호를 입력하세요" id="passwordInput" style="width: 100%; padding: 12px; margin-bottom: 16px; border: 1px solid #ccc; border-radius: 4px;" />
+        <button text="로그인" action="loginUser" id="loginButton" style="width: 100%; padding: 12px; background-color: #00FFD1; color: #000000; border: none; border-radius: 4px; cursor: pointer;" />
+    </ui>
+</project>
+<macro name="SelectRandomForeignProxy">
+    <action name="SetVariable">
+        <Variable>ProxyList</Variable>
+        <Value>{ReadFile('./proxies/foreign_proxies.txt')}</Value>
+    </
+	<macro name="SimulateOldGmailAccount">
+    <action name="SetVariable">
+        <Variable>AccountBirthYear</Variable>
+        <Value>{Random(2000, 2020)}</Value>
+    </action>
+    <action name="SetVariable">
+        <Variable>AccountAge</Variable>
+        <Value>{2025 - AccountBirthYear}</Value>
+    </action>
+    <action name="Navigate">
+        <Url>https://myaccount.google.com/personal-info/birthdate</Url>
+    </action>
+    <action name="WaitFor">
+        <Selector>input[name='birthYear']</Selector>
+        <Timeout>10000</Timeout>
+    </action>
+    <action name="Type">
+        <Selector>input[name='birthYear']</Selector>
+        <Text>{AccountBirthYear}</Text>
+    </action>
+    <action name="Click">
+        <Selector>button:contains('다음')</Selector>
+    </action>
+    <action name="LogEvent">
+        <Type>AccountAge</Type>
+        <Details>계정 연령 조작 완료: {AccountAge}세 ({AccountBirthYear}년생)</Details>
+    </action>
+</macro>
+
+<macro name="AssignGenderToEduEmail">
+    <action name="SetVariable">
+        <Variable>UserGender</Variable>
+        <Value>{RandomItem('남성', '여성')}</Value>
+    </action>
+    <action name="SetVariable">
+        <Variable>GenderAvatarFolder</Variable>
+        <Value>./data/avatars/{UserGender}/</Value>
+    </action>
+    <action name="SetVariable">
+        <Variable>GenderDisplayName</Variable>
+        <Value>{RandomKoreanName({UserGender})}</Value>
+    </action>
+    <action name="Navigate">
+        <Url>https://myaccount.google.com/profile</Url>
+    </action>
+    <action name="WaitFor">
+        <Selector>#profile-name</Selector>
+        <Timeout>10000</Timeout>
+    </action>
+    <action name="Type">
+        <Selector>#profile-name input</Selector>
+        <Text>{GenderDisplayName}</Text>
+    </action>
+    <action name="Click">
+        <Selector>#profile-photo-button</Selector>
+    </action>
+    <action name="Delay">
+        <Min>1000</Min>
+        <Max>2000</Max>
+    </action>
+    <action name="SetVariable">
+        <Variable>SelectedAvatar</Variable>
+        <Value>{RandomLine('{GenderAvatarFolder}*.jpg')}</Value>
+    </action>
+    <action name="UploadFile">
+        <Selector>input[type='file']</Selector>
+        <Path>{SelectedAvatar}</Path>
+    </action>
+    <action name="LogEvent">
+        <Type>GenderProfile</Type>
+        <Details>에듀지메일 → {UserGender} 프로필 적용됨: {GenderDisplayName}</Details>
+    </action>
+</macro>
+
+<macro name="BypassAgeRestriction">
+    <action name="Navigate">
+        <Url>https://www.youtube.com/verify_age?next_url=/</Url>
+    </action>
+    <action name="WaitFor">
+        <Selector>form[method='POST'], #button</Selector>
+        <Timeout>15000</Timeout>
+    </action>
+    <If condition="document.querySelector('text=이 콘텐츠는 18세 이상만 시청할 수 있습니다') or document.querySelector('form[action=\"/verify-age\"]')">
+        <Then>
+            <action name="Select">
+                <Selector>select[name='birth_month']</Selector>
+                <Value>{Random(1,12)}</Value>
+            </action>
+            <action name="Select">
+                <Selector>select[name='birth_day']</Selector>
+                <Value>{Random(1,28)}</Value>
+            </action>
+            <action name="Select">
+                <Selector>select[name='birth_year']</Selector>
+                <Value>{AccountBirthYear}</Value>
+            </action>
+            <action name="Click">
+                <Selector>#submit-button, button[type='submit']</Selector>
+            </action>
+            <action name="Delay">
+                <Min>3000</Min>
+                <Max>5000</Max>
+            </action>
+            <If condition="document.querySelector('text=시청하려면 로그인하세요')">
+                <Then>
+                    <call macro="LoginToGoogle"/>
+                </Then>
+            </If>
+            <action name="LogEvent">
+                <Type>AgeBypass</Type>
+                <Details>성인 인증 우회 성공: {Account.id}</Details>
+            </action>
+        </Then>
+    </If>
+</macro>
+
+<macro name="PreventSubscriptionRemoval">
+    <action name="LogEvent">
+        <Type>AntiRemoval</Type>
+        <Details>구독 유지 전략 시작: {Account.id}</Details>
+    </action>
+    <action name="Navigate">
+        <Url>{TargetChannelURL}/shorts</Url>
+    </action>
+    <action name="Delay">
+        <Min>5000</Min>
+        <Max>10000</Max>
+    </action>
+    <action name="Click">
+        <Selector>ytd-reel-item-renderer:nth-child({Random(1,5)}) #video-title</Selector>
+    </action>
+    <action name="Delay">
+        <Min>30000</Min>
+        <Max>90000</Max>
+    </action>
+    <If condition="{Random(1,100)} > 70">
+        <Then>
+            <action name="Click">
+                <Selector>#segmented-like-button button</Selector>
+            </action>
+            <action name="Delay">
+                <Min>1000</Min>
+                <Max>2000</Max>
+            </action>
+        </Then>
+    </If>
+</macro>
+
+<macro name="MaintainSameIP">
+    <action name="SetVariable">
+        <Variable>InitialIP</Variable>
+        <Value>{GetCurrentIP()}</Value>
+    </action>
+    <action name="LogEvent">
+        <Type>IPCheck</Type>
+        <Details>초기 IP 설정: {InitialIP}</Details>
+    </action>
+    <loop name="IPCheckLoop" count="10">
+        <action name="SetVariable">
+            <Variable>CurrentIP</Variable>
+            <Value>{GetCurrentIP()}</Value>
+        </action>
+        <If condition="CurrentIP != InitialIP">
+            <Then>
+                <action name="LogEvent">
+                    <Type>IPChanged</Type>
+                    <Details>IP 변경 감지: {InitialIP} → {CurrentIP}</Details>
+                </action>
+                <action name="RestartBrowser"/>
+                <action name="SetVariable">
+                    <Variable>InitialIP</Variable>
+                    <Value>{GetCurrentIP()}</Value>
+                </action>
+                <action name="LogEvent">
+                    <Type>IPRestored</Type>
+                    <Details>IP 복원 완료: {InitialIP}</Details>
+                </action>
+            </Then>
+        </If>
+        <action name="Delay">
+            <Min>3000</Min>
+            <Max>5000</Max>
+        </action>
+    </loop>
+</macro>
+
+<macro name="Gmail_CheckSecurityPrompt">
+    <action name="WaitFor">
+        <Selector>h1, span, div[jscontroller], form</Selector>
+        <Timeout>20000</Timeout>
+    </action>
+    <If condition="document.querySelector('h1')?.innerText.includes('보안 검사') or document.querySelector('span')?.innerText.includes('계정 보호')">
+        <Then>
+            <call macro="Gmail_HandleSecurityCheck"/>
+        </Then>
+    </If>
+    <If condition="document.querySelector('h1')?.innerText.includes('전화번호 추가') or document.querySelector('div')?.innerText.includes('휴대전화 번호 인증')">
+        <Then>
+            <call macro="Gmail_RequestSMSVerification"/>
+        </Then>
+    </If>
+    <If condition="document.querySelector('h1')?.innerText.includes('계정이 일시적으로 사용 중지되었습니다')">
+        <Then>
+            <call macro="Gmail_AppealDisabledAccount"/>
+        </Then>
+    </If>
+</macro>
+
+<macro name="Gmail_RequestSMSVerification">
+    <action name="CallAPI">
+        <URL>https://sms-activate.ru/stubs/handler_api.php?api_key={SMS_API_KEY}&amp;action=getNumber&amp;service=gm</URL>
+        <Method>GET</Method>
+        <Variable>SMSResponse</Variable>
+    </action>
+    <action name="ExtractText">
+        <Text>{SMSResponse}</Text>
+        <Variable>SMSID</Variable>
+        <Regex>ACCESS_NUMBER:(\d+):</Regex>
+    </action>
+    <action name="LogEvent">
+        <Type>SMSRequested</Type>
+        <Details>SMS 인증 요청됨. ID: {SMSID}</Details>
+    </action>
+    <call macro="Gmail_WaitForSMSCode"/>
+</macro>
+
+<macro name="Gmail_WaitForSMSCode">
+    <loop name="PollSMS" count="30">
+        <action name="CallAPI">
+            <URL>https://sms-activate.ru/stubs/handler_api.php?api_key={SMS_API_KEY}&amp;action=getStatus&amp;id={SMSID}</URL>
+            <Method>GET</Method>
+            <Variable>SMSStatus</Variable>
+        </action>
+        <If condition="SMSStatus.includes('STATUS_OK')">
+            <Then>
+                <action name="ExtractText">
+                    <Text>{SMSStatus}</Text>
+                    <Variable>SMSCode</Variable>
+                    <Regex>STATUS_OK:(\d+)</Regex>
+                </action>
+                <action name="Type">
+                    <Selector>input[type='text'], #code</Selector>
+                    <Text>{SMSCode}</Text>
+                </action>
+                <action name="Click">
+                    <Selector>button:contains('확인'), #submit</Selector>
+                </action>
+                <action name="BreakLoop"/>
+            </Then>
+        </If>
+        <action name="Delay">
+            <Min>3000</Min>
+            <Max>4000</Max>
+        </action>
+    </loop>
+</macro>
+
+<macro name="Gmail_AppealDisabledAccount">
+    <action name="Navigate">
+        <Url>https://support.google.com/accounts/contact/disabled?hl=ko</Url>
+    </action>
+    <action name="WaitFor">
+        <Selector>div[jsname='V67Jve']</Selector>
+        <Timeout>10000</Timeout>
+    </action>
+    <action name="Click">
+        <Selector>div[jsname='V67Jve']</Selector>
+    </action>
+    <action name="LogEvent">
+        <Type>AppealSubmitted</Type>
+        <Details>비활성화 계정 항소 완료: {Account.id}</Details>
+    </action>
+    <action name="CreateFile">
+        <Name>disabled_accounts_appealed.txt</Name>
+        <Data>{Account.id}|{Account.pass}|{Account.recovery_email}|{USE_HIPROXY_CURRENT}</Data>
+    </action>
+</macro>
+
+<macro name="Gmail_DisableSecurityFeatures">
+    <action name="Navigate">
+        <Url>https://myaccount.google.com/lesssecureapps</Url>
+    </action>
+    <action name="WaitFor">
+        <Selector>div[jsname='V67Jve']</Selector>
+        <Timeout>10000</Timeout>
+    </action>
+    <action name="Click">
+        <Selector>div[jsname='V67Jve']</Selector>
+    </action>
+    <action name="Navigate">
+        <Url>https://myactivity.google.com/activitycontrols/search</Url>
+    </action>
+    <action name="Delay">
+        <Min>2000</Min>
+        <Max>3000</Max>
+    </action>
+    <action name="Click">
+        <Selector>div[role='checkbox'][aria-checked='true']</Selector>
+    </action>
+    <action name="Navigate">
+        <Url>https://adssettings.google.com/authenticated</Url>
+    </action>
+    <action name="Delay">
+        <Min>2000</Min>
+        <Max>3000</Max>
+    </action>
+    <action name="Click">
+        <Selector>div[role='checkbox'][aria-checked='true']</Selector>
+    </action>
+    <action name="Navigate">
+        <Url>https://myaccount.google.com/permissions</Url>
+    </action>
+    <action name="Delay">
+        <Min>2000</Min>
+        <Max>3000</Max>
+    </action>
+    <action name="Click">
+        <Selector>div[role='checkbox'][aria-checked='true']</Selector>
+    </action>
+</macro>
+
+<macro name="UltraHumanViewSimulation">
+    <action name="MouseMove">
+        <X>{Random(100, 800)}</X>
+        <Y>{Random(200, 600)}</Y>
+        <Duration>500</Duration>
+    </action>
+    <action name="Scroll">
+        <Distance>{Random(100, 500)}</Distance>
+        <Duration>1000</Duration>
+    </action>
+    <If condition="{Random(1,100)} > 70">
+        <Then>
+            <action name="ExecuteJS">
+                <Code>document.querySelector('video').pause()</Code>
+            </action>
+            <action name="Delay">
+                <Min>5</Min>
+                <Max>15</Max>
+            </action>
+            <action name="ExecuteJS">
+                <Code>document.querySelector('video').play()</Code>
+            </action>
+        </Then>
+    </If>
+    <If condition="{Random(1,100)} > 50">
+        <Then>
+            <action name="Click">
+                <Selector>#segmented-like-button button</Selector>
+            </action>
+        </Then>
+    </If>
+    <If condition="{Random(1,100)} > 70">
+        <Then>
+            <action name="Click">
+                <Selector>#comment-button</Selector>
+            </action>
+            <action name="Type">
+                <Selector>#contenteditable-root</Selector>
+                <Text>{RandomLine('./data/comments.txt')}</Text>
+            </action>
+            <action name="Click">
+                <Selector>#submit-button</Selector>
+            </action>
+        </Then>
+    </If>
+    <action name="SetVariable">
+        <Variable>NextVisitTime</Variable>
+        <Value>{Timestamp + 86400}</Value>
+    </action>
+    <action name="LogEvent">
+        <Type>VisitScheduled</Type>
+        <Details>재방문 예약됨: {NextVisitTime}</Details>
+    </action>
+</macro>
+
+<macro name="Report_GenerateFiles">
+    <action name="CreateFolder">
+        <Name>account_checker_reporter</Name>
+    </action>
+    <If condition="LoginSuccess">
+        <Then>
+            <action name="CreateFile">
+                <Name>login_success_gmail_proxy.txt</Name>
+                <Header>id|pass|recovery|recovery_pass|proxy</Header>
+                <Data>{Account.id}|{Account.pass}|{Account.recovery_email}|{Account.recovery_pass}|{CURRENT_PROXY}</Data>
+            </action>
+        </Then>
+    </If>
+    <If condition="BadProxy">
+        <Then>
+            <action name="CreateFile">
+                <Name>bad_proxy.txt</Name>
+                <Header>proxy</Header>
+                <Data>{CURRENT_PROXY}</Data>
+            </action>
+        </Then>
+    </If>
+    <If condition="DisabledAccount">
+        <Then>
+            <action name="CreateFile">
+                <Name>disabled_accounts.txt</Name>
+                <Header>id|pass|recovery|recovery_pass</Header>
+                <Data>{Account.id}|{Account.pass}|{Account.recovery_email}|{Account.recovery_pass}</Data>
+            </action>
+        </Then>
+    </If>
+    <If condition="PhoneVerificationNeeded">
+        <Then>
+            <action name="CreateFile">
+                <Name>phone_verification_needed.txt</Name>
+                <Header>id|pass|recovery|recovery_pass|proxy</Header>
+                <Data>{Account.id}|{Account.pass}|{Account.recovery_email}|{Account.recovery_pass}|{CURRENT_PROXY}</Data>
+            </action>
+        </Then>
+    </If>
+    <If condition="TabletVerificationRequired">
+        <Then>
+            <action name="CreateFile">
+                <Name>tablet_verification_required.txt</Name>
+                <Header>id|pass|recovery|recovery_pass|proxy</Header>
+                <Data>{Account.id}|{Account.pass}|{Account.recovery_email}|{Account.recovery_pass}|{CURRENT_PROXY}</Data>
+            </action>
+        </Then>
+    </If>
+    <If condition="DuplicateProxy">
+        <Then>
+            <action name="CreateFile">
+                <Name>duplicate_proxy.txt</Name>
+                <Header>proxy</Header>
+                <Data>{CURRENT_PROXY}</Data>
+            </action>
+        </Then>
+    </If>
+    <If condition="InvalidEmail">
+        <Then>
+            <action name="CreateFile">
+                <Name>invalid_email.txt</Name>
+                <Header>id|pass|recovery|recovery_pass</Header>
+                <Data>{Account.id}|{Account.pass}|{Account.recovery_email}|{Account.recovery_pass}</Data>
+            </action>
+        </Then>
+    </If>
+</macro>
+<macro name="SimulateOldGmailAccount">
+    <action name="SetVariable">
+        <Variable>AccountBirthYear</Variable>
+        <Value>{Random(2000, 2020)}</Value>
+    </action>
+    <action name="SetVariable">
+        <Variable>AccountAge</Variable>
+        <Value>{2025 - AccountBirthYear}</Value>
+    </action>
+    <action name="Navigate">
+        <Url>https://myaccount.google.com/personal-info/birthdate</Url>
+    </action>
+    <action name="WaitFor">
+        <Selector>input[name='birthYear']</Selector>
+        <Timeout>10000</Timeout>
+    </action>
+    <action name="Type">
+        <Selector>input[name='birthYear']</Selector>
+        <Text>{AccountBirthYear}</Text>
+    </action>
+    <action name="Click">
+        <Selector>button:contains('다음')</Selector>
+    </action>
+    <action name="LogEvent">
+        <Type>AccountAge</Type>
+        <Details>계정 연령 조작 완료: {AccountAge}세 ({AccountBirthYear}년생)</Details>
+    </action>
+</macro>
+
+<macro name="AssignGenderToEduEmail">
+    <action name="SetVariable">
+        <Variable>UserGender</Variable>
+        <Value>{RandomItem('남성', '여성')}</Value>
+    </action>
+    <action name="SetVariable">
+        <Variable>GenderAvatarFolder</Variable>
+        <Value>./data/avatars/{UserGender}/</Value>
+    </action>
+    <action name="SetVariable">
+        <Variable>GenderDisplayName</Variable>
+        <Value>{RandomKoreanName({UserGender})}</Value>
+    </action>
+    <action name="Navigate">
+        <Url>https://myaccount.google.com/profile</Url>
+    </action>
+    <action name="WaitFor">
+        <Selector>#profile-name</Selector>
+        <Timeout>10000</Timeout>
+    </action>
+    <action name="Type">
+        <Selector>#profile-name input</Selector>
+        <Text>{GenderDisplayName}</Text>
+    </action>
+    <action name="Click">
+        <Selector>#profile-photo-button</Selector>
+    </action>
+    <action name="Delay">
+        <Min>1000</Min>
+        <Max>2000</Max>
+    </action>
+    <action name="SetVariable">
+        <Variable>SelectedAvatar</Variable>
+        <Value>{RandomLine('{GenderAvatarFolder}*.jpg')}</Value>
+    </action>
+    <action name="UploadFile">
+        <Selector>input[type='file']</Selector>
+        <Path>{SelectedAvatar}</Path>
+    </action>
+    <action name="LogEvent">
+        <Type>GenderProfile</Type>
+        <Details>에듀지메일 → {UserGender} 프로필 적용됨: {GenderDisplayName}</Details>
+    </action>
+</macro>
+
+<macro name="BypassAgeRestriction">
+    <action name="Navigate">
+        <Url>https://www.youtube.com/verify_age?next_url=/</Url>
+    </action>
+    <action name="WaitFor">
+        <Selector>form[method='POST'], #button</Selector>
+        <Timeout>15000</Timeout>
+    </action>
+    <If condition="document.querySelector('text=이 콘텐츠는 18세 이상만 시청할 수 있습니다') or document.querySelector('form[action=\"/verify-age\"]')">
+        <Then>
+            <action name="Select">
+                <Selector>select[name='birth_month']</Selector>
+                <Value>{Random(1,12)}</Value>
+            </action>
+            <action name="Select">
+                <Selector>select[name='birth_day']</Selector>
+                <Value>{Random(1,28)}</Value>
+            </action>
+            <action name="Select">
+                <Selector>select[name='birth_year']</Selector>
+                <Value>{AccountBirthYear}</Value>
+            </action>
+            <action name="Click">
+                <Selector>#submit-button, button[type='submit']</Selector>
+            </action>
+            <action name="Delay">
+                <Min>3000</Min>
+                <Max>5000</Max>
+            </action>
+            <If condition="document.querySelector('text=시청하려면 로그인하세요')">
+                <Then>
+                    <call macro="LoginToGoogle"/>
+                </Then>
+            </If>
+            <action name="LogEvent">
+                <Type>AgeBypass</Type>
+                <Details>성인 인증 우회 성공: {Account.id}</Details>
+            </action>
+        </Then>
+    </If>
+</macro>
+
+<macro name="PreventSubscriptionRemoval">
+    <action name="LogEvent">
+        <Type>AntiRemoval</Type>
+        <Details>구독 유지 전략 시작: {Account.id}</Details>
+    </action>
+    <action name="Navigate">
+        <Url>{TargetChannelURL}/shorts</Url>
+    </action>
+    <action name="Delay">
+        <Min>5000</Min>
+        <Max>10000</Max>
+    </action>
+    <action name="Click">
+        <Selector>ytd-reel-item-renderer:nth-child({Random(1,5)}) #video-title</Selector>
+    </action>
+    <action name="Delay">
+        <Min>30000</Min>
+        <Max>90000</Max>
+    </action>
+    <If condition="{Random(1,100)} > 70">
+        <Then>
+            <action name="Click">
+                <Selector>#segmented-like-button button</Selector>
+            </action>
+            <action name="Delay">
+                <Min>1000</Min>
+                <Max>2000</Max>
+            </action>
+        </Then>
+    </If>
+</macro>
+
+<macro name="MaintainSameIP">
+    <action name="SetVariable">
+        <Variable>InitialIP</Variable>
+        <Value>{GetCurrentIP()}</Value>
+    </action>
+    <action name="LogEvent">
+        <Type>IPCheck</Type>
+        <Details>초기 IP 설정: {InitialIP}</Details>
+    </action>
+    <loop name="IPCheckLoop" count="10">
+        <action name="SetVariable">
+            <Variable>CurrentIP</Variable>
+            <Value>{GetCurrentIP()}</Value>
+        </action>
+        <If condition="CurrentIP != InitialIP">
+            <Then>
+                <action name="LogEvent">
+                    <Type>IPChanged</Type>
+                    <Details>IP 변경 감지: {InitialIP} → {CurrentIP}</Details>
+                </action>
+                <action name="RestartBrowser"/>
+                <action name="SetVariable">
+                    <Variable>InitialIP</Variable>
+                    <Value>{GetCurrentIP()}</Value>
+                </action>
+                <action name="LogEvent">
+                    <Type>IPRestored</Type>
+                    <Details>IP 복원 완료: {InitialIP}</Details>
+                </action>
+            </Then>
+        </If>
+        <action name="Delay">
+            <Min>3000</Min>
+            <Max>5000</Max>
+        </action>
+    </loop>
+</macro>
+
+<macro name="Gmail_CheckSecurityPrompt">
+    <action name="WaitFor">
+        <Selector>h1, span, div[jscontroller], form</Selector>
+        <Timeout>20000</Timeout>
+    </action>
+    <If condition="document.querySelector('h1')?.innerText.includes('보안 검사') or document.querySelector('span')?.innerText.includes('계정 보호')">
+        <Then>
+            <call macro="Gmail_HandleSecurityCheck"/>
+        </Then>
+    </If>
+    <If condition="document.querySelector('h1')?.innerText.includes('전화번호 추가') or document.querySelector('div')?.innerText.includes('휴대전화 번호 인증')">
+        <Then>
+            <call macro="Gmail_RequestSMSVerification"/>
+        </Then>
+    </If>
+    <If condition="document.querySelector('h1')?.innerText.includes('계정이 일시적으로 사용 중지되었습니다')">
+        <Then>
+            <call macro="Gmail_AppealDisabledAccount"/>
+        </Then>
+    </If>
+</macro>
+
+<macro name="Gmail_RequestSMSVerification">
+    <action name="CallAPI">
+        <URL>https://sms-activate.ru/stubs/handler_api.php?api_key={SMS_API_KEY}&amp;action=getNumber&amp;service=gm</URL>
+        <Method>GET</Method>
+        <Variable>SMSResponse</Variable>
+    </action>
+    <action name="ExtractText">
+        <Text>{SMSResponse}</Text>
+        <Variable>SMSID</Variable>
+        <Regex>ACCESS_NUMBER:(\d+):</Regex>
+    </action>
+    <action name="LogEvent">
+        <Type>SMSRequested</Type>
+        <Details>SMS 인증 요청됨. ID: {SMSID}</Details>
+    </action>
+    <call macro="Gmail_WaitForSMSCode"/>
+</macro>
+
+<macro name="Gmail_WaitForSMSCode">
+    <loop name="PollSMS" count="30">
+        <action name="CallAPI">
+            <URL>https://sms-activate.ru/stubs/handler_api.php?api_key={SMS_API_KEY}&amp;action=getStatus&amp;id={SMSID}</URL>
+            <Method>GET</Method>
+            <Variable>SMSStatus</Variable>
+        </action>
+        <If condition="SMSStatus.includes('STATUS_OK')">
+            <Then>
+                <action name="ExtractText">
+                    <Text>{SMSStatus}</Text>
+                    <Variable>SMSCode</Variable>
+                    <Regex>STATUS_OK:(\d+)</Regex>
+                </action>
+                <action name="Type">
+                    <Selector>input[type='text'], #code</Selector>
+                    <Text>{SMSCode}</Text>
+                </action>
+                <action name="Click">
+                    <Selector>button:contains('확인'), #submit</Selector>
+                </action>
+                <action name="BreakLoop"/>
+            </Then>
+        </If>
+        <action name="Delay">
+            <Min>3000</Min>
+            <Max>4000</Max>
+        </action>
+    </loop>
+</macro>
+
+<macro name="Gmail_AppealDisabledAccount">
+    <action name="Navigate">
+        <Url>https://support.google.com/accounts/contact/disabled?hl=ko</Url>
+    </action>
+    <action name="WaitFor">
+        <Selector>div[jsname='V67Jve']</Selector>
+        <Timeout>10000</Timeout>
+    </action>
+    <action name="Click">
+        <Selector>div[jsname='V67Jve']</Selector>
+    </action>
+    <action name="LogEvent">
+        <Type>AppealSubmitted</Type>
+        <Details>비활성화 계정 항소 완료: {Account.id}</Details>
+    </action>
+    <action name="CreateFile">
+        <Name>disabled_accounts_appealed.txt</Name>
+        <Data>{Account.id}|{Account.pass}|{Account.recovery_email}|{USE_HIPROXY_CURRENT}</Data>
+    </action>
+</macro>
+
+<macro name="Gmail_DisableSecurityFeatures">
+    <action name="Navigate">
+        <Url>https://myaccount.google.com/lesssecureapps</Url>
+    </action>
+    <action name="WaitFor">
+        <Selector>div[jsname='V67Jve']</Selector>
+        <Timeout>10000</Timeout>
+    </action>
+    <action name="Click">
+        <Selector>div[jsname='V67Jve']</Selector>
+    </action>
+    <action name="Navigate">
+        <Url>https://myactivity.google.com/activitycontrols/search</Url>
+    </action>
+    <action name="Delay">
+        <Min>2000</Min>
+        <Max>3000</Max>
+    </action>
+    <action name="Click">
+        <Selector>div[role='checkbox'][aria-checked='true']</Selector>
+    </action>
+    <action name="Navigate">
+        <Url>https://adssettings.google.com/authenticated</Url>
+    </action>
+    <action name="Delay">
+        <Min>2000</Min>
+        <Max>3000</Max>
+    </action>
+    <action name="Click">
+        <Selector>div[role='checkbox'][aria-checked='true']</Selector>
+    </action>
+    <action name="Navigate">
+        <Url>https://myaccount.google.com/permissions</Url>
+    </action>
+    <action name="Delay">
+        <Min>2000</Min>
+        <Max>3000</Max>
+    </action>
+    <action name="Click">
+        <Selector>div[role='checkbox'][aria-checked='true']</Selector>
+    </action>
+</macro>
+
+<macro name="UltraHumanViewSimulation">
+    <action name="MouseMove">
+        <X>{Random(100, 800)}</X>
+        <Y>{Random(200, 600)}</Y>
+        <Duration>500</Duration>
+    </action>
+    <action name="Scroll">
+        <Distance>{Random(100, 500)}</Distance>
+        <Duration>1000</Duration>
+    </action>
+    <If condition="{Random(1,100)} > 70">
+        <Then>
+            <action name="ExecuteJS">
+                <Code>document.querySelector('video').pause()</Code>
+            </action>
+            <action name="Delay">
+                <Min>5</Min>
+                <Max>15</Max>
+            </action>
+            <action name="ExecuteJS">
+                <Code>document.querySelector('video').play()</Code>
+            </action>
+        </Then>
+    </If>
+    <If condition="{Random(1,100)} > 50">
+        <Then>
+            <action name="Click">
+                <Selector>#segmented-like-button button</Selector>
+            </action>
+        </Then>
+    </If>
+    <If condition="{Random(1,100)} > 70">
+        <Then>
+            <action name="Click">
+                <Selector>#comment-button</Selector>
+            </action>
+            <action name="Type">
+                <Selector>#contenteditable-root</Selector>
+                <Text>{RandomLine('./data/comments.txt')}</Text>
+            </action>
+            <action name="Click">
+                <Selector>#submit-button</Selector>
+            </action>
+        </Then>
+    </If>
+    <action name="SetVariable">
+        <Variable>NextVisitTime</Variable>
+        <Value>{Timestamp + 86400}</Value>
+    </action>
+    <action name="LogEvent">
+        <Type>VisitScheduled</Type>
+        <Details>재방문 예약됨: {NextVisitTime}</Details>
+    </action>
+</macro>
+
+<macro name="Report_GenerateFiles">
+    <action name="CreateFolder">
+        <Name>account_checker_reporter</Name>
+    </action>
+    <If condition="LoginSuccess">
+        <Then>
+            <action name="CreateFile">
+                <Name>login_success_gmail_proxy.txt</Name>
+                <Header>id|pass|recovery|recovery_pass|proxy</Header>
+                <Data>{Account.id}|{Account.pass}|{Account.recovery_email}|{Account.recovery_pass}|{CURRENT_PROXY}</Data>
+            </action>
+        </Then>
+    </If>
+    <If condition="BadProxy">
+        <Then>
+            <action name="CreateFile">
+                <Name>bad_proxy.txt</Name>
+                <Header>proxy</Header>
+                <Data>{CURRENT_PROXY}</Data>
+            </action>
+        </Then>
+    </If>
+    <If condition="DisabledAccount">
+        <Then>
+            <action name="CreateFile">
+                <Name>disabled_accounts.txt</Name>
+                <Header>id|pass|recovery|recovery_pass</Header>
+                <Data>{Account.id}|{Account.pass}|{Account.recovery_email}|{Account.recovery_pass}</Data>
+            </action>
+        </Then>
+    </If>
+    <If condition="PhoneVerificationNeeded">
+        <Then>
+            <action name="CreateFile">
+                <Name>phone_verification_needed.txt</Name>
+                <Header>id|pass|recovery|recovery_pass|proxy</Header>
+                <Data>{Account.id}|{Account.pass}|{Account.recovery_email}|{Account.recovery_pass}|{CURRENT_PROXY}</Data>
+            </action>
+        </Then>
+    </If>
+    <If condition="TabletVerificationRequired">
+        <Then>
+            <action name="CreateFile">
+                <Name>tablet_verification_required.txt</Name>
+                <Header>id|pass|recovery|recovery_pass|proxy</Header>
+                <Data>{Account.id}|{Account.pass}|{Account.recovery_email}|{Account.recovery_pass}|{CURRENT_PROXY}</Data>
+            </action>
+        </Then>
+    </If>
+    <If condition="DuplicateProxy">
+        <Then>
+            <action name="CreateFile">
+                <Name>duplicate_proxy.txt</Name>
+                <Header>proxy</Header>
+                <Data>{CURRENT_PROXY}</Data>
+            </action>
+        </Then>
+    </If>
+    <If condition="InvalidEmail">
+        <Then>
+            <action name="CreateFile">
+                <Name>invalid_email.txt</Name>
+                <Header>id|pass|recovery|recovery_pass</Header>
+                <Data>{Account.id}|{Account.pass}|{Account.recovery_email}|{Account.recovery_pass}</Data>
+            </action>
+        </Then>
+    </If>
+</macro>
+
+<macro name="SimulateOldGmailAccount">
+    <action name="SetVariable">
+        <Variable>AccountBirthYear</Variable>
+        <Value>{Random(2000, 2020)}</Value>
+    </action>
+    <action name="SetVariable">
+        <Variable>AccountAge</Variable>
+        <Value>{2025 - AccountBirthYear}</Value>
+    </action>
+    <action name="Navigate">
+        <Url>https://myaccount.google.com/personal-info/birthdate</Url>
+    </action>
+    <action name="WaitFor">
+        <Selector>input[name='birthYear']</Selector>
+        <Timeout>10000</Timeout>
+    </action>
+    <action name="Type">
+        <Selector>input[name='birthYear']</Selector>
+        <Text>{AccountBirthYear}</Text>
+    </action>
+    <action name="Click">
+        <Selector>button:contains('다음')</Selector>
+    </action>
+    <action name="LogEvent">
+        <Type>AccountAge</Type>
+        <Details>계정 연령 조작 완료: {AccountAge}세 ({AccountBirthYear}년생)</Details>
+    </action>
+</macro>
+
+<macro name="AssignGenderToEduEmail">
+    <action name="SetVariable">
+        <Variable>UserGender</Variable>
+        <Value>{RandomItem('남성', '여성')}</Value>
+    </action>
+    <action name="SetVariable">
+        <Variable>GenderAvatarFolder</Variable>
+        <Value>./data/avatars/{UserGender}/</Value>
+    </action>
+    <action name="SetVariable">
+        <Variable>GenderDisplayName</Variable>
+        <Value>{RandomKoreanName({UserGender})}</Value>
+    </action>
+    <action name="Navigate">
+        <Url>https://myaccount.google.com/profile</Url>
+    </action>
+    <action name="WaitFor">
+        <Selector>#profile-name</Selector>
+        <Timeout>10000</Timeout>
+    </action>
+    <action name="Type">
+        <Selector>#profile-name input</Selector>
+        <Text>{GenderDisplayName}</Text>
+    </action>
+    <action name="Click">
+        <Selector>#profile-photo-button</Selector>
+    </action>
+    <action name="Delay">
+        <Min>1000</Min>
+        <Max>2000</Max>
+    </action>
+    <action name="SetVariable">
+        <Variable>SelectedAvatar</Variable>
+        <Value>{RandomLine('{GenderAvatarFolder}*.jpg')}</Value>
+    </action>
+    <action name="UploadFile">
+        <Selector>input[type='file']</Selector>
+        <Path>{SelectedAvatar}</Path>
+    </action>
+    <action name="LogEvent">
+        <Type>GenderProfile</Type>
+        <Details>에듀지메일 → {UserGender} 프로필 적용됨: {GenderDisplayName}</Details>
+    </action>
+</macro>
+
+<macro name="BypassAgeRestriction">
+    <action name="Navigate">
+        <Url>https://www.youtube.com/verify_age?next_url=/</Url>
+    </action>
+    <action name="WaitFor">
+        <Selector>form[method='POST'], #button</Selector>
+        <Timeout>15000</Timeout>
+    </action>
+    <If condition="document.querySelector('text=이 콘텐츠는 18세 이상만 시청할 수 있습니다') or document.querySelector('form[action=\"/verify-age\"]')">
+        <Then>
+            <action name="Select">
+                <Selector>select[name='birth_month']</Selector>
+                <Value>{Random(1,12)}</Value>
+            </action>
+            <action name="Select">
+                <Selector>select[name='birth_day']</Selector>
+                <Value>{Random(1,28)}</Value>
+            </action>
+            <action name="Select">
+                <Selector>select[name='birth_year']</Selector>
+                <Value>{AccountBirthYear}</Value>
+            </action>
+            <action name="Click">
+                <Selector>#submit-button, button[type='submit']</Selector>
+            </action>
+            <action name="Delay">
+                <Min>3000</Min>
+                <Max>5000</Max>
+            </action>
+            <If condition="document.querySelector('text=시청하려면 로그인하세요')">
+                <Then>
+                    <call macro="LoginToGoogle"/>
+                </Then>
+            </If>
+            <action name="LogEvent">
+                <Type>AgeBypass</Type>
+                <Details>성인 인증 우회 성공: {Account.id}</Details>
+            </action>
+        </Then>
+    </If>
+</macro>
+
+<macro name="PreventSubscriptionRemoval">
+    <action name="LogEvent">
+        <Type>AntiRemoval</Type>
+        <Details>구독 유지 전략 시작: {Account.id}</Details>
+    </action>
+    <action name="Navigate">
+        <Url>{TargetChannelURL}/shorts</Url>
+    </action>
+    <action name="Delay">
+        <Min>5000</Min>
+        <Max>10000</Max>
+    </action>
+    <action name="Click">
+        <Selector>ytd-reel-item-renderer:nth-child({Random(1,5)}) #video-title</Selector>
+    </action>
+    <action name="Delay">
+        <Min>30000</Min>
+        <Max>90000</Max>
+    </action>
+    <If condition="{Random(1,100)} > 70">
+        <Then>
+            <action name="Click">
+                <Selector>#segmented-like-button button</Selector>
+            </action>
+            <action name="Delay">
+                <Min>1000</Min>
+                <Max>2000</Max>
+            </action>
+        </Then>
+    </If>
+</macro>
+
+<macro name="MaintainSameIP">
+    <action name="SetVariable">
+        <Variable>InitialIP</Variable>
+        <Value>{GetCurrentIP()}</Value>
+    </action>
+    <action name="LogEvent">
+        <Type>IPCheck</Type>
+        <Details>초기 IP 설정: {InitialIP}</Details>
+    </action>
+    <loop name="IPCheckLoop" count="10">
+        <action name="SetVariable">
+            <Variable>CurrentIP</Variable>
+            <Value>{GetCurrentIP()}</Value>
+        </action>
+        <If condition="CurrentIP != InitialIP">
+            <Then>
+                <action name="LogEvent">
+                    <Type>IPChanged</Type>
+                    <Details>IP 변경 감지: {InitialIP} → {CurrentIP}</Details>
+                </action>
+                <action name="RestartBrowser"/>
+                <action name="SetVariable">
+                    <Variable>InitialIP</Variable>
+                    <Value>{GetCurrentIP()}</Value>
+                </action>
+                <action name="LogEvent">
+                    <Type>IPRestored</Type>
+                    <Details>IP 복원 완료: {InitialIP}</Details>
+                </action>
+            </Then>
+        </If>
+        <action name="Delay">
+            <Min>3000</Min>
+            <Max>5000</Max>
+        </action>
+    </loop>
+</macro>
+
+<macro name="Gmail_CheckSecurityPrompt">
+    <action name="WaitFor">
+        <Selector>h1, span, div[jscontroller], form</Selector>
+        <Timeout>20000</Timeout>
+    </action>
+    <If condition="document.querySelector('h1')?.innerText.includes('보안 검사') or document.querySelector('span')?.innerText.includes('계정 보호')">
+        <Then>
+            <call macro="Gmail_HandleSecurityCheck"/>
+        </Then>
+    </If>
+    <If condition="document.querySelector('h1')?.innerText.includes('전화번호 추가') or document.querySelector('div')?.innerText.includes('휴대전화 번호 인증')">
+        <Then>
+            <call macro="Gmail_RequestSMSVerification"/>
+        </Then>
+    </If>
+    <If condition="document.querySelector('h1')?.innerText.includes('계정이 일시적으로 사용 중지되었습니다')">
+        <Then>
+            <call macro="Gmail_AppealDisabledAccount"/>
+        </Then>
+    </If>
+</macro>
+
+<macro name="Gmail_RequestSMSVerification">
+    <action name="CallAPI">
+        <URL>https://sms-activate.ru/stubs/handler_api.php?api_key={SMS_API_KEY}&amp;action=getNumber&amp;service=gm</URL>
+        <Method>GET</Method>
+        <Variable>SMSResponse</Variable>
+    </action>
+    <action name="ExtractText">
+        <Text>{SMSResponse}</Text>
+        <Variable>SMSID</Variable>
+        <Regex>ACCESS_NUMBER:(\d+):</Regex>
+    </action>
+    <action name="LogEvent">
+        <Type>SMSRequested</Type>
+        <Details>SMS 인증 요청됨. ID: {SMSID}</Details>
+    </action>
+    <call macro="Gmail_WaitForSMSCode"/>
+</macro>
+
+<macro name="Gmail_WaitForSMSCode">
+    <loop name="PollSMS" count="30">
+        <action name="CallAPI">
+            <URL>https://sms-activate.ru/stubs/handler_api.php?api_key={SMS_API_KEY}&amp;action=getStatus&amp;id={SMSID}</URL>
+            <Method>GET</Method>
+            <Variable>SMSStatus</Variable>
+        </action>
+        <If condition="SMSStatus.includes('STATUS_OK')">
+            <Then>
+                <action name="ExtractText">
+                    <Text>{SMSStatus}</Text>
+                    <Variable>SMSCode</Variable>
+                    <Regex>STATUS_OK:(\d+)</Regex>
+                </action>
+                <action name="Type">
+                    <Selector>input[type='text'], #code</Selector>
+                    <Text>{SMSCode}</Text>
+                </action>
+                <action name="Click">
+                    <Selector>button:contains('확인'), #submit</Selector>
+                </action>
+                <action name="BreakLoop"/>
+            </Then>
+        </If>
+        <action name="Delay">
+            <Min>3000</Min>
+            <Max>4000</Max>
+        </action>
+    </loop>
+</macro>
+
+<macro name="Gmail_AppealDisabledAccount">
+    <action name="Navigate">
+        <Url>https://support.google.com/accounts/contact/disabled?hl=ko</Url>
+    </action>
+    <action name="WaitFor">
+        <Selector>div[jsname='V67Jve']</Selector>
+        <Timeout>10000</Timeout>
+    </action>
+    <action name="Click">
+        <Selector>div[jsname='V67Jve']</Selector>
+    </action>
+    <action name="LogEvent">
+        <Type>AppealSubmitted</Type>
+        <Details>비활성화 계정 항소 완료: {Account.id}</Details>
+    </action>
+    <action name="CreateFile">
+        <Name>disabled_accounts_appealed.txt</Name>
+        <Data>{Account.id}|{Account.pass}|{Account.recovery_email}|{USE_HIPROXY_CURRENT}</Data>
+    </action>
+</macro>
+
+<macro name="Gmail_DisableSecurityFeatures">
+    <action name="Navigate">
+        <Url>https://myaccount.google.com/lesssecureapps</Url>
+    </action>
+    <action name="WaitFor">
+        <Selector>div[jsname='V67Jve']</Selector>
+        <Timeout>10000</Timeout>
+    </action>
+    <action name="Click">
+        <Selector>div[jsname='V67Jve']</Selector>
+    </action>
+    <action name="Navigate">
+        <Url>https://myactivity.google.com/activitycontrols/search</Url>
+    </action>
+    <action name="Delay">
+        <Min>2000</Min>
+        <Max>3000</Max>
+    </action>
+    <action name="Click">
+        <Selector>div[role='checkbox'][aria-checked='true']</Selector>
+    </action>
+    <action name="Navigate">
+        <Url>https://adssettings.google.com/authenticated</Url>
+    </action>
+    <action name="Delay">
+        <Min>2000</Min>
+        <Max>3000</Max>
+    </action>
+    <action name="Click">
+        <Selector>div[role='checkbox'][aria-checked='true']</Selector>
+    </action>
+    <action name="Navigate">
+        <Url>https://myaccount.google.com/permissions</Url>
+    </action>
+    <action name="Delay">
+        <Min>2000</Min>
+        <Max>3000</Max>
+    </action>
+    <action name="Click">
+        <Selector>div[role='checkbox'][aria-checked='true']</Selector>
+    </action>
+</macro>
+
+<macro name="UltraHumanViewSimulation">
+    <action name="MouseMove">
+        <X>{Random(100, 800)}</X>
+        <Y>{Random(200, 600)}</Y>
+        <Duration>500</Duration>
+    </action>
+    <action name="Scroll">
+        <Distance>{Random(100, 500)}</Distance>
+        <Duration>1000</Duration>
+    </action>
+    <If condition="{Random(1,100)} > 70">
+        <Then>
+            <action name="ExecuteJS">
+                <Code>document.querySelector('video').pause()</Code>
+            </action>
+            <action name="Delay">
+                <Min>5</Min>
+                <Max>15</Max>
+            </action>
+            <action name="ExecuteJS">
+                <Code>document.querySelector('video').play()</Code>
+            </action>
+        </Then>
+    </If>
+    <If condition="{Random(1,100)} > 50">
+        <Then>
+            <action name="Click">
+                <Selector>#segmented-like-button button</Selector>
+            </action>
+        </Then>
+    </If>
+    <If condition="{Random(1,100)} > 70">
+        <Then>
+            <action name="Click">
+                <Selector>#comment-button</Selector>
+            </action>
+            <action name="Type">
+                <Selector>#contenteditable-root</Selector>
+                <Text>{RandomLine('./data/comments.txt')}</Text>
+            </action>
+            <action name="Click">
+                <Selector>#submit-button</Selector>
+            </action>
+        </Then>
+    </If>
+    <action name="SetVariable">
+        <Variable>NextVisitTime</Variable>
+        <Value>{Timestamp + 86400}</Value>
+    </action>
+    <action name="LogEvent">
+        <Type>VisitScheduled</Type>
+        <Details>재방문 예약됨: {NextVisitTime}</Details>
+    </action>
+</macro>
+
+<macro name="Report_GenerateFiles">
+    <action name="CreateFolder">
+        <Name>account_checker_reporter</Name>
+    </action>
+    <If condition="LoginSuccess">
+        <Then>
+            <action name="CreateFile">
+                <Name>login_success_gmail_proxy.txt</Name>
+                <Header>id|pass|recovery|recovery_pass|proxy</Header>
+                <Data>{Account.id}|{Account.pass}|{Account.recovery_email}|{Account.recovery_pass}|{CURRENT_PROXY}</Data>
+            </action>
+        </Then>
+    </If>
+    <If condition="BadProxy">
+        <Then>
+            <action name="CreateFile">
+                <Name>bad_proxy.txt</Name>
+                <Header>proxy</Header>
+                <Data>{CURRENT_PROXY}</Data>
+            </action>
+        </Then>
+    </If>
+    <If condition="DisabledAccount">
+        <Then>
+            <action name="CreateFile">
+                <Name>disabled_accounts.txt</Name>
+                <Header>id|pass|recovery|recovery_pass</Header>
+                <Data>{Account.id}|{Account.pass}|{Account.recovery_email}|{Account.recovery_pass}</Data>
+            </action>
+        </Then>
+    </If>
+    <If condition="PhoneVerificationNeeded">
+        <Then>
+            <action name="CreateFile">
+                <Name>phone_verification_needed.txt</Name>
+                <Header>id|pass|recovery|recovery_pass|proxy</Header>
+                <Data>{Account.id}|{Account.pass}|{Account.recovery_email}|{Account.recovery_pass}|{CURRENT_PROXY}</Data>
+            </action>
+        </Then>
+    </If>
+    <If condition="TabletVerificationRequired">
+        <Then>
+            <action name="CreateFile">
+                <Name>tablet_verification_required.txt</Name>
+                <Header>id|pass|recovery|recovery_pass|proxy</Header>
+                <Data>{Account.id}|{Account.pass}|{Account.recovery_email}|{Account.recovery_pass}|{CURRENT_PROXY}</Data>
+            </action>
+        </Then>
+    </If>
+    <If condition="DuplicateProxy">
+        <Then>
+            <action name="CreateFile">
+                <Name>duplicate_proxy.txt</Name>
+                <Header>proxy</Header>
+                <Data>{CURRENT_PROXY}</Data>
+            </action>
+        </Then>
+    </If>
+    <If condition="InvalidEmail">
+        <Then>
+            <action name="CreateFile">
+                <Name>invalid_email.txt</Name>
+                <Header>id|pass|recovery|recovery_pass</Header>
+                <Data>{Account.id}|{Account.pass}|{Account.recovery_email}|{Account.recovery_pass}</Data>
+            </action>
+        </Then>
+    </If>
+</macro>
+<macro name="SimulateOldGmailAccount">
+    <action name="SetVariable">
+        <Variable>AccountBirthYear</Variable>
+        <Value>{Random(2000, 2020)}</Value>
+    </action>
+    <action name="SetVariable">
+        <Variable>AccountAge</Variable>
+        <Value>{2025 - AccountBirthYear}</Value>
+    </action>
+    <action name="Navigate">
+        <Url>https://myaccount.google.com/personal-info/birthdate</Url>
+    </action>
+    <action name="WaitFor">
+        <Selector>input[name='birthYear']</Selector>
+        <Timeout>10000</Timeout>
+    </action>
+    <action name="Type">
+        <Selector>input[name='birthYear']</Selector>
+        <Text>{AccountBirthYear}</Text>
+    </action>
+    <action name="Click">
+        <Selector>button:contains('다음')</Selector>
+    </action>
+    <action name="LogEvent">
+        <Type>AccountAge</Type>
+        <Details>계정 연령 조작 완료: {AccountAge}세 ({AccountBirthYear}년생)</Details>
+    </action>
+</macro>
+
+<macro name="AssignGenderToEduEmail">
+    <action name="SetVariable">
+        <Variable>UserGender</Variable>
+        <Value>{RandomItem('남성', '여성')}</Value>
+    </action>
+    <action name="SetVariable">
+        <Variable>GenderAvatarFolder</Variable>
+        <Value>./data/avatars/{UserGender}/</Value>
+    </action>
+    <action name="SetVariable">
+        <Variable>GenderDisplayName</Variable>
+        <Value>{RandomKoreanName({UserGender})}</Value>
+    </action>
+    <action name="Navigate">
+        <Url>https://myaccount.google.com/profile</Url>
+    </action>
+    <action name="WaitFor">
+        <Selector>#profile-name</Selector>
+        <Timeout>10000</Timeout>
+    </action>
+    <action name="Type">
+        <Selector>#profile-name input</Selector>
+        <Text>{GenderDisplayName}</Text>
+    </action>
+    <action name="Click">
+        <Selector>#profile-photo-button</Selector>
+    </action>
+    <action name="Delay">
+        <Min>1000</Min>
+        <Max>2000</Max>
+    </action>
+    <action name="SetVariable">
+        <Variable>SelectedAvatar</Variable>
+        <Value>{RandomLine('{GenderAvatarFolder}*.jpg')}</Value>
+    </action>
+    <action name="UploadFile">
+        <Selector>input[type='file']</Selector>
+        <Path>{SelectedAvatar}</Path>
+    </action>
+    <action name="LogEvent">
+        <Type>GenderProfile</Type>
+        <Details>에듀지메일 → {UserGender} 프로필 적용됨: {GenderDisplayName}</Details>
+    </action>
+</macro>
+
+<macro name="BypassAgeRestriction">
+    <action name="Navigate">
+        <Url>https://www.youtube.com/verify_age?next_url=/</Url>
+    </action>
+    <action name="WaitFor">
+        <Selector>form[method='POST'], #button</Selector>
+        <Timeout>15000</Timeout>
+    </action>
+    <If condition="document.querySelector('text=이 콘텐츠는 18세 이상만 시청할 수 있습니다') or document.querySelector('form[action=\"/verify-age\"]')">
+        <Then>
+            <action name="Select">
+                <Selector>select[name='birth_month']</Selector>
+                <Value>{Random(1,12)}</Value>
+            </action>
+            <action name="Select">
+                <Selector>select[name='birth_day']</Selector>
+                <Value>{Random(1,28)}</Value>
+            </action>
+            <action name="Select">
+                <Selector>select[name='birth_year']</Selector>
+                <Value>{AccountBirthYear}</Value>
+            </action>
+            <action name="Click">
+                <Selector>#submit-button, button[type='submit']</Selector>
+            </action>
+            <action name="Delay">
+                <Min>3000</Min>
+                <Max>5000</Max>
+            </action>
+            <If condition="document.querySelector('text=시청하려면 로그인하세요')">
+                <Then>
+                    <call macro="LoginToGoogle"/>
+                </Then>
+            </If>
+            <action name="LogEvent">
+                <Type>AgeBypass</Type>
+                <Details>성인 인증 우회 성공: {Account.id}</Details>
+            </action>
+        </Then>
+    </If>
+</macro>
+
+<macro name="PreventSubscriptionRemoval">
+    <action name="LogEvent">
+        <Type>AntiRemoval</Type>
+        <Details>구독 유지 전략 시작: {Account.id}</Details>
+    </action>
+    <action name="Navigate">
+        <Url>{TargetChannelURL}/shorts</Url>
+    </action>
+    <action name="Delay">
+        <Min>5000</Min>
+        <Max>10000</Max>
+    </action>
+    <action name="Click">
+        <Selector>ytd-reel-item-renderer:nth-child({Random(1,5)}) #video-title</Selector>
+    </action>
+    <action name="Delay">
+        <Min>30000</Min>
+        <Max>90000</Max>
+    </action>
+    <If condition="{Random(1,100)} > 70">
+        <Then>
+            <action name="Click">
+                <Selector>#segmented-like-button button</Selector>
+            </action>
+            <action name="Delay">
+                <Min>1000</Min>
+                <Max>2000</Max>
+            </action>
+        </Then>
+    </If>
+</macro>
+
+<macro name="MaintainSameIP">
+    <action name="SetVariable">
+        <Variable>InitialIP</Variable>
+        <Value>{GetCurrentIP()}</Value>
+    </action>
+    <action name="LogEvent">
+        <Type>IPCheck</Type>
+        <Details>초기 IP 설정: {InitialIP}</Details>
+    </action>
+    <loop name="IPCheckLoop" count="10">
+        <action name="SetVariable">
+            <Variable>CurrentIP</Variable>
+            <Value>{GetCurrentIP()}</Value>
+        </action>
+        <If condition="CurrentIP != InitialIP">
+            <Then>
+                <action name="LogEvent">
+                    <Type>IPChanged</Type>
+                    <Details>IP 변경 감지: {InitialIP} → {CurrentIP}</Details>
+                </action>
+                <action name="RestartBrowser"/>
+                <action name="SetVariable">
+                    <Variable>InitialIP</Variable>
+                    <Value>{GetCurrentIP()}</Value>
+                </action>
+                <action name="LogEvent">
+                    <Type>IPRestored</Type>
+                    <Details>IP 복원 완료: {InitialIP}</Details>
+                </action>
+            </Then>
+        </If>
+        <action name="Delay">
+            <Min>3000</Min>
+            <Max>5000</Max>
+        </action>
+    </loop>
+</macro>
+
+<macro name="Gmail_CheckSecurityPrompt">
+    <action name="WaitFor">
+        <Selector>h1, span, div[jscontroller], form</Selector>
+        <Timeout>20000</Timeout>
+    </action>
+    <If condition="document.querySelector('h1')?.innerText.includes('보안 검사') or document.querySelector('span')?.innerText.includes('계정 보호')">
+        <Then>
+            <call macro="Gmail_HandleSecurityCheck"/>
+        </Then>
+    </If>
+    <If condition="document.querySelector('h1')?.innerText.includes('전화번호 추가') or document.querySelector('div')?.innerText.includes('휴대전화 번호 인증')">
+        <Then>
+            <call macro="Gmail_RequestSMSVerification"/>
+        </Then>
+    </If>
+    <If condition="document.querySelector('h1')?.innerText.includes('계정이 일시적으로 사용 중지되었습니다')">
+        <Then>
+            <call macro="Gmail_AppealDisabledAccount"/>
+        </Then>
+    </If>
+</macro>
+
+<macro name="Gmail_RequestSMSVerification">
+    <action name="CallAPI">
+        <URL>https://sms-activate.ru/stubs/handler_api.php?api_key={SMS_API_KEY}&amp;action=getNumber&amp;service=gm</URL>
+        <Method>GET</Method>
+        <Variable>SMSResponse</Variable>
+    </action>
+    <action name="ExtractText">
+        <Text>{SMSResponse}</Text>
+        <Variable>SMSID</Variable>
+        <Regex>ACCESS_NUMBER:(\d+):</Regex>
+    </action>
+    <action name="LogEvent">
+        <Type>SMSRequested</Type>
+        <Details>SMS 인증 요청됨. ID: {SMSID}</Details>
+    </action>
+    <call macro="Gmail_WaitForSMSCode"/>
+</macro>
+
+<macro name="Gmail_WaitForSMSCode">
+    <loop name="PollSMS" count="30">
+        <action name="CallAPI">
+            <URL>https://sms-activate.ru/stubs/handler_api.php?api_key={SMS_API_KEY}&amp;action=getStatus&amp;id={SMSID}</URL>
+            <Method>GET</Method>
+            <Variable>SMSStatus</Variable>
+        </action>
+        <If condition="SMSStatus.includes('STATUS_OK')">
+            <Then>
+                <action name="ExtractText">
+                    <Text>{SMSStatus}</Text>
+                    <Variable>SMSCode</Variable>
+                    <Regex>STATUS_OK:(\d+)</Regex>
+                </action>
+                <action name="Type">
+                    <Selector>input[type='text'], #code</Selector>
+                    <Text>{SMSCode}</Text>
+                </action>
+                <action name="Click">
+                    <Selector>button:contains('확인'), #submit</Selector>
+                </action>
+                <action name="BreakLoop"/>
+            </Then>
+        </If>
+        <action name="Delay">
+            <Min>3000</Min>
+            <Max>4000</Max>
+        </action>
+    </loop>
+</macro>
+
+<macro name="Gmail_AppealDisabledAccount">
+    <action name="Navigate">
+        <Url>https://support.google.com/accounts/contact/disabled?hl=ko</Url>
+    </action>
+    <action name="WaitFor">
+        <Selector>div[jsname='V67Jve']</Selector>
+        <Timeout>10000</Timeout>
+    </action>
+    <action name="Click">
+        <Selector>div[jsname='V67Jve']</Selector>
+    </action>
+    <action name="LogEvent">
+        <Type>AppealSubmitted</Type>
+        <Details>비활성화 계정 항소 완료: {Account.id}</Details>
+    </action>
+    <action name="CreateFile">
+        <Name>disabled_accounts_appealed.txt</Name>
+        <Data>{Account.id}|{Account.pass}|{Account.recovery_email}|{USE_HIPROXY_CURRENT}</Data>
+    </action>
+</macro>
+
+<macro name="Gmail_DisableSecurityFeatures">
+    <action name="Navigate">
+        <Url>https://myaccount.google.com/lesssecureapps</Url>
+    </action>
+    <action name="WaitFor">
+        <Selector>div[jsname='V67Jve']</Selector>
+        <Timeout>10000</Timeout>
+    </action>
+    <action name="Click">
+        <Selector>div[jsname='V67Jve']</Selector>
+    </action>
+    <action name="Navigate">
+        <Url>https://myactivity.google.com/activitycontrols/search</Url>
+    </action>
+    <action name="Delay">
+        <Min>2000</Min>
+        <Max>3000</Max>
+    </action>
+    <action name="Click">
+        <Selector>div[role='checkbox'][aria-checked='true']</Selector>
+    </action>
+    <action name="Navigate">
+        <Url>https://adssettings.google.com/authenticated</Url>
+    </action>
+    <action name="Delay">
+        <Min>2000</Min>
+        <Max>3000</Max>
+    </action>
+    <action name="Click">
+        <Selector>div[role='checkbox'][aria-checked='true']</Selector>
+    </action>
+    <action name="Navigate">
+        <Url>https://myaccount.google.com/permissions</Url>
+    </action>
+    <action name="Delay">
+        <Min>2000</Min>
+        <Max>3000</Max>
+    </action>
+    <action name="Click">
+        <Selector>div[role='checkbox'][aria-checked='true']</Selector>
+    </action>
+</macro>
+
+<macro name="UltraHumanViewSimulation">
+    <action name="MouseMove">
+        <X>{Random(100, 800)}</X>
+        <Y>{Random(200, 600)}</Y>
+        <Duration>500</Duration>
+    </action>
+    <action name="Scroll">
+        <Distance>{Random(100, 500)}</Distance>
+        <Duration>1000</Duration>
+    </action>
+    <If condition="{Random(1,100)} > 70">
+        <Then>
+            <action name="ExecuteJS">
+                <Code>document.querySelector('video').pause()</Code>
+            </action>
+            <action name="Delay">
+                <Min>5</Min>
+                <Max>15</Max>
+            </action>
+            <action name="ExecuteJS">
+                <Code>document.querySelector('video').play()</Code>
+            </action>
+        </Then>
+    </If>
+    <If condition="{Random(1,100)} > 50">
+        <Then>
+            <action name="Click">
+                <Selector>#segmented-like-button button</Selector>
+            </action>
+        </Then>
+    </If>
+    <If condition="{Random(1,100)} > 70">
+        <Then>
+            <action name="Click">
+                <Selector>#comment-button</Selector>
+            </action>
+            <action name="Type">
+                <Selector>#contenteditable-root</Selector>
+                <Text>{RandomLine('./data/comments.txt')}</Text>
+            </action>
+            <action name="Click">
+                <Selector>#submit-button</Selector>
+            </action>
+        </Then>
+    </If>
+    <action name="SetVariable">
+        <Variable>NextVisitTime</Variable>
+        <Value>{Timestamp + 86400}</Value>
+    </action>
+    <action name="LogEvent">
+        <Type>VisitScheduled</Type>
+        <Details>재방문 예약됨: {NextVisitTime}</Details>
+    </action>
+</macro>
+
+<macro name="Report_GenerateFiles">
+    <action name="CreateFolder">
+        <Name>account_checker_reporter</Name>
+    </action>
+    <If condition="LoginSuccess">
+        <Then>
+            <action name="CreateFile">
+                <Name>login_success_gmail_proxy.txt</Name>
+                <Header>id|pass|recovery|recovery_pass|proxy</Header>
+                <Data>{Account.id}|{Account.pass}|{Account.recovery_email}|{Account.recovery_pass}|{CURRENT_PROXY}</Data>
+            </action>
+        </Then>
+    </If>
+    <If condition="BadProxy">
+        <Then>
+            <action name="CreateFile">
+                <Name>bad_proxy.txt</Name>
+                <Header>proxy</Header>
+                <Data>{CURRENT_PROXY}</Data>
+            </action>
+        </Then>
+    </If>
+    <If condition="DisabledAccount">
+        <Then>
+            <action name="CreateFile">
+                <Name>disabled_accounts.txt</Name>
+                <Header>id|pass|recovery|recovery_pass</Header>
+                <Data>{Account.id}|{Account.pass}|{Account.recovery_email}|{Account.recovery_pass}</Data>
+            </action>
+        </Then>
+    </If>
+    <If condition="PhoneVerificationNeeded">
+        <Then>
+            <action name="CreateFile">
+                <Name>phone_verification_needed.txt</Name>
+                <Header>id|pass|recovery|recovery_pass|proxy</Header>
+                <Data>{Account.id}|{Account.pass}|{Account.recovery_email}|{Account.recovery_pass}|{CURRENT_PROXY}</Data>
+            </action>
+        </Then>
+    </If>
+    <If condition="TabletVerificationRequired">
+        <Then>
+            <action name="CreateFile">
+                <Name>tablet_verification_required.txt</Name>
+                <Header>id|pass|recovery|recovery_pass|proxy</Header>
+                <Data>{Account.id}|{Account.pass}|{Account.recovery_email}|{Account.recovery_pass}|{CURRENT_PROXY}</Data>
+            </action>
+        </Then>
+    </If>
+    <If condition="DuplicateProxy">
+        <Then>
+            <action name="CreateFile">
+                <Name>duplicate_proxy.txt</Name>
+                <Header>proxy</Header>
+                <Data>{CURRENT_PROXY}</Data>
+            </action>
+        </Then>
+    </If>
+    <If condition="InvalidEmail">
+        <Then>
+            <action name="CreateFile">
+                <Name>invalid_email.txt</Name>
+                <Header>id|pass|recovery|recovery_pass</Header>
+                <Data>{Account.id}|{Account.pass}|{Account.recovery_email}|{Account.recovery_pass}</Data>
+            </action>
+        </Then>
+    </If>
+</macro>
+<macro name="UltraHumanViewSimulation">
+    <action name="MouseMove">
+        <X>{Random(100, 800)}</X>
+        <Y>{Random(200, 600)}</Y>
+        <Duration>500</Duration>
+    </action>
+    <action name="Scroll">
+        <Distance>{Random(100, 500)}</Distance>
+        <Duration>1000</Duration>
+    </action>
+    <If condition="{Random(1,100)} > 70">
+        <Then>
+            <action name="ExecuteJS">
+                <Code>document.querySelector('video').pause()</Code>
+            </action>
+            <action name="Delay">
+                <Min>5</Min>
+                <Max>15</Max>
+            </action>
+            <action name="ExecuteJS">
+                <Code>document.querySelector('video').play()</Code>
+            </action>
+        </Then>
+    </If>
+    <If condition="{Random(1,100)} > 50">
+        <Then>
+            <action name="Click">
+                <Selector>#segmented-like-button button</Selector>
+            </action>
+        </Then>
+    </If>
+    <If condition="{Random(1,100)} > 70">
+        <Then>
+            <action name="Click">
+                <Selector>#comment-button</Selector>
+            </action>
+            <action name="Type">
+                <Selector>#contenteditable-root</Selector>
+                <Text>{RandomLine('./data/comments.txt')}</Text>
+            </action>
+            <action name="Click">
+                <Selector>#submit-button</Selector>
+            </action>
+        </Then>
+    </If>
+    <action name="SetVariable">
+        <Variable>NextVisitTime</Variable>
+        <Value>{Timestamp + 86400}</Value>
+    </action>
+    <action name="LogEvent">
+        <Type>VisitScheduled</Type>
+        <Details>재방문 예약됨: {NextVisitTime}</Details>
+    </action>
+</macro>
+<macro name="PreventSubscriptionRemoval">
+    <action name="LogEvent">
+        <Type>AntiRemoval</Type>
+        <Details>구독 유지 전략 시작: {Account.id}</Details>
+    </action>
+    <action name="Navigate">
+        <Url>{TargetChannelURL}/shorts</Url>
+    </action>
+    <action name="Delay">
+        <Min>5000</Min>
+        <Max>10000</Max>
+    </action>
+    <action name="Click">
+        <Selector>ytd-reel-item-renderer:nth-child({Random(1,5)}) #video-title</Selector>
+    </action>
+    <action name="Delay">
+        <Min>30000</Min>
+        <Max>90000</Max>
+    </action>
+    <If condition="{Random(1,100)} > 70">
+        <Then>
+            <action name="Click">
+                <Selector>#segmented-like-button button</Selector>
+            </action>
+            <action name="Delay">
+                <Min>1000</Min>
+                <Max>2000</Max>
+            </action>
+        </Then>
+    </If>
+</macro>
+<macro name="BypassAgeRestriction">
+    <action name="Navigate">
+        <Url>https://www.youtube.com/verify_age?next_url=/</Url>
+    </action>
+    <action name="WaitFor">
+        <Selector>form[method='POST'], #button</Selector>
+        <Timeout>15000</Timeout>
+    </action>
+    <If condition="document.querySelector('text=이 콘텐츠는 18세 이상만 시청할 수 있습니다') or document.querySelector('form[action=\"/verify-age\"]')">
+        <Then>
+            <action name="Select">
+                <Selector>select[name='birth_month']</Selector>
+                <Value>{Random(1,12)}</Value>
+            </action>
+            <action name="Select">
+                <Selector>select[name='birth_day']</Selector>
+                <Value>{Random(1,28)}</Value>
+            </action>
+            <action name="Select">
+                <Selector>select[name='birth_year']</Selector>
+                <Value>{AccountBirthYear}</Value>
+            </action>
+            <action name="Click">
+                <Selector>#submit-button, button[type='submit']</Selector>
+            </action>
+            <action name="Delay">
+                <Min>3000</Min>
+                <Max>5000</Max>
+            </action>
+            <If condition="document.querySelector('text=시청하려면 로그인하세요')">
+                <Then>
+                    <call macro="LoginToGoogle"/>
+                </Then>
+            </If>
+            <action name="LogEvent">
+                <Type>AgeBypass</Type>
+                <Details>성인 인증 우회 성공: {Account.id}</Details>
+            </action>
+        </Then>
+    </If>
+</macro>
+<macro name="AssignGenderToEduEmail">
+    <action name="SetVariable">
+        <Variable>UserGender</Variable>
+        <Value>{RandomItem('남성', '여성')}</Value>
+    </action>
+    <action name="SetVariable">
+        <Variable>GenderAvatarFolder</Variable>
+        <Value>./data/avatars/{UserGender}/</Value>
+    </action>
+    <action name="SetVariable">
+        <Variable>GenderDisplayName</Variable>
+        <Value>{RandomKoreanName({UserGender})}</Value>
+    </action>
+    <action name="Navigate">
+        <Url>https://myaccount.google.com/profile</Url>
+    </action>
+    <action name="WaitFor">
+        <Selector>#profile-name</Selector>
+        <Timeout>10000</Timeout>
+    </action>
+    <action name="Type">
+        <Selector>#profile-name input</Selector>
+        <Text>{GenderDisplayName}</Text>
+    </action>
+    <action name="Click">
+        <Selector>#profile-photo-button</Selector>
+    </action>
+    <action name="Delay">
+        <Min>1000</Min>
+        <Max>2000</Max>
+    </action>
+    <action name="SetVariable">
+        <Variable>SelectedAvatar</Variable>
+        <Value>{RandomLine('{GenderAvatarFolder}*.jpg')}</Value>
+    </action>
+    <action name="UploadFile">
+        <Selector>input[type='file']</Selector>
+        <Path>{SelectedAvatar}</Path>
+    </action>
+    <action name="LogEvent">
+        <Type>GenderProfile</Type>
+        <Details>에듀지메일 → {UserGender} 프로필 적용됨: {GenderDisplayName}</Details>
+    </action>
+</macro>
+<macro name="SimulateOldGmailAccount">
+    <action name="SetVariable">
+        <Variable>AccountBirthYear</Variable>
+        <Value>{Random(2000, 2020)}</Value>
+    </action>
+    <action name="SetVariable">
+        <Variable>AccountAge</Variable>
+        <Value>{2025 - AccountBirthYear}</Value>
+    </action>
+    <action name="Navigate">
+        <Url>https://myaccount.google.com/personal-info/birthdate</Url>
+    </action>
+    <action name="WaitFor">
+        <Selector>input[name='birthYear']</Selector>
+        <Timeout>10000</Timeout>
+    </action>
+    <action name="Type">
+        <Selector>input[name='birthYear']</Selector>
+        <Text>{AccountBirthYear}</Text>
+    </action>
+    <action name="Click">
+        <Selector>button:contains('다음')</Selector>
+    </action>
+    <action name="LogEvent">
+        <Type>AccountAge</Type>
+        <Details>계정 연령 조작 완료: {AccountAge}세 ({AccountBirthYear}년생)</Details>
+    </action>
+</macro>
+<macro name="Gmail_DisableSecurityFeatures">
+    <action name="Navigate">
+        <Url>https://myaccount.google.com/lesssecureapps</Url>
+    </action>
+    <action name="WaitFor">
+        <Selector>div[jsname='V67Jve']</Selector>
+        <Timeout>10000</Timeout>
+    </action>
+    <action name="Click">
+        <Selector>div[jsname='V67Jve']</Selector>
+    </action>
+    
+    <action name="Navigate">
+        <Url>https://myactivity.google.com/activitycontrols/search</Url>
+    </action>
+    <action name="Delay">
+        <Min>2000</Min>
+        <Max>3000</Max>
+    </action>
+    <action name="Click">
+        <Selector>div[role='checkbox'][aria-checked='true']</Selector>
+    </action>
+    
+    <action name="Navigate">
+        <Url>https://adssettings.google.com/authenticated</Url>
+    </action>
+    <action name="Delay">
+        <Min>2000</Min>
+        <Max>3000</Max>
+    </action>
+    <action name="Click">
+        <Selector>div[role='checkbox'][aria-checked='true']</Selector>
+    </action>
+    
+    <action name="Navigate">
+        <Url>https://myaccount.google.com/permissions</Url>
+    </action>
+    <action name="Delay">
+        <Min>2000</Min>
+        <Max>3000</Max>
+    </action>
+    <action name="Click">
+        <Selector>div[role='checkbox'][aria-checked='true']</Selector>
+    </action>
+</macro>
+<macro name="Gmail_AppealDisabledAccount">
+    <action name="Navigate">
+        <Url>https://support.google.com/accounts/contact/disabled?hl=ko</Url>
+    </action>
+    <action name="WaitFor">
+        <Selector>div[jsname='V67Jve']</Selector>
+        <Timeout>10000</Timeout>
+    </action>
+    <action name="Click">
+        <Selector>div[jsname='V67Jve']</Selector>
+    </action>
+    <action name="LogEvent">
+        <Type>AppealSubmitted</Type>
+        <Details>비활성화 계정 항소 완료: {Account.id}</Details>
+    </action>
+    <action name="CreateFile">
+        <Name>disabled_accounts_appealed.txt</Name>
+        <Data>{Account.id}|{Account.pass}|{Account.recovery_email}|{USE_HIPROXY_CURRENT}</Data>
+    </action>
+</macro>
+<macro name="Gmail_WaitForSMSCode">
+    <loop name="PollSMS" count="30">
+        <action name="CallAPI">
+            <URL>https://sms-activate.ru/stubs/handler_api.php?api_key={SMS_API_KEY}&amp;action=getStatus&amp;id={SMSID}</URL>
+            <Method>GET</Method>
+            <Variable>SMSStatus</Variable>
+        </action>
+        <If condition="SMSStatus.includes('STATUS_OK')">
+            <Then>
+                <action name="ExtractText">
+                    <Text>{SMSStatus}</Text>
+                    <Variable>SMSCode</Variable>
+                    <Regex>STATUS_OK:(\d+)</Regex>
+                </action>
+                <action name="Type">
+                    <Selector>input[type='text'], #code</Selector>
+                    <Text>{SMSCode}</Text>
+                </action>
+                <action name="Click">
+                    <Selector>button:contains('확인'), #submit</Selector>
+                </action>
+                <action name="BreakLoop"/>
+            </Then>
+        </If>
+        <action name="Delay">
+            <Min>3000</Min>
+            <Max>4000</Max>
+        </action>
+    </loop>
+</macro>
+<macro name="Gmail_RequestSMSVerification">
+    <action name="CallAPI">
+        <URL>https://sms-activate.ru/stubs/handler_api.php?api_key={SMS_API_KEY}&amp;action=getNumber&amp;service=gm</URL>
+        <Method>GET</Method>
+        <Variable>SMSResponse</Variable>
+    </action>
+    <action name="ExtractText">
+        <Text>{SMSResponse}</Text>
+        <Variable>SMSID</Variable>
+        <Regex>ACCESS_NUMBER:(\d+):</Regex>
+    </action>
+    <action name="LogEvent">
+        <Type>SMSRequested</Type>
+        <Details>SMS 인증 요청됨. ID: {SMSID}</Details>
+    </action>
+    <call macro="Gmail_WaitForSMSCode"/>
+</macro>
+<macro name="Gmail_CheckSecurityPrompt">
+    <action name="WaitFor">
+        <Selector>h1, span, div[jscontroller], form</Selector>
+        <Timeout>20000</Timeout>
+    </action>
+    <If condition="document.querySelector('h1')?.innerText.includes('보안 검사') or document.querySelector('span')?.innerText.includes('계정 보호')">
+        <Then>
+            <call macro="Gmail_HandleSecurityCheck"/>
+        </Then>
+    </If>
+    <If condition="document.querySelector('h1')?.innerText.includes('전화번호 추가') or document.querySelector('div')?.innerText.includes('휴대전화 번호 인증')">
+        <Then>
+            <call macro="Gmail_RequestSMSVerification"/>
+        </Then>
+    </If>
+    <If condition="document.querySelector('h1')?.innerText.includes('계정이 일시적으로 사용 중지되었습니다')">
+        <Then>
+            <call macro="Gmail_AppealDisabledAccount"/>
+        </Then>
+    </If>
+</macro>

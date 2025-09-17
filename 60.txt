@@ -1,0 +1,80 @@
+<root>
+
+  <!-- [1] CSV 경로 -->
+  <action name="SetVar" variable="csv_path" value="profiles.csv" />
+
+  <!-- [2] CSV 불러오기 -->
+  <action name="ReadCSV">
+    <param name="Path">%csv_path%</param>
+    <param name="Table">profile_table</param>
+  </action>
+
+  <!-- [3] GUI에서 프로파일 선택 -->
+  <action name="ShowTable">
+    <param name="Table">profile_table</param>
+    <param name="Message">사용할 브라우저 프로파일을 선택하세요</param>
+    <param name="SelectedRow">selected_row</param>
+  </action>
+
+  <!-- [4] 선택된 행 정보 불러오기 -->
+  <action name="GetTableCell">
+    <param name="Table">profile_table</param>
+    <param name="Row">%selected_row%</param>
+    <param name="Column">folder</param>
+    <param name="Result">profile_folder</param>
+  </action>
+  <action name="GetTableCell">
+    <param name="Table">profile_table</param>
+    <param name="Row">%selected_row%</param>
+    <param name="Column">useragent</param>
+    <param name="Result">user_agent</param>
+  </action>
+  <action name="GetTableCell">
+    <param name="Table">profile_table</param>
+    <param name="Row">%selected_row%</param>
+    <param name="Column">proxy</param>
+    <param name="Result">proxy_raw</param>
+  </action>
+
+  <!-- [5] 경로 구성 -->
+  <action name="SetVar" variable="cookie_file" value="profiles/%profile_folder%/cookies.txt" />
+  <action name="SetVar" variable="folder_path" value="profiles/%profile_folder%" />
+
+  <!-- [6] 폴더 없으면 생성 -->
+  <action name="CreateDir" if="!FileExists('%folder_path%')">
+    <param name="Path">%folder_path%</param>
+  </action>
+
+  <!-- [7] UserAgent 적용 -->
+  <action name="SetUserAgent">
+    <param name="UserAgent">%user_agent%</param>
+  </action>
+
+  <!-- [8] Proxy 적용 -->
+  <action name="ParseLine" input="%proxy_raw%" output="proxy_parts" delimiter=":" />
+  <action name="SetProxy">
+    <param name="Type">HTTP</param>
+    <param name="Host">%proxy_parts[0]%</param>
+    <param name="Port">%proxy_parts[1]%</param>
+  </action>
+
+  <!-- [9] 쿠키 로드 (있을 경우) -->
+  <action name="If" condition="FileExists('%cookie_file%')">
+    <then>
+      <action name="LoadCookies">
+        <param name="Path">%cookie_file%</param>
+      </action>
+    </then>
+  </action>
+
+  <!-- [10] 자동화 시작 페이지 열기 -->
+  <action name="Navigate">
+    <param name="URL">https://example.com</param>
+  </action>
+
+  <!-- [11] 쿠키 저장 -->
+  <action name="SaveCookies">
+    <param name="Path">%cookie_file%</param>
+  </action>
+
+</root>

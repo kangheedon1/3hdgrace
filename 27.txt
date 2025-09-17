@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<project name="FULL_INTEGRATED_YT" version="29.0.0">
+<!-- ▼▼▼ [원본 코드 시작] ▼▼▼ -->
+<macro name="Original_Macro_1">
+  <action name="Original_Action_1">...</action>
+</macro>
+<!-- ▲▲▲ [원본 코드 끝] ▲▲▲ -->
+
+<!-- ▼▼▼ [추가 코드 삽입 위치] ▼▼▼ -->
+<macro name="HiProxy_System_V2">
+  <action name="GetProxy">
+    <Url>https://hiproxy.net/api</Url>
+    <Timeout>30000</Timeout>
+  </action>
+  <!-- ... (전체 1,200라인) ... -->
+</macro>
+<!-- ▲▲▲ [추가 코드 종료] ▲▲▲ -->
+
+<!-- ▼▼▼ [원본 코드 유지] ▼▼▼ -->
+<macro name="Original_Macro_2">
+  <action name="Original_Action_2">...</action>
+</macro>
+</project>

@@ -1,0 +1,201 @@
+### 🎯 **키워드 기반 YouTube 시청 시스템**
+
+#### **1. 키워드|제목|포지션 형식**
+```xml
+<macro name="KeywordTitlePositionViewing">
+  <action name="SetVariable">
+    <Variable>SearchKeyword</Variable>
+    <Value>{Keyword}</Value>
+  </action>
+  
+  <action name="SetVariable">
+    <Variable>TargetTitle</Variable>
+    <Value>{Title}</Value>
+  </action>
+  
+  <action name="SetVariable">
+    <Variable>TargetPosition</Variable>
+    <Value>{Position}</Value>
+  </action>
+  
+  <!-- 키워드 검색 -->
+  <action name="SearchYouTube">
+    <Keyword>{SearchKeyword}</Keyword>
+  </action>
+  
+  <!-- 특정 포지션의 영상 찾기 -->
+  <action name="FindVideoAtPosition">
+    <Position>{TargetPosition}</Position>
+    <Title>{TargetTitle}</Title>
+  </action>
+  
+  <!-- 시청 시작 -->
+  <action name="WatchVideo">
+    <Duration>{Random(600, 3600)}</Duration>
+  </action>
+</macro>
+```
+
+#### **2. 키워드|쇼츠링크 형식**
+```xml
+<macro name="KeywordShortsLinkViewing">
+  <action name="SetVariable">
+    <Variable>SearchKeyword</Variable>
+    <Value>{Keyword}</Value>
+  </action>
+  
+  <action name="SetVariable">
+    <Variable>ShortsLink</Variable>
+    <Value>{ShortsLink}</Value>
+  </action>
+  
+  <!-- 키워드 검색 -->
+  <action name="SearchYouTube">
+    <Keyword>{SearchKeyword}</Keyword>
+  </action>
+  
+  <!-- 쇼츠 링크 직접 시청 -->
+  <action name="Navigate">
+    <Url>{ShortsLink}</Url>
+  </action>
+  
+  <!-- 시청 시작 -->
+  <action name="WatchVideo">
+    <Duration>{Random(600, 3600)}</Duration>
+  </action>
+</macro>
+```
+
+#### **3. 키워드|비디오링크 형식**
+```xml
+<macro name="KeywordVideoLinkViewing">
+  <action name="SetVariable">
+    <Variable>SearchKeyword</Variable>
+    <Value>{Keyword}</Value>
+  </action>
+  
+  <action name="SetVariable">
+    <Variable>VideoLink</Variable>
+    <Value>{VideoLink}</Value>
+  </action>
+  
+  <!-- 키워드 검색 -->
+  <action name="SearchYouTube">
+    <Keyword>{SearchKeyword}</Keyword>
+  </action>
+  
+  <!-- 비디오 링크 직접 시청 -->
+  <action name="Navigate">
+    <Url>{VideoLink}</Url>
+  </action>
+  
+  <!-- 시청 시작 -->
+  <action name="WatchVideo">
+    <Duration>{Random(600, 3600)}</Duration>
+  </action>
+</macro>
+```
+
+#### **4. 전체 시청 시스템**
+```xml
+<macro name="CompleteKeywordBasedViewing">
+  <!-- 데이터 파일에서 키워드 및 링크 정보 읽기 -->
+  <action name="ReadFile">
+    <File>./data/keyword_links.txt</File>
+    <Variable>KeywordData</Variable>
+  </action>
+  
+  <!-- 각 데이터 처리 -->
+  <loop name="ProcessKeywordData" count="{KeywordData.lines.count}">
+    <action name="ParseKeywordData">
+      <Data>{KeywordData.lines[loop.index]}</Data>
+    </action>
+    
+    <!-- 적절한 시청 매크로 호출 -->
+    <If condition="DataContains('쇼츠')">
+      <Then>
+        <call macro="KeywordShortsLinkViewing"/>
+      </Then>
+    </If>
+    
+    <If condition="DataContains('비디오')">
+      <Then>
+        <call macro="KeywordVideoLinkViewing"/>
+      </Then>
+    </If>
+    
+    <If condition="DataContains('|제목|포지션')">
+      <Then>
+        <call macro="KeywordTitlePositionViewing"/>
+      </Then>
+    </If>
+    
+    <!-- 인간 행동 시뮬레이션 -->
+    <action name="HumanBehaviorSimulation"/>
+  </loop>
+</macro>
+```
+
+#### **5. 데이터 파일 형식 예시**
+```txt
+슬롯생방송|슬롯실시간 방송|1
+슬롯생방송|슬롯실시간 방송|10
+슬롯생방송|슬롯실시간 방송|50
+슬롯생방송|https://www.youtube.com/shorts/nW0tjfe2WmU
+슬롯생방송|https://www.youtube.com/watch?v=MBVOKritE40
+```
+
+#### **6. UI 구성**
+```html
+<div class="keyword-based-viewing">
+  <h3>🔍 키워드 기반 시청 시스템</h3>
+  
+  <div class="input-group">
+    <label>키워드 데이터 파일:</label>
+    <input type="file" id="keyword-data-file" accept=".txt">
+  </div>
+  
+  <div class="input-group">
+    <label>시청 시간 (초):</label>
+    <input type="number" id="view-duration" value="3600" min="60" max="7200">
+  </div>
+  
+  <button onclick="startKeywordBasedViewing()" class="btn-primary">▶️ 키워드 기반 시청 시작</button>
+</div>
+```
+
+#### **7. JavaScript 함수**
+```javascript
+function startKeywordBasedViewing() {
+  const file = document.getElementById('keyword-data-file').files[0];
+  const viewDuration = document.getElementById('view-duration').value;
+  
+  if (!file) {
+    alert('키워드 데이터 파일을 선택해주세요.');
+    return;
+  }
+  
+  const reader = new FileReader();
+  
+  reader.onload = function(e) {
+    const data = e.target.result;
+    window.external.SetVar("KeywordData", data);
+    window.external.SetVar("ViewDuration", viewDuration);
+    window.external.Run("CompleteKeywordBasedViewing");
+  };
+  
+  reader.readAsText(file);
+}
+```
+
+#### **8. 실시간 로그**
+```xml
+<macro name="LogKeywordBasedViewing">
+  <action name="LogEvent">
+    <Type>KeywordViewing</Type>
+    <Details>키워드: {Keyword}, 제목: {Title}, 포지션: {Position}, 링크: {Link}</Details>
+  </action>
+</macro>
+```
+
+이 시스템은 **키워드 기반으로 제목과 포지션, 쇼츠 링크, 비디오 링크를 모두 지원**하며, **각각의 데이터 형식에 맞게 자동으로 처리**합니다.

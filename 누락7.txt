@@ -1,0 +1,306 @@
+# **추가해야 할 코드 및 디자인 코드**
+
+## **1. 추가 코드 목록**
+
+### **1.1 예약 실행 기능 추가**
+```xml
+<!-- 예약 실행 기능 -->
+<macro name="ScheduledExecution">
+  <action name="SetVariable"><Variable>CurrentTime</Variable><Value>{Time.Now}</Value></action>
+  <action name="If"><Condition>{CurrentTime.Hour} >= 9 AND {CurrentTime.Hour} <= 17</Condition>
+    <Then><action name="CallMacro"><Name>MainExecution</Name></Then>
+    <Else><action name="Wait"><Seconds>3600</Seconds></action></Else>
+  </action>
+</macro>
+```
+
+### **1.2 전문 프록시 서비스 통합**
+```xml
+<!-- 전문 프록시 서비스 통합 -->
+<macro name="IntegratePremiumProxyServices">
+  <action name="SetVariable"><Variable>ProxyService</Variable><Value>BrightData</Value></action>
+  <action name="CallAPI"><URL>https://api.brightdata.com/proxy/list</URL><Headers>{"Authorization": "Bearer {BrightDataAPIKey}"}</Headers></action>
+  <action name="ParseJSON"><Variable>ProxyList</Variable><Data>{APIResponse}</Data></action>
+  <action name="SetVariable"><Variable>AvailableProxies</Variable><Value>{ProxyList.proxies.Count}</Value></action>
+</macro>
+```
+
+### **1.3 시청 유지율 계산 강화**
+```xml
+<!-- 시청 유지율 계산 강화 -->
+<macro name="EnhancedViewRateCalculation">
+  <action name="SetVariable"><Variable>VideoWatchTime</Variable><Value>{Random(120, 300)}</Value></action>
+  <action name="SetVariable"><Variable>ViewRate</Variable><Value>{VideoWatchTime / 300 * 100}</Value></action>
+  <action name="If"><Condition>{ViewRate} > 80</Condition>
+    <Then><action name="LogEvent"><Type>HighViewRate</Type><Details>시청 유지율: {ViewRate}%</Details></Then>
+  </action>
+</macro>
+```
+
+### **1.4 프록시 속도 측정 및 DB 저장**
+```xml
+<!-- 프록시 속도 측정 및 DB 저장 -->
+<macro name="ProxySpeedMeasurement">
+  <action name="MeasureProxySpeed"><Proxy>{CurrentProxy}</Proxy><Variable>Speed</Variable></action>
+  <action name="SetVariable"><Variable>LogData</Variable><Value>{"proxy":"{CurrentProxy}","speed":"{Speed}","timestamp":"{Time.Now}"}</Value></action>
+  <action name="CallMacro"><Name>SaveToDatabase</Name><Parameters><Data>{LogData}</Data><DBType>MongoDB</DBType></Parameters></action>
+</macro>
+```
+
+### **1.5 구독 유지 전략**
+```xml
+<!-- 구독 유지 전략 -->
+<macro name="PreventSubscriptionRemoval">
+  <action name="Navigate"><URL>https://www.youtube.com/channel/.../subscriptions</URL></action>
+  <action name="Wait"><Time>5</Time></action>
+  <action name="CheckElementExists"><Selector>.unsubscribe-button</Selector><Result>IsSubbed</Result></action>
+  <if condition="{IsSubbed} == true">
+    <then><action name="Click"><Selector>.subscribe-button</Selector></action></then>
+  </if>
+</macro>
+```
+
+### **1.6 인간 행동 시뮬레이션 강화**
+```xml
+<!-- 인간 행동 시뮬레이션 강화 -->
+<macro name="UltraHumanViewSimulation">
+  <action name="RandomScroll"/>
+  <action name="Wait"><Time>{Random(1000, 5000)}</Time></action>
+  <action name="MouseMove"><X>{Random(100, 800)}</X><Y>{Random(200, 600)}</Y></action>
+  <action name="Wait"><Time>{Random(200, 800)}</Time></action>
+  <action name="Click"><Selector>video</Selector></action>
+</macro>
+```
+
+### **1.7 보안 검사 자동 처리**
+```xml
+<!-- 보안 검사 자동 처리 -->
+<macro name="Gmail_CheckSecurityPrompt">
+  <action name="WaitForElement"><Selector>#security-prompt</Selector><Timeout>10</Timeout><Result>SecurityPrompt</Result></action>
+  <if condition="{SecurityPrompt} == true">
+    <then><action name="Click"><Selector>#no-thanks</Selector></action></then>
+  </if>
+</macro>
+```
+
+### **1.8 계정 정지 항소 자동화**
+```xml
+<!-- 계정 정지 항소 자동화 -->
+<macro name="AppealAccountSuspension">
+  <action name="Navigate"><URL>https://support.google.com/youtube/contact/disabled_account</URL></action>
+  <action name="SetVariable"><Variable>AppealReason</Variable><Value>계정 차단 오류로 인해 항소합니다.</Value></action>
+  <action name="SetVariable"><Variable>AppealText</Variable><Value>{AppealReason}</Value></action>
+  <action name="SetInput"><Selector>textarea#description</Selector><Value>{AppealText}</Value></action>
+  <action name="Click"><Selector>button#submit</Selector></action>
+</macro>
+```
+
+### **1.9 자동 구독**
+```xml
+<!-- 자동 구독 -->
+<macro name="AutoSubscribeChannel">
+  <action name="WaitForElement"><Selector>#subscribe-button</Selector><Timeout>10</Timeout></action>
+  <action name="Click"><Selector>#subscribe-button</Selector></action>
+</macro>
+```
+
+### **1.10 자동 공유**
+```xml
+<!-- 자동 공유 -->
+<macro name="AutoShareVideo">
+  <action name="WaitForElement"><Selector>#share-button</Selector><Timeout>10</Timeout></action>
+  <action name="Click"><Selector>#share-button</Selector></action>
+  <action name="Wait"><Time>2</Time></action>
+  <action name="Click"><Selector>#copy-link-option</Selector></action>
+</macro>
+```
+
+### **1.11 시청자 상태 모니터링**
+```xml
+<!-- 시청자 상태 모니터링 -->
+<macro name="MonitorViewerHealth">
+  <action name="SetVariable"><Variable>ViewerStatus</Variable><Value>{GetViewerStatus()}</Value></action>
+  <action name="If"><Condition>{ViewerStatus} == 'offline'</Condition>
+    <Then><action name="LogEvent"><Type>ViewerOffline</Type><Details>시청자 오프라인: {CurrentViewer}</Details></Then>
+  </action>
+</macro>
+```
+
+### **1.12 오류 복구 및 재시도**
+```xml
+<!-- 오류 복구 및 재시도 -->
+<macro name="ErrorRecovery">
+  <action name="CheckAccountStatus"/>
+  <if condition="LoginFailed">
+    <then>
+      <action name="ChangeToKoreanISP"/>
+      <action name="RandomizeKoreanFingerprint"/>
+      <action name="RestartBrowser"/>
+      <action name="LogEvent"><Type>LoginRecovery</Type><Details>로그인 실패 - 복구 실행됨</Details></action>
+    </then>
+  </if>
+  <action name="MonitorProxyQuality"/>
+  <if condition="ProxyIsSlow">
+    <then>
+      <action name="RotateProxyAutomatically"/>
+      <action name="LogEvent"><Type>ProxyRotation</Type><Details>Proxy changed due to slow response</Details></action>
+    </then>
+  </if>
+</macro>
+```
+
+### **1.13 SMS API 건강 상태 확인**
+```xml
+<!-- SMS API 건강 상태 확인 -->
+<macro name="SMSApiHealthCheck">
+  <action name="CallAPI"><URL>https://api.sms-activate.org/stubs/handler_api.php?action=getBalance&api_key={SMSAPIKey}</URL></action>
+  <action name="ParseJSON"><Variable>BalanceData</Variable><Data>{APIResponse}</Data></action>
+  <action name="SetVariable"><Variable>AvailableCredits</Variable><Value>{BalanceData.balance}</Value></action>
+</macro>
+```
+
+### **1.14 실행 모드 선택**
+```xml
+<!-- 실행 모드 선택 -->
+<macro name="SetupExecutionMode">
+  <action name="CreatePopup"><Title>실행 설정</Title><Message>DB 저장 방식 및 실행 전략을 선택하세요</Message></action>
+  <action name="AddChoice"><Option>MongoDB</Option></action>
+  <action name="AddChoice"><Option>SQLite</Option></action>
+  <action name="AddChoice"><Option>Multilogin</Option></action>
+  <action name="AddChoice"><Option>GoLogin</Option></action>
+  <action name="ShowPopup"/>
+  <action name="GetUserChoice"><Variable>SelectedDB</Variable></action>
+  <action name="LogEvent"><Type>UI</Type><Details>선택된 DB/모드: {SelectedDB}</Details></action>
+</macro>
+```
+
+## **2. 디자인 코드**
+
+### **2.1 UI 버튼 디자인**
+```xml
+<!-- UI 버튼 디자인 -->
+<ui>
+  <tab name="🟢 고급 시청자 관리">
+    <button label="🟢 고정 시청자 500명 유지" 
+            variable="FIXED_VIEWERS_500" 
+            default="true" 
+            style="background:#4CAF50;color:white;padding:12px;border-radius:8px;font-weight:bold;width:100%;margin-bottom:8px"/>
+    
+    <button label="🟣 Shorts 시청 최적화" 
+            variable="SHORTS_OPTIMIZE" 
+            default="true" 
+            style="background:#9C27B0;color:white;padding:12px;border-radius:8px;font-weight:bold;width:100%;margin-bottom:8px"/>
+    
+    <button label="❤️ 댓글/좋아요/구독 자동화" 
+            variable="AUTO_ENGAGE" 
+            default="true" 
+            style="background:#E91E63;color:white;padding:12px;border-radius:8px;font-weight:bold;width:100%;margin-bottom:8px"/>
+    
+    <button label="🔁 조회수 반복 입장/이탈" 
+            variable="LOOP_VIEW" 
+            default="true" 
+            style="background:#FF9800;color:white;padding:12px;border-radius:8px;font-weight:bold;width:100%;margin-bottom:8px"/>
+  </tab>
+  
+  <tab name="📱 프록시 관리">
+    <button label="📡 IMEI + 회전 프록시 설정" 
+            variable="IMEI_PROXY" 
+            default="true" 
+            style="background:#3F51B5;color:white;padding:12px;border-radius:8px;font-weight:bold;width:100%;margin-bottom:8px"/>
+    
+    <button label="📶 고정 프록시 및 Google 계정 없이" 
+            variable="FIXED_PROXY_NO_ACCOUNT" 
+            default="true" 
+            style="background:#2196F3;color:white;padding:12px;border-radius:8px;font-weight:bold;width:100%;margin-bottom:8px"/>
+    
+    <button label="📱 모바일프록시 자동 전환" 
+            variable="MOBILE_PROXY_SWITCH" 
+            default="true" 
+            style="background:#4CAF50;color:white;padding:12px;border-radius:8px;font-weight:bold;width:100%;margin-bottom:8px"/>
+    
+    <button label="🔄 회전 프록시 관리" 
+            variable="ROTATE_PROXY_MANAGE" 
+            default="true" 
+            style="background:#FF5722;color:white;padding:12px;border-radius:8px;font-weight:bold;width:100%;margin-bottom:8px"/>
+  </tab>
+  
+  <tab name="🔒 보안 및 안전">
+    <button label="🔒 블랙리스트 회피" 
+            variable="BLACKLIST_AVOID" 
+            default="true" 
+            style="background:#607D8B;color:white;padding:12px;border-radius:8px;font-weight:bold;width:100%;margin-bottom:8px"/>
+    
+    <button label="🛡️ 탐지 방지 모드" 
+            variable="DETECTION_PREVENTION" 
+            default="true" 
+            style="background:#9C27B0;color:white;padding:12px;border-radius:8px;font-weight:bold;width:100%;margin-bottom:8px"/>
+    
+    <button label="🔍 보안 상태 모니터링" 
+            variable="SECURITY_MONITORING" 
+            default="true" 
+            style="background:#FF9800;color:white;padding:12px;border-radius:8px;font-weight:bold;width:100%;margin-bottom:8px"/>
+    
+    <button label="⚠️ 예외 처리 설정" 
+            variable="EXCEPTION_HANDLING" 
+            default="true" 
+            style="background:#E91E63;color:white;padding:12px;border-radius:8px;font-weight:bold;width:100%;margin-bottom:8px"/>
+  </tab>
+</ui>
+```
+
+### **2.2 상태 표시줄 디자인**
+```xml
+<!-- 상태 표시줄 디자인 -->
+<status_bar>
+  <status_item name="CURRENT_VIEWERS" 
+               label="현재 시청자" 
+               value="0" 
+               style="background:#4CAF50;color:white;padding:5px;border-radius:3px"/>
+  
+  <status_item name="ACTIVE_ACCOUNTS" 
+               label="활성 계정" 
+               value="${accounts.Count()}" 
+               style="background:#2196F3;color:white;padding:5px;border-radius:3px"/>
+  
+  <status_item name="GOOD_PROXIES" 
+               label="정상 프록시" 
+               value="${proxies.Count()}" 
+               style="background:#FF9800;color:white;padding:5px;border-radius:3px"/>
+  
+  <status_item name="SYSTEM_STATUS" 
+               label="시스템 상태" 
+               value="정상" 
+               style="background:#9E9E9E;color:white;padding:5px;border-radius:3px"/>
+</status_bar>
+```
+
+### **2.3 실행 버튼 디자인**
+```xml
+<!-- 실행 버튼 디자인 -->
+<button label="▶️ 모든 기능 시작" 
+        onclick="start" 
+        style="background:#D32F2F;color:white;padding:15px;border-radius:8px;font-weight:bold;font-size:18px;width:100%;position:fixed;bottom:20px;left:50%;transform:translateX(-50%);max-width:500px;box-shadow:0 4px 8px rgba(0,0,0,0.2);z-index:9999"/>
+```
+
+### **2.4 전체 UI 디자인**
+```xml
+<!-- 전체 UI 디자인 -->
+<project name="HDGRACE_YOUTUBE_BOOSTER_EXTENDED" version="29.0.0">
+  <ui>
+    <!-- 모든 탭과 버튼 디자인 -->
+    <!-- 위에서 정의한 모든 UI 요소 -->
+  </ui>
+  
+  <macros>
+    <!-- 모든 매크로 코드 -->
+    <!-- 위에서 정의한 모든 매크로 -->
+  </macros>
+  
+  <error_handling>
+    <!-- 에러 핸들링 코드 -->
+    <!-- 위에서 정의한 에러 핸들링 -->
+  </error_handling>
+</project>
+```
+
+이 코드들은 기존 시스템에 추가되어야 하는 핵심 기능들과 그에 따른 디자인 요소들을 포함하고 있습니다. 모든 기능은 BAS 29.0.0 호환성을 유지하며, 실행 가능한 XML 형식으로 구성되어 있습니다.

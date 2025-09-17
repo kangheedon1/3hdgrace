@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project>
+  <settings>
+    <MaxThreads>500</MaxThreads>
+    <ParallelExecution>true</ParallelExecution>
+    <ThreadDelay>50</ThreadDelay>
+    <ViewerHealthCheckInterval>60</ViewerHealthCheckInterval>
+  </settings>
+
+  <!-- 📌 실행 모드 선택 UI -->
+  <macro name="SetupExecutionOptions">
+    <action name="CreatePopup">
+      <Title>실행 옵션 선택</Title>
+      <Message>DB 저장 방식, 브라우저 프릴딩 및 전략을 선택하세요</Message>
+    </action>
+    <action name="AddChoice"><Option>MongoDB</Option></action>
+    <action name="AddChoice"><Option>SQLite</Option></action>
+    <action name="AddChoice"><Option>Multilogin 프로필</Option></action>
+    <action name="AddChoice"><Option>GoLogin 프로필</Option></action>
+    <action name="ShowPopup"/>
+    <action name="GetUserChoice"><Variable>SelectedMode</Variable></action>
+    <action name="LogEvent"><Type>Mode</Type><Details>선택된 모드: {SelectedMode}</Details></action>
+  </macro>
+
+  <!-- 🔐 Bablosoft / ProxyGeo Fingerprint API 호출 -->
+  <macro name="FetchFingerprint">
+    <action name="HTTPRequest">
+      <Method>GET</Method>
+      <URL>https://fp.bablosoft.com/api/v1/fingerprint?token=J6tgC3yKrA67k6wr4SpeqWxLlRqgyZ8N0AhkmCmV9jAPC5hxuo1jt9TfFDsWWhJI</URL>
+      <ResponseVariable>FP1</ResponseVariable>
+    </action>
+    <action name="HTTPRequest">
+      <Method>GET</Method>
+      <URL>https://proxygeo.com/api/browser-fingerprint?apikey=ff893e3d-5f3e-43d9-8ac4-b12890fcb72f</URL>
+      <ResponseVariable>FP2</ResponseVariable>
+    </action>
+    <action name="ParseJSON"><JSON>{FP1}</JSON><Key>fingerprint</Key><Variable>Data1</Variable></action>
+    <action name="ParseJSON"><JSON>{FP2}</JSON><Key>fingerprint</Key><Variable>Data2</Variable></action>
+    <action name="Merge"><Base>{Data1}</Base><Overlay>{Data2}</Overlay><Variable>FinalFingerprint</Variable></action>
+    <action name="ApplyFingerprint"><Profile>{FinalFingerprint}</Profile></action>
+    <action name="LogEvent"><Type>Fingerprint</Type><Details>Fingerprint 적용 완료</Details></action>
+  </macro>
+
+  <!-- 🧬 브라우저 프로파일 초기화 -->
+  <macro name="StartBrowserSession">
+    <if condition="{SelectedMode} == 'Multilogin 프로필'">
+      <then><action name="StartMultiloginProfile"><ProfileId>auto_{ThreadIndex}</ProfileId></action></then>
+    </if>
+    <if condition="{SelectedMode} == 'GoLogin 프로필'">
+      <then><action name="StartGoLoginProfile"><ProfileId>auto_{ThreadIndex}</ProfileId></action></then>
+    </if>
+  </macro>
+
+  <!-- 🎯 URL 집중/분산 전략 -->
+  <macro name="URLStrategy">
+    <parameter name="URL"/>
+    <if condition="{URL}.contains('priority')">
+      <then>
+        <action name="SetVariable"><Variable>WatchDuration</Variable><Value>{Random(3600,5400)}</Value></action>
+        <action name="LogEvent"><Type>Strategy</Type><Details>집중 시청: {URL}</Details></action>
+      </then>
+      <else>
+        <action name="SetVariable"><Variable>WatchDuration</Variable><Value>{Random(600,1800)}</Value></action>
+        <action name="LogEvent"><Type>Strategy</Type><Details>분산 시청: {URL}</Details></action>
+      </else>
+    </if>
+  </macro>
+
+  <!-- 🧰 CIDR 기반 프록시 필터링 -->
+  <macro name="CIDRFilter">
+    <action name="ReadFile"><File>./rules/cidr_rules.txt</File><Variable>CIDRList</Variable></action>
+    <action name="ExtractIP"><Proxy>{Account.proxy}</Proxy><Variable>ProxyIP</Variable></action>
+    <action name="CheckCIDR"><IP>{ProxyIP}</IP><CIDRs>{CIDRList}</CIDRs><Result>Allowed</Result></action>
+    <if condition="{Allowed} == false">
+      <then>
+        <action name="LogEvent"><Type>CIDR</Type><Details>필터 제외됨: {ProxyIP}</Details></action>
+        <action name="Exit"/>
+      </then>
+    </if>
+  </macro>
+
+  <!-- 🗃️ DB 저장 -->
+  <macro name="SaveActivity">
+    <parameter name="RecordJson"/>
+    <if condition="{SelectedMode} == 'MongoDB'">
+      <then>
+        <action name="MongoInsert">
+          <Connection>mongodb://localhost:27017</Connection>
+          <Database>bas_logs</Database>
+          <Collection>activities</Collection>
+          <Document>{RecordJson}</Document>
+        </action>
+      </then>
+    </if>
+    <if condition="{SelectedMode} == 'SQLite'">
+      <then>
+        <action name="SQLiteInsert">
+          <File>./data/log.db</File>
+          <Table>activity_logs</Table>
+          <Data>{RecordJson}</Data>
+        </action>
+      </then>
+    </if>
+  </macro>
+
+  <!-- 🔄 전체 시청 루프 -->
+  <macro name="RunViewSessions">
+    <action name="CallMacro"><Name>SetupExecutionOptions</Name></action>
+    <action name="ReadFile"><File>./data/target_urls.txt</File><Variable>TargetURLs</Variable></action>
+
+    <loop name="Sessions" count="500">
+      <action name="SetVariable"><Variable>TargetURL</Variable><Value>{TargetURLs[{ThreadIndex} % TargetURLs.length]}</Value></action>
+      <action name="CallMacro"><Name>URLStrategy</Name><Parameters><URL>{TargetURL}</URL></Parameters></action>
+      <action name="CallMacro"><Name>FetchFingerprint</Name></action>
+      <action name="CallMacro"><Name>StartBrowserSession</Name></action>
+      <action name="OpenURL"><URL>{TargetURL}</URL></action>
+      <action name="Delay"><Seconds>{WatchDuration}</Seconds></action>
+      <action name="CloseBrowser"/>
+
+      <action name="SetVariable"><Variable>LogRecord</Variable>
+        <Value>{"url":"{TargetURL}","duration":"{WatchDuration}","fingerprint_used":"yes","timestamp":"{Timestamp}"}</Value>
+      </action>
+      <action name="CallMacro"><Name>SaveActivity</Name><Parameters><RecordJson>{LogRecord}</RecordJson></Parameters></action>
+    </loop>
+  </macro>
+
+  <macro name="Main">
+    <action name="CallMacro"><Name>RunViewSessions</Name></action>
+  </macro>
+</project>

@@ -1,0 +1,282 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="hdgrace-youtube-booster-complete-production-v29" version="29.00">
+
+  <!-- SETTINGS -->
+  <settings>
+    <!-- 실행/병렬 -->
+    <MaxThreads>24</MaxThreads>
+    <ThreadDelay>100</ThreadDelay>
+    <ParallelExecution>true</ParallelExecution>
+    <ExponentialBackoff>true</ExponentialBackoff>
+    <MaxRetries>5</MaxRetries>
+    <InitialDelay>200</InitialDelay>
+
+    <!-- 경로/입출력 -->
+    <InputFolder>./input/</InputFolder>
+    <OutputFolder>./output/</OutputFolder>
+    <LogFolder>./logs/</LogFolder>
+    <ConfigFile>./config/prod.json</ConfigFile>
+    <SecretsFile>./config/secrets.json</SecretsFile>
+    <BackupFolder>./backup/</BackupFolder>
+    <TempFolder>./temp/</TempFolder>
+    <DataFolder>./data/</DataFolder>
+
+    <!-- YouTube 특화 설정 -->
+    <FixedViewers>500</FixedViewers>
+    <LiveStreamDuration>86400000</LiveStreamDuration>
+    <ViewCountCycle>300000</ViewCountCycle>
+    <MaxConcurrentBrowsers>500</MaxConcurrentBrowsers>
+    <KeywordRankingTarget>1</KeywordRankingTarget>
+    <ShortsViewTarget>100000</ShortsViewTarget>
+
+    <!-- 프록시 설정 -->
+    <ProxyRotationInterval>600000</ProxyRotationInterval>
+    <ProxyQualityThreshold>90</ProxyQualityThreshold>
+    <MaxProxyRetries>3</MaxProxyRetries>
+    <ProxyChainEnabled>true</ProxyChainEnabled>
+
+    <!-- 보안 설정 -->
+    <AntiDetectionMode>true</AntiDetectionMode>
+    <FingerprintRandomization>true</FingerprintRandomization>
+    <UserAgentRotation>true</UserAgentRotation>
+    <TimezoneRandomization>true</TimezoneRandomization>
+
+    <!-- 정책 -->
+    <RemoveExactDuplicateLines>true</RemoveExactDuplicateLines>
+    <SkipTestModules>true</SkipTestModules>
+    <EnableAuditLog>true</EnableAuditLog>
+    <LogLevel>INFO</LogLevel>
+    <MaxFileSize>31457280</MaxFileSize>
+    <Environment>PRODUCTION</Environment>
+  </settings>
+
+  <!-- UI (이모지/디자인) -->
+  <ui>
+    <label id="title" text="🎥 HDGRACE YouTube Booster - 완전 통합 실전 배포용 (BAS 29.00)" style="font-size:28px; color:#FF0000; text-align:center; margin:20px 0 30px 0; font-weight:bold; background:linear-gradient(45deg, #FF0000, #FF6B6B); padding:25px; border-radius:15px; box-shadow:0 8px 16px rgba(255,0,0,0.5);"/>
+    <language>ko</language>
+
+    <!-- 🟢 1. 라이브 스트리밍 관리 (12개) -->
+    <group id="liveStreamingGroup" title="🟢 라이브 스트리밍 관리 (12개 기능)" style="margin:20px 0; padding:20px; border:3px solid #00FF00; border-radius:10px; background:#0D1B0D;">
+      <button id="btn01" text="🔴 고정 시청자 500명 유지" action="MaintainFixedViewers" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #FF0000, #FF4444); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn02" text="🔄 조회수 반복 입장/이탈" action="RepeatViewCycle" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #FF6B00, #FF8E53); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn03" text="📺 라이브 방송 자동 시청" action="AutoWatchLive" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #FF0066, #FF3385); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn04" text="👥 동시시청자 유지" action="MaintainConcurrentViewers" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #6600FF, #8533FF); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn05" text="📈 조회수+시청자 동시증가" action="BoostViewsAndViewers" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #0066FF, #3385FF); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn06" text="🚀 라이브 스트림 조회수 증가" action="IncreaseLiveStreamViews" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #00FFFF, #33FFFF); color:#000; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn07" text="🎯 LIVE 고정 시청자 유지" action="LiveFixedViewersSystem" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #00FF66, #33FF85); color:#000; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn08" text="⚡ Shorts 시청 최적화" action="OptimizeShortsViewing" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #FFFF00, #FFFF33); color:#000; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn09" text="💬 댓글/좋아요/구독 자동화" action="AutoEngagement" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #FF9900, #FFB366); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn10" text="🏆 키워드 1등 만들기" action="AchieveKeywordRank1" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #FFD700, #FFDD33); color:#000; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn11" text="👑 고정시청자시스템_ElitePlus" action="ElitePlusViewerSystem" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #9900FF, #B333FF); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn12" text="🎲 조회수 유입 알고리즘" action="ViewInflowAlgorithm" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #FF0099, #FF33B8); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+    </group>
+
+    <!-- 📱 2. 쇼츠 및 동영상 관리 (10개) -->
+    <group id="shortsVideoGroup" title="📱 쇼츠 및 동영상 관리 (10개 기능)" style="margin:20px 0; padding:20px; border:3px solid #FF6B6B; border-radius:10px; background:#1B0D0D;">
+      <button id="btn13" text="📲 Shorts 시청 최적화" action="OptimizeShortsWatching" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #FF1744, #FF5722); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn14" text="📱 모바일프록시 자동전환" action="AutoMobileProxySwitch" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #E91E63, #F06292); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn15" text="🔒 고정프록시+구글계정없이" action="FixedProxyNoAccount" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #9C27B0, #BA68C8); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn16" text="📞 IMEI+회전프록시설정" action="IMEIRotatingProxySetup" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #673AB7, #9575CD); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn17" text="🔁 영상 반복재생 알고리즘" action="VideoRepeatPlayAlgorithm" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #3F51B5, #7986CB); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn18" text="🔍 키워드기반 검색+유입시청" action="KeywordBasedSearchAndWatch" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #2196F3, #64B5F6); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn19" text="📊 키워드 순위 개선" action="ImproveKeywordRanking" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #03DAC6, #4DD0E1); color:#000; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn20" text="🎬 일반영상 자동시청" action="AutoWatchRegularVideos" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #00BCD4, #26C6DA); color:#000; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn21" text="⚡ 쇼츠 자동시청" action="AutoWatchShorts" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #009688, #4DB6AC); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn22" text="🎯 타겟채널 방문" action="VisitTargetChannels" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #4CAF50, #81C784); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+    </group>
+
+    <!-- 📧 3. 지메일 계정 관리 (12개) -->
+    <group id="gmailManagementGroup" title="📧 지메일 계정 관리 (12개 기능)" style="margin:20px 0; padding:20px; border:3px solid #4285F4; border-radius:10px; background:#0A0F1B;">
+      <button id="btn23" text="📧 지메일 계정 생성" action="CreateGmailAccounts" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #4285F4, #6FA8DC); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn24" text="🔐 지메일 보안 설정" action="SetupGmailSecurity" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #34A853, #5BB974); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn25" text="🔄 지메일 복구이메일 설정" action="SetupGmailRecovery" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #FBBC04, #FDD663); color:#000; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn26" text="🔑 지메일 비밀번호 변경" action="ChangeGmailPassword" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #EA4335, #F07470); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn27" text="📱 계정복구 이메일/전화번호 설정" action="SetupAccountRecovery" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #9AA0A6, #BDC1C6); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn28" text="🛡️ 지메일 보안설정(2차인증)" action="Enable2FAGmail" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #FF6D01, #FF8F00); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn29" text="🖼️ 지메일 프로필이미지/채널명설정" action="SetupGmailProfile" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #8E24AA, #AB47BC); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn30" text="🎬 유튜브 채널 생성" action="CreateYouTubeChannel" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #FF0000, #FF4444); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn31" text="🔧 계정생성후 초기화프로필" action="InitializeAccountProfile" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #795548, #A1887F); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn32" text="⚖️ 계정비활성화 항소" action="AppealDisabledAccounts" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #607D8B, #90A4AE); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn33" text="📞 SMS 인증 자동화" action="AutomateSMSVerification" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #00E676, #69F0AE); color:#000; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn34" text="🔍 계정정보 파싱+검증" action="ParseAndValidateAccounts" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #FF3D00, #FF6E40); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+    </group>
+
+    <!-- 🛠 4. 자동화 및 상호작용 (10개) -->
+    <group id="automationGroup" title="🛠 자동화 및 상호작용 (10개 기능)" style="margin:20px 0; padding:20px; border:3px solid #FF9800; border-radius:10px; background:#1B1300;">
+      <button id="btn35" text="🤖 자동 댓글봇" action="AutoCommentBot" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #FF9800, #FFB74D); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn36" text="➕ 자동 구독 관리" action="AutoSubscriptionManager" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #FF5722, #FF8A65); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn37" text="⏰ 스케줄된 시청시간" action="ScheduledWatchTime" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #795548, #BCAAA4); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn38" text="🔄 자동 재시작 설정" action="AutoRestartSettings" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #607D8B, #B0BEC5); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn39" text="❤️ 좋아요/댓글/구독 자동화" action="AutoLikeCommentSubscribe" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #E91E63, #F8BBD9); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn40" text="⏱️ 자동 시청시간 설정" action="AutoWatchTimeSettings" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #9C27B0, #E1BEE7); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn41" text="💾 자동 활동 저장" action="AutoActivitySave" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #673AB7, #D1C4E9); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn42" text="🚨 자동 신고 기능" action="AutoReportFunction" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #3F51B5, #C5CAE9); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn43" text="⬇️ 자동 다운로드 기능" action="AutoDownloadFunction" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #2196F3, #BBDEFB); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn44" text="⬆️ 자동 업로드 기능" action="AutoUploadFunction" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #03DAC6, #B2DFDB); color:#000; border:none; border-radius:8px; font-weight:bold;"/>
+    </group>
+
+    <!-- 🌐 5. 프록시 및 네트워크 (14개) -->
+    <group id="proxyNetworkGroup" title="🌐 프록시 및 네트워크 (14개 기능)" style="margin:20px 0; padding:20px; border:3px solid #00BCD4; border-radius:10px; background:#001B1B;">
+      <button id="btn45" text="📱 IMEI+회전프록시설정" action="IMEIRotatingProxy" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #00BCD4, #4DD0E1); color:#000; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn46" text="🔄 회전프록시 관리" action="ManageRotatingProxies" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #009688, #4DB6AC); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn47" text="📌 고정프록시 사용" action="UseFixedProxies" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #4CAF50, #81C784); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn48" text="🔒 세션중 IP변경금지" action="PreventIPChangeInSession" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #8BC34A, #AED581); color:#000; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn49" text="🔍 IP연결상태 확인" action="CheckIPConnectionStatus" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #CDDC39, #DCE775); color:#000; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn50" text="🏢 ISP별 프록시할당" action="ISPBasedProxyAllocation" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #FFEB3B, #FFF176); color:#000; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn51" text="🆓 무료프록시 할당" action="AllocateFreeProxies" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #FFC107, #FFD54F); color:#000; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn52" text="🇵🇭 필리핀 무료프록시선택" action="SelectPhilippineFreeProxies" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #FF9800, #FFCC02); color:#000; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn53" text="🇬🇧 영국 무료프록시선택" action="SelectUKFreeProxies" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #FF5722, #FF8A65); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn54" text="🇻🇳 베트남 무료프록시선택" action="SelectVietnamFreeProxies" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #795548, #BCAAA4); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn55" text="🇹🇭 태국 무료프록시선택" action="SelectThailandFreeProxies" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #607D8B, #B0BEC5); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn56" text="🔗 프록시연결상태 확인" action="CheckProxyConnectionStatus" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #9E9E9E, #E0E0E0); color:#000; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn57" text="🔄 프록시풀 새로고침" action="RefreshProxyPool" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #000000, #424242); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn58" text="🌐 CIDR 필터링" action="CIDRFiltering" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #37474F, #78909C); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+    </group>
+
+    <!-- 🔒 6. 보안 및 탐지 방지 (12개) -->
+    <group id="securityGroup" title="🔒 보안 및 탐지 방지 (12개 기능)" style="margin:20px 0; padding:20px; border:3px solid #9C27B0; border-radius:10px; background:#1B0A1B;">
+      <button id="btn59" text="🕵️ 탐지방지 모드" action="AntiDetectionMode" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #9C27B0, #CE93D8); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn60" text="🚫 블랙리스트 회피" action="BypassBlacklist" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #673AB7, #B39DDB); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn61" text="🛡️ 보안상태 모니터링" action="SecurityStatusMonitoring" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #3F51B5, #9FA8DA); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn62" text="⚠️ 예외처리 설정" action="ExceptionHandlingSettings" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #2196F3, #90CAF9); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn63" text="🤖 AI 보호 모드" action="AIProtectionMode" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #03DAC6, #80CBC4); color:#000; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn64" text="🎭 지문 무작위화" action="FingerprintRandomization" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #00BCD4, #80DEEA); color:#000; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn65" text="👆 터치이벤트 조작" action="TouchEventManipulation" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #009688, #80CBC4); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn66" text="🌍 타임존 조작" action="TimezoneManipulation" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #4CAF50, #A5D6A7); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn67" text="📱 랜덤해상도+User-Agent" action="RandomResolutionAndUA" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #8BC34A, #C5E1A5); color:#000; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn68" text="🔓 캡차감지+해결" action="CaptchaDetectionAndSolving" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #CDDC39, #E6EE9C); color:#000; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn69" text="👤 계정상태 실시간모니터링" action="RealTimeAccountMonitoring" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #FFEB3B, #F9FBE7); color:#000; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn70" text="🔍 프록시품질 테스트" action="ProxyQualityTest" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #FFC107, #FFF8E1); color:#000; border:none; border-radius:8px; font-weight:bold;"/>
+    </group>
+
+    <!-- 📊 7. 데이터 분석 및 모니터링 (10개) -->
+    <group id="analyticsGroup" title="📊 데이터 분석 및 모니터링 (10개 기능)" style="margin:20px 0; padding:20px; border:3px solid #FF5722; border-radius:10px; background:#1B0800;">
+      <button id="btn71" text="📈 실시간 분석차트" action="RealTimeAnalyticsChart" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #FF5722, #FFAB91); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn72" text="📋 성과보고서 생성" action="GeneratePerformanceReport" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #795548, #D7CCC8); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn73" text="📊 데이터 시각화" action="DataVisualization" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #607D8B, #CFD8DC); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn74" text="⚡ 성능 모니터링" action="PerformanceMonitoring" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #9E9E9E, #F5F5F5); color:#000; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn75" text="🚀 구글순위 상승시작" action="StartGoogleRankingBoost" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #FF0000, #FFCDD2); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn76" text="👥 계정상태 실시간모니터링" action="AccountStatusRealtimeMonitoring" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #E91E63, #F8BBD9); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn77" text="🌐 프록시품질 실시간모니터링" action="ProxyQualityRealtimeMonitoring" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #9C27B0, #E1BEE7); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn78" text="🖥️ 브라우저성능 모니터링" action="BrowserPerformanceMonitoring" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #673AB7, #D1C4E9); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn79" text="🚨 오류로그 분석" action="ErrorLogAnalysis" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #3F51B5, #C5CAE9); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn80" text="💻 시스템리소스 모니터링" action="SystemResourceMonitoring" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #2196F3, #BBDEFB); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+    </group>
+
+    <!-- ⚙️ 8. 시스템 설정 및 UI (14개) -->
+    <group id="systemUIGroup" title="⚙️ 시스템 설정 및 UI (14개 기능)" style="margin:20px 0; padding:20px; border:3px solid #4CAF50; border-radius:10px; background:#0A1B0A;">
+      <button id="btn81" text="⚙️ 시스템설정 UI" action="SystemSettingsUI" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #4CAF50, #A5D6A7); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn82" text="🔧 PyProxy 설정" action="PyProxySettings" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #8BC34A, #C5E1A5); color:#000; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn83" text="🌍 언어선택" action="LanguageSelection" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #CDDC39, #E6EE9C); color:#000; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn84" text="🎨 테마설정" action="ThemeSettings" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #FFEB3B, #F9FBE7); color:#000; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn85" text="📝 폰트크기 조절" action="FontSizeAdjustment" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #FFC107, #FFF8E1); color:#000; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn86" text="⌨️ 단축키설정" action="ShortcutSettings" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #FF9800, #FFE0B2); color:#000; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn87" text="🎛️ UI레이아웃 커스터마이징" action="UILayoutCustomization" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #FF5722, #FFCCBC); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn88" text="📜 자동활동로그 강제유지" action="ForceKeepActivityLog" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #795548, #D7CCC8); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn89" text="🗑️ 자동활동로그 자동삭제비활성화" action="DisableAutoLogDeletion" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #607D8B, #CFD8DC); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn90" text="⌫ 백스페이스키로 뒤로가기" action="BackspaceNavigation" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #9E9E9E, #F5F5F5); color:#000; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn91" text="🔐 시작시 자동로그인" action="AutoLoginOnStart" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #37474F, #90A4AE); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn92" text="🎮 UI버튼기반 시작/종료기능" action="UIButtonBasedStartStop" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #263238, #78909C); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn93" text="🎚️ 모듈별 켜고끄는 세팅" action="ModuleToggleSettings" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #000000, #616161); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn94" text="🧵 쓰레드와창이 보이는 디자인" action="ThreadAndWindowVisibleDesign" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #1A1A1A, #757575); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+    </group>
+
+    <!-- 🔄 9. 실행 제어 및 오류 처리 (12개) -->
+    <group id="executionControlGroup" title="🔄 실행 제어 및 오류 처리 (12개 기능)" style="margin:20px 0; padding:20px; border:3px solid #E91E63; border-radius:10px; background:#1B0314;">
+      <button id="btn95" text="🚀 모든기능 시작" action="StartAllFunctions" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #E91E63, #F8BBD9); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn96" text="🔄 자동재시작 설정" action="AutoRestartConfiguration" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #9C27B0, #E1BEE7); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn97" text="🛠️ 오류복구 시스템" action="ErrorRecoverySystem" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #673AB7, #D1C4E9); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn98" text="🧩 캡차감지+해결" action="CaptchaDetectionSolving" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #3F51B5, #C5CAE9); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn99" text="📱 SMS인증 자동화" action="SMSVerificationAutomation" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #2196F3, #BBDEFB); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn100" text="⚖️ 계정비활성화 항소" action="AccountDeactivationAppeal" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #03DAC6, #B2DFDB); color:#000; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn101" text="🔍 IP연결상태 확인" action="IPConnectionStatusCheck" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #00BCD4, #E0F2F1); color:#000; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn102" text="🌐 프록시연결상태 확인" action="ProxyConnectionStatusCheck" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #009688, #E0F2F1); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn103" text="💥 시스템크래시 자동복구" action="SystemCrashAutoRecovery" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #4CAF50, #E8F5E8); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn104" text="⏸️ 작업일시정지/재개" action="TaskPauseResume" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #8BC34A, #F1F8E9); color:#000; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn105" text="📅 스케줄된작업 실행" action="ScheduledTaskExecution" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #CDDC39, #F9FBE7); color:#000; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn106" text="🎛️ 실행흐름 제어" action="ExecutionFlowControl" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #FFEB3B, #FFFDE7); color:#000; border:none; border-radius:8px; font-weight:bold;"/>
+    </group>
+
+    <!-- 🧪 10. 고급 기능 및 테스트 (10개) -->
+    <group id="advancedFeaturesGroup" title="🧪 고급 기능 및 테스트 (10개 기능)" style="margin:20px 0; padding:20px; border:3px solid #FFC107; border-radius:10px; background:#1B1500;">
+      <button id="btn107" text="👑 마스터실행 컨트롤러" action="MasterExecutionController" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #FFC107, #FFF8E1); color:#000; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn108" text="🔗 공통행동" action="CommonBehaviors" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #FF9800, #FFE0B2); color:#000; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn109" text="🗄️ 데이터베이스 통합" action="DatabaseIntegration" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #FF5722, #FFCCBC); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn110" text="📊 Excel에서 가져오기" action="ImportFromExcel" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #795548, #D7CCC8); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn111" text="✅ 품질보증/QA자동화" action="QualityAssuranceAutomation" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #607D8B, #CFD8DC); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn112" text="🧪 최종통합 테스트" action="FinalIntegrationTest" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #9E9E9E, #F5F5F5); color:#000; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn113" text="📈 고급보고/시스템헬스모니터" action="AdvancedReportingSystemHealth" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #37474F, #ECEFF1); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn114" text="📊 AnalyticsDataCollection" action="AnalyticsDataCollection" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #263238, #B0BEC5); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn115" text="🔌 API통합 관리자" action="APIIntegrationManager" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #000000, #9E9E9E); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn116" text="🌐 프록시고급 기능" action="AdvancedProxyFeatures" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #1A1A1A, #757575); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+    </group>
+
+    <!-- 🎨 11. UI/UX 고급 기능 (8개) -->
+    <group id="uiUxAdvancedGroup" title="🎨 UI/UX 고급 기능 (8개 기능)" style="margin:20px 0; padding:20px; border:3px solid #8E24AA; border-radius:10px; background:#1A051A;">
+      <button id="btn117" text="🎨 사용자인터페이스" action="UserInterface" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #8E24AA, #E1BEE7); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn118" text="🌙 다크모드 토글" action="DarkModeToggle" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #7B1FA2, #D1C4E9); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn119" text="📏 폰트크기조절 슬라이더" action="FontSizeSlider" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #6A1B9A, #C5CAE9); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn120" text="🎨 테마커스터마이징" action="ThemeCustomization" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #4A148C, #B39DDB); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn121" text="⌨️ 단축키매핑" action="ShortcutMapping" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #38006B, #9575CD); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn122" text="🔄 탭드래그앤드롭" action="TabDragAndDrop" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #1A0033, #7986CB); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn123" text="✨ UI애니메이션 효과" action="UIAnimationEffects" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #0D1421, #5C6BC0); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+      <button id="btn124" text="📊 상태바실시간 업데이트" action="RealtimeStatusBarUpdate" style="width:48%; padding:15px; margin:5px; background:linear-gradient(45deg, #0A0E27, #3F51B5); color:#fff; border:none; border-radius:8px; font-weight:bold;"/>
+    </group>
+
+    <!-- 입력 섹션 -->
+    <group id="inputSection" title="📝 입력 설정" style="margin:20px 0; padding:20px; border:3px solid #00FFD1; border-radius:10px; background:#001A1A;">
+      <label text="🎯 라이브 채널 URL/ID" style="color:#00FFD1; font-weight:bold; font-size:16px;"/>
+      <input id="liveChannelURL" name="live_channel_url" type="text" hint="https://youtube.com/channel/UCxxxxxxx" style="width:100%; padding:15px; margin:8px 0 15px 0; border:2px solid #00FFD1; border-radius:8px; background:#002828; color:#ffffff; font-size:14px;"/>
+      
+      <label text="🔍 검색 키워드" style="color:#00FFD1; font-weight:bold; font-size:16px;"/>
+      <input id="searchKeywords" name="search_keywords" type="text" hint="라이브 스트리밍 키워드" style="width:100%; padding:15px; margin:8px 0 15px 0; border:2px solid #00FFD1; border-radius:8px; background:#002828; color:#ffffff; font-size:14px;"/>
+      
+      <label text="📱 고정 프록시 파일" style="color:#00FFD1; font-weight:bold; font-size:16px;"/>
+      <input id="fixedProxyFile" name="fixed_proxy_file" type="text" hint="./proxies/fixed_proxies.txt" style="width:100%; padding:15px; margin:8px 0 15px 0; border:2px solid #00FFD1; border-radius:8px; background:#002828; color:#ffffff; font-size:14px;"/>
+      
+      <label text="📧 Gmail 계정 파일" style="color:#00FFD1; font-weight:bold; font-size:16px;"/>
+      <input id="gmailAccountFile" name="gmail_account_file" type="text" hint="./accounts/gmail_accounts.txt" style="width:100%; padding:15px; margin:8px 0 15px 0; border:2px solid #00FFD1; border-radius:8px; background:#002828; color:#ffffff; font-size:14px;"/>
+      
+      <label text="🎬 Shorts 링크 파일" style="color:#00FFD1; font-weight:bold; font-size:16px;"/>
+      <input id="shortsLinksFile" name="shorts_links_file" type="text" hint="./shorts/shorts_links.txt" style="width:100%; padding:15px; margin:8px 0 15px 0; border:2px solid #00FFD1; border-radius:8px; background:#002828; color:#ffffff; font-size:14px;"/>
+    </group>
+
+    <!-- 성능 설정 -->
+    <group id="performanceSection" title="🚀 성능 및 실행 설정" style="margin:20px 0; padding:20px; border:3px solid #FF6B6B; border-radius:10px; background:#1A0808;">
+      <label text="🧵 최대 스레드 수" style="color:#FF6B6B; font-weight:bold; font-size:16px;"/>
+      <input id="maxThreads" name="max_threads" type="text" hint="24" style="width:150px; padding:12px; margin:8px 10px 10px 0; border:2px solid #FF6B6B; border-radius:6px; background:#2D1111; color:#ffffff;"/>
+      
+      <label text="⏱️ 스레드 지연 (ms)" style="color:#FF6B6B; font-weight:bold; font-size:16px;"/>
+      <input id="threadDelay" name="thread_delay" type="text" hint="100" style="width:150px; padding:12px; margin:8px 10px 10px 0; border:2px solid #FF6B6B; border-radius:6px; background:#2D1111; color:#ffffff;"/>
+      
+      <label text="👥 고정 시청자 수" style="color:#FF6B6B; font-weight:bold; font-size:16px;"/>
+      <input id="fixedViewers" name="fixed_viewers" type="text" hint="500" style="width:150px; padding:12px; margin:8px 10px 10px 0; border:2px solid #FF6B6B; border-radius:6px; background:#2D1111; color:#ffffff;"/>
+      
+      <label text="🎯 목표 조회수" style="color:#FF6B6B; font-weight:bold; font-size:16px;"/>
+      <input id="targetViews" name="target_views" type="text" hint="100000" style="width:150px; padding:12px; margin:8px 10px 10px 0; border:2px solid #FF6B6B; border-radius:6px; background:#2D1111; color:#ffffff;"/>
+    </group>
+
+    <!-- 옵션 설정 -->
+    <group id="optionsSection" title="⚙️ 실행 옵션" style="margin:20px 0; padding:20px; border:3px solid #FFD700; border-radius:10px; background:#1A1A00;">
+      <checkbox id="optAntiDetection" text="🕵️ 탐지 방지 모드 활성화" checked="true" style="margin:10px 0; color:#FFD700; font-size:16px; font-weight:bold;"/>
+      <checkbox id="optProxyRotation" text="🔄 프록시 자동 회전" checked="true" style="margin:10px 0; color:#FFD700; font-size:16px; font-weight:bold;"/>
+      <checkbox id="optFingerprintRandom" text="🎭 지문 무작위화" checked="true" style="margin:10px 0; color:#FFD700; font-size:16px; font-weight:bold;"/>
+      <checkbox id="optUserAgentRotation" text="🌐 User-Agent 회전" checked="true" style="margin:10px 0; color:#FFD700; font-size:16px; font-weight:bold;"/>
+      <checkbox id="optKeywordSearch" text="🔍 키워드 검색 모드" checked="true" style="margin:10px 0; color:#FFD700; font-size:16px; font-weight:bold;"/>
+      <checkbox id="optDirectLink" text="🔗 직접 링크 사용 (권장하지 않음)" checked="false" style="margin:10px 0; color:#FFD700; font-size:16px; font-weight:bold;"/>
+      <checkbox id="optAutoRestart" text="🔄 자동 재시작" checked="true" style="margin:10px 0; color:#FFD700; font-size:16px; font-weight:bold;"/>
+      <checkbox id="optSMSVerification" text="📱 SMS 인증 자동화" checked="true" style="margin:10px 0; color:#FFD700; font-size:16px; font-weight:bold;"/>
+    </group>
+
+    <!-- 실행 버튼 섹션 -->
+    <group id="mainActionsSection" title="🎮 메인 실행 명령" style="margin:25px 0; padding:25px; border:4px solid #4ECDC4; border-radius:12px; background:#0A1A1A;">
+      <button id="btnValidateAll" text="🔎 전체 검증" action="ValidateAllInputs" style="width:24%; padding:18px; margin:8px; background:linear-gradient(45deg, #4ECDC4, #44A08D); color:#fff; border:none; border-radius:10px; font-weight:bold; font-size:16px;"/>
+      <button id="btnStartAll" text="🚀 모든 기능 시작" action="StartAllFeatures" style="width:24%; padding:18px; margin:8px; background:linear-gradient(45deg, #667eea, #764ba2); color:#fff; border:none; border-radius:10px; font-weight:bold; font-size:16px;"/>
+      <button id="btnStop" text="⏹️ 전체 중지" action="StopAllExecution" style="width:24%; padding:18px; margin:8px; background:linear-gradient(45deg, #ff6b6b, #ee5a52); color:#fff; border:none; border-radius:10px; font-weight:bold; font-size:16px;"/>
+      <button id="btnReports" text="📊 보고서 생성" action="GenerateReports" style="width:24%; padding:18px; margin:8px; background:linear-gradient(45deg, #ffeaa7, #fab1a0); color:#2d3436; border:none; border-radius:10px; font-weight:bold; font-size:16px;"/>
+    </group>
+
+    <!-- 상태 표시 -->
+    <group id="statusSection" title="📊 실행 상태" style="margin:15px 0; padding:15px; border:3px solid #74b9ff; border-radius:8px; background:#0A0F1A;">
+      <label id="statusLabel" text="🔵 시스템 대기 중..." style="color:#74b9ff; font-size:18px; font-weight:bold;"/>
+      <progressbar id="progress" value="0" max="100" style="width

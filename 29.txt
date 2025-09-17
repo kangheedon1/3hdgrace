@@ -1,0 +1,100 @@
+### 5. 라이브 스트림 랭킹 최적화
+<macro name="LiveStreamRanking">
+  <action name="SearchForKeyword"><Keyword>{RandomLine(live_ranking_keywords.txt)}</Keyword></action>
+  <action name="ClickLiveSection"/>
+  <action name="FindTargetLiveStream"/>
+  <action name="ClickLiveStream"/>
+  <action name="MaintainViewership"><Duration>{Random(600, 3600)}</Duration></action>
+  <action name="AutoRespondToChat"/>
+</macro>
+
+### 6. 조회수 알고리즘 고도화
+<macro name="AdvancedViewcountAlgorithm">
+  <action name="UseRotatingProxy"><Interval>300</Interval></action>
+  <action name="UseMobileProxy"/>
+  <action name="UseFixedProxy"/>
+  <action name="LoginWithGoogleAccount"/>
+  <action name="UseHighQualityFingerprintAPI"><Key>J6tgC3yKrA67k6wr4SpeqWxLlRqgyZ8N0AhkmCmV9jAPC5hxuo1jt9TfFDsWWhJI</Key></action>
+  <action name="EmulateWindows"/>
+  <action name="EmulateMac"/>
+  <action name="EmulateAndroid"/>
+  <action name="EmulateiPhone"/>
+  <action name="EmulateRandomDevice"/>
+</macro>
+
+### 7. 프록시 회전 및 검증
+<macro name="ProxyRotationAndValidation">
+  <action name="ChangeProxy"><Source>API</Source><URL>https://pyproxy.com/api</URL><AuthKey>{settings.ProxyAPIKey}</AuthKey></action>
+  <action name="ValidateProxyAccess"/>
+  <action name="MonitorProxyQuality"><Threshold>200ms</Threshold></action>
+  <action name="LogEvent"><Type>ProxyRotation</Type><Details>Proxy changed due to slow response</Details></action>
+</macro>
+
+<!-- 추가된 실행 제어 매크로 (정확한 위치에 삽입) -->
+<macro name="MainController">
+  <action name="InitializeSettings"/>
+  <action name="CallMacro"><MacroName>RandomizeKoreanFingerprint</MacroName></action>
+  <action name="ParallelExecute">
+    <Macro name="KeywordRankingOptimization"/>
+    <Macro name="ShortsRankingOptimization"/>
+    <Macro name="LiveStreamRanking"/>
+    <Macro name="AdvancedViewcountAlgorithm"/>
+  </action>
+  <action name="ScheduleExecution"><Interval>3600</Interval></action>
+</macro>
+
+<project name="YouTube_Ranking_Booster_v17">
+  <description>최적화된 유튜브 랭킹 부스터 프로젝트</description>
+  <version>17.0</version>
+  <entrypoint>MainController</entrypoint>
+</project>
+### 5. 라이브 스트림 랭킹 최적화
+<macro name="LiveStreamRanking">
+  <action name="SearchForKeyword"><Keyword>{RandomLine(live_ranking_keywords.txt)}</Keyword></action>
+  <action name="ClickLiveSection"/>
+  <action name="FindTargetLiveStream"/>
+  <action name="ClickLiveStream"/>
+  <action name="MaintainViewership"><Duration>{Random(600, 3600)}</Duration></action>
+  <action name="AutoRespondToChat"/>
+</macro>
+
+### 6. 조회수 알고리즘 고도화
+<macro name="AdvancedViewcountAlgorithm">
+  <action name="UseRotatingProxy"><Interval>300</Interval></action>
+  <action name="UseMobileProxy"/>
+  <action name="UseFixedProxy"/>
+  <action name="LoginWithGoogleAccount"/>
+  <action name="UseHighQualityFingerprintAPI"><Key>J6tgC3yKrA67k6wr4SpeqWxLlRqgyZ8N0AhkmCmV9jAPC5hxuo1jt9TfFDsWWhJI</Key></action>
+  <action name="EmulateWindows"/>
+  <action name="EmulateMac"/>
+  <action name="EmulateAndroid"/>
+  <action name="EmulateiPhone"/>
+  <action name="EmulateRandomDevice"/>
+</macro>
+
+### 7. 프록시 회전 및 검증
+<macro name="ProxyRotationAndValidation">
+  <action name="ChangeProxy"><Source>API</Source><URL>https://pyproxy.com/api</URL><AuthKey>{settings.ProxyAPIKey}</AuthKey></action>
+  <action name="ValidateProxyAccess"/>
+  <action name="MonitorProxyQuality"><Threshold>200ms</Threshold></action>
+  <action name="LogEvent"><Type>ProxyRotation</Type><Details>Proxy changed due to slow response</Details></action>
+</macro>
+
+<!-- 추가된 실행 제어 매크로 (정확한 위치에 삽입) -->
+<macro name="MainController">
+  <action name="InitializeSettings"/>
+  <action name="CallMacro"><MacroName>RandomizeKoreanFingerprint</MacroName></action>
+  <action name="ParallelExecute">
+    <Macro name="KeywordRankingOptimization"/>
+    <Macro name="ShortsRankingOptimization"/>
+    <Macro name="LiveStreamRanking"/>
+    <Macro name="AdvancedViewcountAlgorithm"/>
+  </action>
+  <action name="ScheduleExecution"><Interval>3600</Interval></action>
+</macro>
+
+<project name="YouTube_Ranking_Booster_v17">
+  <description>최적화된 유튜브 랭킹 부스터 프로젝트</description>
+  <version>17.0</version>
+  <entrypoint>MainController</entrypoint>
+</project>

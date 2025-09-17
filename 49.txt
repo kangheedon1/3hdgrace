@@ -1,0 +1,869 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project>
+  <settings>
+    <MaxThreads>500</MaxThreads>
+    <ParallelExecution>true</ParallelExecution>
+    <ThreadDelay>50</ThreadDelay>
+    <ProxyRotationInterval>300</ProxyRotationInterval>
+    <ViewerHealthCheckInterval>60</ViewerHealthCheckInterval>
+  </settings>
+
+  <!-- ISP 자동 변경 -->
+  <macro name="ChangeToISPByCountry">
+    <parameter name="Country"/>
+    <parameter name="Account"/>
+    <if condition="{Country} == 'Korea'"><then><action name="SelectRandomISP"><ISPList>KT,SKT,LGU+</ISPList><Variable>SelectedISP</Variable></action></then></if>
+    <if condition="{Country} == 'USA'"><then><action name="SelectRandomISP"><ISPList>Comcast,Verizon,AT&T,T-Mobile</ISPList><Variable>SelectedISP</Variable></action></then></if>
+    <if condition="{Country} == 'Japan'"><then><action name="SelectRandomISP"><ISPList>NTT,KDDI,SoftBank</ISPList><Variable>SelectedISP</Variable></action></then></if>
+    <if condition="{Country} == 'Germany'"><then><action name="SelectRandomISP"><ISPList>Vodafone,Telekom,O2</ISPList><Variable>SelectedISP</Variable></action></then></if>
+    <if condition="{Country} == 'UK'"><then><action name="SelectRandomISP"><ISPList>BT,TalkTalk,Sky</ISPList><Variable>SelectedISP</Variable></action></then></if>
+    <if condition="{Country} == 'Thailand'"><then><action name="SelectRandomISP"><ISPList>3BB,True,AIS</ISPList><Variable>SelectedISP</Variable></action></then></if>
+    <if condition="{Country} == 'Vietnam'"><then><action name="SelectRandomISP"><ISPList>Viettel,FPT,VNPT</ISPList><Variable>SelectedISP</Variable></action></then></if>
+    <if condition="{Country} == 'Philippines'"><then><action name="SelectRandomISP"><ISPList>Globe,PLDT</ISPList><Variable>SelectedISP</Variable></action></then></if>
+    <if condition="{Country} == 'HongKong'"><then><action name="SelectRandomISP"><ISPList>HKBN,HKT,CMI</ISPList><Variable>SelectedISP</Variable></action></then></if>
+    <if condition="{Country} == 'Cambodia'"><then><action name="SelectRandomISP"><ISPList>EZECOM,Cellcard,Metfone</ISPList><Variable>SelectedISP</Variable></action></then></if>
+    <if condition="{Country} == 'Russia'"><then><action name="SelectRandomISP"><ISPList>Beeline,MTS,Megafon</ISPList><Variable>SelectedISP</Variable></action></then></if>
+
+    <action name="SetVariable"><Variable>FinalProxy</Variable><Value>{Account.proxy}</Value></action>
+    <action name="ChangeProxy"><ISP>{SelectedISP}</ISP><Proxy>{FinalProxy}</Proxy></action>
+    <action name="LogEvent"><Type>ISPChange</Type><Details>{Country} → {SelectedISP} | {FinalProxy}</Details></action>
+  </macro>
+
+  <!-- 프록시 형식 자동 감지 -->
+  <macro name="ParseAndAssignProxy">
+    <parameter name="RawProxy"/>
+    <action name="DetectProxyFormat"><Input>{RawProxy}</Input><Variable>DetectedFormat</Variable></action>
+    <action name="AssignProxy"><Proxy>{RawProxy}</Proxy><Format>{DetectedFormat}</Format></action>
+    <action name="LogEvent"><Type>ProxyAssigned</Type><Details>형식: {DetectedFormat} | 프록시: {RawProxy}</Details></action>
+  </macro>
+
+  <!-- 국가 선택 UI -->
+  <macro name="SelectCountryUI">
+    <action name="CreatePopup"><Title>국가 선택</Title><Message>프록시 ISP 국가를 선택하세요:</Message></action>
+    <action name="AddChoice"><Option>Korea</Option></action>
+    <action name="AddChoice"><Option>USA</Option></action>
+    <action name="AddChoice"><Option>Japan</Option></action>
+    <action name="AddChoice"><Option>Germany</Option></action>
+    <action name="AddChoice"><Option>UK</Option></action>
+    <action name="AddChoice"><Option>Thailand</Option></action>
+    <action name="AddChoice"><Option>Vietnam</Option></action>
+    <action name="AddChoice"><Option>Philippines</Option></action>
+    <action name="AddChoice"><Option>HongKong</Option></action>
+    <action name="AddChoice"><Option>Cambodia</Option></action>
+    <action name="AddChoice"><Option>Russia</Option></action>
+    <action name="ShowPopup"/>
+    <action name="GetUserChoice"><Variable>SelectedCountry</Variable></action>
+    <action name="LogEvent"><Type>UI</Type><Details>선택된 국가: {SelectedCountry}</Details></action>
+  </macro>
+
+  <!-- 고정 시청자 시스템 통합 -->
+  <macro name="FixedViewerSystem_ElitePlus">
+    <action name="SetVariable"><Variable>ViewerCount</Variable><Value>500</Value></action>
+    <action name="CallMacro"><Name>SelectCountryUI</Name></action>
+    <action name="ReadFile"><File>./proxies/global_proxies.txt</File><Variable>ProxyList</Variable></action>
+    <action name="ReadFile"><File>./data/target_urls.txt</File><Variable>TargetURLs</Variable></action>
+
+    <!-- 실시간 모니터링 -->
+    <action name="SetInterval">
+      <Interval>60000</Interval>
+      <macro>
+        <action name="GetViewerCount"><Variable>ActiveViewers</Variable></action>
+        <action name="LogEvent"><Type>Monitor</Type><Details>현재 시청자 수: {ActiveViewers}</Details></action>
+        <action name="SendRequest">
+          <Method>POST</Method>
+          <Url>https://your-server.com/api/viewers</Url>
+          <ContentType>application/json</ContentType>
+          <Data>{"timestamp": "{Timestamp}", "active_viewers": "{ActiveViewers}"}</Data>
+        </action>
+      </macro>
+    </action>
+
+    <!-- 병렬 시청자 루프 -->
+    <loop name="EliteViewerLoop" count="{ViewerCount}">
+      <Try>
+        <Do>
+          <action name="SetVariable"><Variable>ViewerID</Variable><Value>{Random(100000, 999999)}</Value></action>
+          <action name="CallMacro"><Name>ParseAndAssignProxy</Name><Parameters><RawProxy>{ProxyList[{ThreadIndex}]}</RawProxy></Parameters></action>
+          <action name="CallMacro"><Name>ChangeToISPByCountry</Name><Parameters><Country>{SelectedCountry}</Country><Account><proxy>{ProxyList[{ThreadIndex}]}</proxy></Account></Parameters></action>
+          <action name="DetectProxyCountry"><Proxy>{ProxyList[{ThreadIndex}]}</Proxy><Variable>ProxyCountry</Variable></action>
+          <action name="SetVariable"><Variable>TargetURL</Variable><Value>{TargetURLs[{ThreadIndex} % TargetURLs.length]}</Value></action>
+          <action name="MouseMove"/><action name="ScrollPage"/>
+          <action name="Delay"><Min>500</Min><Max>1500</Max></action>
+          <action name="SetVariable"><Variable>WatchDuration</Variable><Value>{Random(1800, 3600)}</Value></action>
+          <action name="WatchLiveStream"><URL>{TargetURL}</URL><Duration>{WatchDuration}</Duration></action>
+          <action name="RandomClick"><Selector>.play-button, .like-button</Selector></action>
+          <action name="LogEvent"><Type>Viewer</Type><Details>[{ViewerID}] 시청 완료 - {TargetURL} ({WatchDuration}초, {ProxyCountry})</Details></action>
+          <action name="SendRequest"><Method>POST</Method><Url>https://your-server.com/api/logs</Url><ContentType>application/json</ContentType>
+            <Data>{"viewer_id":"{ViewerID}","target_url":"{TargetURL}","duration":"{WatchDuration}","country":"{ProxyCountry}","timestamp":"{Timestamp}"}</Data>
+          </action>
+        </Do>
+        <Catch>
+          <action name="LogEvent"><Type>Error</Type><Details>시청 실패 - ViewerID: {ViewerID}</Details></action>
+          <action name="SendRequest"><Method>POST</Method><Url>https://your-server.com/api/errors</Url><ContentType>application/json</ContentType>
+            <Data>{"viewer_id":"{ViewerID}","error":"시청 실패","timestamp":"{Timestamp}"}</Data>
+          </action>
+        </Catch>
+      </Try>
+    </loop>
+
+    <action name="LogEvent"><Type>System</Type><Details>✅ 모든 고정 시청자 루프 완료</Details></action>
+  </macro>
+
+  <!-- 실행 진입점 -->
+  <macro name="Main">
+    <action name="CallMacro"><Name>FixedViewerSystem_ElitePlus</Name></action>
+  </macro>
+</project>이기능과 성능 설명 
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<BrowserAutomationStudioProject>
+  <!-- 리소스 관리 -->
+  <Resources>
+    <Resource Name="Proxies" Path="proxies.txt"/>
+    <Resource Name="SMSAPIKeys" Path="smsapikeys.txt"/>
+    <Resource Name="RecaptchaKey" Path="recaptchaapikey.txt"/>
+    <Resource Name="Accounts" Path="accounts.txt"/>
+    <Resource Name="Avatars" Path="avatars/"/>
+    <Resource Name="ScrapedVideos" Path="scraped_videos.txt"/>
+    <Resource Name="2FAKeys" Path="2fa_keys.txt"/>
+    <Resource Name="TargetChannels" Path="target_channels.txt"/>
+    <Resource Name="SKTProxies" Path="proxies/skt_proxies.txt"/>
+    <Resource Name="KTProxies" Path="proxies/kt_proxies.txt"/>
+    <Resource Name="LGUProxies" Path="proxies/lgu_proxies.txt"/>
+    <Resource Name="USProxies" Path="proxies/us_proxies.txt"/>
+    <Resource Name="JPProxies" Path="proxies/jp_proxies.txt"/>
+  </Resources>
+
+  <!-- 매크로 정의 -->
+  <Macros>
+    <!-- 메인 루프 -->
+    <Macro Name="Start">
+      <action name="loadResources"/>
+      <action name="mainloop"/>
+    </Macro>
+
+    <!-- 로그인 복구 루틴 -->
+    <Macro Name="mainloop">
+      <action name="checkloginstatus"/>
+      <If condition="LoginFailed">
+        <Then>
+          <action name="recoverLogin"/>
+          <action name="logevent">
+            <Type>LoginRecovery</Type>
+            <Details>Login failed - recovery executed</Details>
+          </action>
+        </Then>
+      </If>
+      <action name="monitorProxy"/>
+      <If condition="ProxyIsSlow">
+        <Then>
+          <action name="rotateProxy"/>
+          <action name="logevent">
+            <Type>ProxyRotation</Type>
+            <Details>Proxy changed due to slow response</Details>
+          </action>
+        </Then>
+      </If>
+      <action name="checkSMSStatus"/>
+      <If condition="SMSFailureDetected">
+        <Then>
+          <action name="switchSMSProvider"/>
+          <action name="logevent">
+            <Type>SMSRecovery</Type>
+            <Details>Switched SMS API due to failure</Details>
+          </action>
+        </Then>
+      </If>
+      <action name="detectCaptcha"/>
+      <If condition="RecaptchaPresent">
+        <Then>
+          <action name="solveCaptcha"/>
+          <action name="logevent">
+            <Type>CaptchaBypassed</Type>
+            <Details>2Captcha used to solve ReCaptcha</Details>
+          </action>
+        </Then>
+      </If>
+      <action name="delay">
+        <Timeout>150</Timeout>
+      </action>
+      <action name="mainloop"/>
+    </Macro>
+
+    <!-- 국가별 프록시 선택 -->
+    <Macro Name="SelectCountryProxy">
+      <action name="GetUserCountryChoice">
+        <Variable>SelectedCountry</Variable>
+      </action>
+      
+      <If condition="SelectedCountry == 'Korea'">
+        <Then>
+          <action name="AutoSelectKoreanISP"/>
+          <action name="ApplyKoreanProxy"/>
+        </Then>
+      </If>
+      
+      <If condition="SelectedCountry == 'USA'">
+        <Then>
+          <action name="SetProxyFile">
+            <File>${USProxies}</File>
+          </action>
+          <action name="ApplyUSProxy"/>
+        </Then>
+      </If>
+      
+      <If condition="SelectedCountry == 'Japan'">
+        <Then>
+          <action name="SetProxyFile">
+            <File>${JPProxies}</File>
+          </action>
+          <action name="ApplyJapanProxy"/>
+        </Then>
+      </If>
+      
+      <If condition="SelectedCountry == 'UK'">
+        <Then>
+          <action name="SelectRandomISP">
+            <ISPList>BT,TalkTalk,Sky</ISPList>
+            <Variable>SelectedISP</Variable>
+          </action>
+          <action name="SetProxyFile">
+            <File>${UKProxies}</File>
+          </action>
+        </Then>
+      </If>
+      
+      <If condition="SelectedCountry == 'Thailand'">
+        <Then>
+          <action name="SelectRandomISP">
+            <ISPList>3BB,True,AIS</ISPList>
+            <Variable>SelectedISP</Variable>
+          </action>
+          <action name="SetProxyFile">
+            <File>${ThailandProxies}</File>
+          </action>
+        </Then>
+      </If>
+      
+      <If condition="SelectedCountry == 'Vietnam'">
+        <Then>
+          <action name="SelectRandomISP">
+            <ISPList>Viettel,FPT,VNPT</ISPList>
+            <Variable>SelectedISP</Variable>
+          </action>
+          <action name="SetProxyFile">
+            <File>${VietnamProxies}</File>
+          </action>
+        </Then>
+      </If>
+      
+      <If condition="SelectedCountry == 'Philippines'">
+        <Then>
+          <action name="SelectRandomISP">
+            <ISPList>Globe,PLDT</ISPList>
+            <Variable>SelectedISP</Variable>
+          </action>
+          <action name="SetProxyFile">
+            <File>${PhilippinesProxies}</File>
+          </action>
+        </Then>
+      </If>
+      
+      <If condition="SelectedCountry == 'HongKong'">
+        <Then>
+          <action name="SelectRandomISP">
+            <ISPList>HKBN,HKT,CMI</ISPList>
+            <Variable>SelectedISP</Variable>
+          </action>
+          <action name="SetProxyFile">
+            <File>${HongKongProxies}</File>
+          </action>
+        </Then>
+      </If>
+      
+      <If condition="SelectedCountry == 'Cambodia'">
+        <Then>
+          <action name="SelectRandomISP">
+            <ISPList>EZECOM,Cellcard,Metfone</ISPList>
+            <Variable>SelectedISP</Variable>
+          </action>
+          <action name="SetProxyFile">
+            <File>${CambodiaProxies}</File>
+          </action>
+        </Then>
+      </If>
+      
+      <If condition="SelectedCountry == 'Russia'">
+        <Then>
+          <action name="SelectRandomISP">
+            <ISPList>Beeline,MTS,Megafon</ISPList>
+            <Variable>SelectedISP</Variable>
+          </action>
+          <action name="SetProxyFile">
+            <File>${RussiaProxies}</File>
+          </action>
+        </Then>
+      </If>
+      
+      <action name="LogProxyChange">
+        <Type>ProxyApplied</Type>
+        <Details>Country: ${SelectedCountry}, ISP: ${CurrentISP}, IP: ${CurrentProxy}</Details>
+      </action>
+    </Macro>
+
+    <!-- 한국 자동 랜덤 ISP 선택 -->
+    <Macro Name="AutoSelectKoreanISP">
+      <action name="SetVariable">
+        <Variable>CurrentISP</Variable>
+        <Value>{Random(SKT,KT,LGU+)}</Value>
+      </action>
+      
+      <action name="SetVariable">
+        <Variable>ProxyFile</Variable>
+        <Value>${CurrentISP}Proxies</Value>
+      </action>
+      
+      <action name="LogEvent">
+        <Type>ISPSelection</Type>
+        <Details>자동 선택된 ISP: ${CurrentISP}</Details>
+      </action>
+    </Macro>
+
+    <!-- 대역대별 프록시 분류 및 랜덤 적용 -->
+    <Macro Name="ApplyKoreanProxy">
+      <action name="ReadFile">
+        <File>${ProxyFile}</File>
+        <Variable>AllProxies</Variable>
+      </action>
+      
+      <!-- 대역대별 분류 -->
+      <action name="SetVariable">
+        <Variable>BandAProxies</Variable>
+        <Value>{Filter(AllProxies, '101.254.|112.172.|123.140.')}</Value>
+      </action>
+      <action name="SetVariable">
+        <Variable>BandBProxies</Variable>
+        <Value>{Filter(AllProxies, '125.141.|211.224.|203.249.')}</Value>
+      </action>
+      <action name="SetVariable">
+        <Variable>BandCProxies</Variable>
+        <Value>{Filter(AllProxies, '118.129.|110.10.|218.144.')}</Value>
+      </action>
+      
+      <!-- 대역대 랜덤 선택 (30% 확률로 각 대역대) -->
+      <action name="SetVariable">
+        <Variable>BandChoice</Variable>
+        <Value>{Random(1,10)}</Value>
+      </action>
+      
+      <If condition="BandChoice <= 3">
+        <Then>
+          <action name="SetVariable">
+            <Variable>SelectedBand</Variable>
+            <Value>BandA</Value>
+          </action>
+          <action name="SetVariable">
+            <Variable>BandProxies</Variable>
+            <Value>${BandAProxies}</Value>
+          </action>
+        </Then>
+      </If>
+      
+      <If condition="BandChoice > 3 AND BandChoice <= 6">
+        <Then>
+          <action name="SetVariable">
+            <Variable>SelectedBand</Variable>
+            <Value>BandB</Value>
+          </action>
+          <action name="SetVariable">
+            <Variable>BandProxies</Variable>
+            <Value>${BandBProxies}</Value>
+          </action>
+        </Then>
+      </If>
+      
+      <If condition="BandChoice > 6">
+        <Then>
+          <action name="SetVariable">
+            <Variable>SelectedBand</Variable>
+            <Value>BandC</Value>
+          </action>
+          <action name="SetVariable">
+            <Variable>BandProxies</Variable>
+            <Value>${BandCProxies}</Value>
+          </action>
+        </Then>
+      </If>
+      
+      <!-- 대역대 내 프록시 랜덤 선택 -->
+      <action name="SetVariable">
+        <Variable>RandomProxy</Variable>
+        <Value>{RandomLine(BandProxies)}</Value>
+      </action>
+      
+      <!-- 프록시 형식 자동 감지 및 적용 -->
+      <action name="ParseAndAssignProxy">
+        <RawProxy>${RandomProxy}</RawProxy>
+      </action>
+      
+      <action name="SetVariable">
+        <Variable>CurrentProxy</Variable>
+        <Value>${RandomProxy}</Value>
+      </action>
+      
+      <action name="LogEvent">
+        <Type>BandSelected</Type>
+        <Details>대역대: ${SelectedBand}, IP: ${RandomProxy}</Details>
+      </action>
+    </Macro>
+
+    <!-- 프록시 형식 자동 감지 -->
+    <Macro Name="ParseAndAssignProxy">
+      <Parameter Name="RawProxy"/>
+      
+      <!-- IP:PORT 형식 -->
+      <If condition="RegexMatch(RawProxy, '^\d+\.\d+\.\d+\.\d+:\d+$')">
+        <Then>
+          <action name="ExtractText">
+            <Text>${RawProxy}</Text>
+            <Regex>(\d+\.\d+\.\d+\.\d+):(\d+)</Regex>
+            <Variable>ProxyIP</Variable>
+            <Variable>ProxyPort</Variable>
+          </action>
+          
+          <action name="SetProxy">
+            <Type>HTTP</Type>
+            <IP>${ProxyIP}</IP>
+            <Port>${ProxyPort}</Port>
+          </action>
+        </Then>
+      </If>
+      
+      <!-- IP:PORT:USER:PASS 형식 -->
+      <ElseIf condition="RegexMatch(RawProxy, '^\d+\.\d+\.\d+\.\d+:\d+:\w+:\w+$')">
+        <Then>
+          <action name="ExtractText">
+            <Text>${RawProxy}</Text>
+            <Regex>(\d+\.\d+\.\d+\.\d+):(\d+):(\w+):(\w+)</Regex>
+            <Variable>ProxyIP</Variable>
+            <Variable>ProxyPort</Variable>
+            <Variable>ProxyUser</Variable>
+            <Variable>ProxyPass</Variable>
+          </action>
+          
+          <action name="SetProxy">
+            <Type>HTTP</Type>
+            <IP>${ProxyIP}</IP>
+            <Port>${ProxyPort}</Port>
+            <Username>${ProxyUser}</Username>
+            <Password>${ProxyPass}</Password>
+          </action>
+        </Then>
+      </ElseIf>
+      
+      <!-- SOCKS5 형식 -->
+      <ElseIf condition="RegexMatch(RawProxy, '^\d+\.\d+\.\d+\.\d+:\d+$')">
+        <Then>
+          <action name="ExtractText">
+            <Text>${RawProxy}</Text>
+            <Regex>(\d+\.\d+\.\d+\.\d+):(\d+)</Regex>
+            <Variable>ProxyIP</Variable>
+            <Variable>ProxyPort</Variable>
+          </action>
+          
+          <action name="SetProxy">
+            <Type>SOCKS5</Type>
+            <IP>${ProxyIP}</IP>
+            <Port>${ProxyPort}</Port>
+          </action>
+        </Then>
+      </ElseIf>
+    </Macro>
+
+    <!-- 추가 기능 매크로 -->
+    <Macro Name="createGmailAccountLoop">
+      <action name="generateAccount"/>
+      <action name="saveAccount">
+        <File>${Accounts}</File>
+      </action>
+      <action name="logevent">
+        <Type>GmailAccount</Type>
+        <Details>New account created: {Username}@gmail.com</Details>
+      </action>
+      <action name="delay">
+        <Timeout>5000</Timeout>
+      </action>
+      <action name="createGmailAccountLoop"/>
+    </Macro>
+
+    <Macro Name="setupYouTubeChannel">
+      <action name="createChannel"/>
+      <action name="logevent">
+        <Type>ChannelSetup</Type>
+        <Details>Channel created: {ChannelName}</Details>
+      </action>
+    </Macro>
+
+    <Macro Name="farmingLoop">
+      <action name="runFarmingBot"/>
+      <action name="logevent">
+        <Type>Farming</Type>
+        <Details>Farmed {ClickCount} times</Details>
+      </action>
+      <action name="farmingLoop"/>
+    </Macro>
+
+    <Macro Name="scrapeVideoList">
+      <action name="scrapeVideos"/>
+      <action name="logevent">
+        <Type>Scraper</Type>
+        <Details>Scraped {LineCount(${ScrapedVideos})} videos</Details>
+      </action>
+    </Macro>
+
+    <Macro Name="recover2FA">
+      <action name="recover2FAAction"/>
+      <action name="logevent">
+        <Type>2FARecovery</Type>
+        <Details>2FA recovery initiated for {SecretKey}</Details>
+      </action>
+    </Macro>
+
+    <Macro Name="boostSubscribersLoop">
+      <action name="subscribeToChannel"/>
+      <action name="logevent">
+        <Type>Subscription</Type>
+        <Details>Subscribed to {TargetChannel}</Details>
+      </action>
+      <action name="boostSubscribersLoop"/>
+    </Macro>
+
+    <!-- 라이브/Shorts 기능 추가 -->
+    <Macro Name="LiveChatMessage">
+      <action name="setMobileUserAgent"/>
+      <action name="sendLiveChat"/>
+      <action name="logevent">
+        <Type>LiveChat</Type>
+        <Details>Live chat message sent to {LiveStreamURL}</Details>
+      </action>
+    </Macro>
+
+    <Macro Name="ShortsComment">
+      <action name="setMobileUserAgent"/>
+      <action name="postShortsComment"/>
+      <action name="logevent">
+        <Type>ShortsComment</Type>
+        <Details>Comment posted to {ShortsURL}</Details>
+      </action>
+    </Macro>
+
+    <!-- 구글 검색 순위 상승 -->
+    <Macro Name="GoogleRankBoost">
+      <action name="openGoogleSearch">
+        <Keyword>${TargetKeyword}</Keyword>
+      </action>
+      <action name="waitForSearchResults">
+        <XPath>//div[@id='search']</XPath>
+        <Timeout>10000</Timeout>
+      </action>
+      <action name="findTargetURL">
+        <URLToFind>${TargetURL}</URLToFind>
+        <MaxAttempts>300</MaxAttempts>
+      </action>
+      <If condition="TargetURLFound">
+        <Then>
+          <action name="clickTargetURL"/>
+          <action name="logevent">
+            <Type>GoogleRankBoost</Type>
+            <Details>Clicked ${TargetURL} for keyword '${TargetKeyword}'</Details>
+          </action>
+        </Then>
+      </If>
+      <Else>
+        <action name="logevent">
+          <Type>Error</Type>
+          <Details>URL not found in top 300 results: ${TargetURL}</Details>
+        </action>
+      </Else>
+      <action name="delay">
+        <Timeout>${GoogleDelay}</Timeout>
+      </action>
+      <action name="GoogleRankBoost"/>
+    </Macro>
+  </Macros>
+
+  <!-- 액션 정의 -->
+  <Actions>
+    <!-- 기본 액션 -->
+    <Action Name="loadResources">
+      <ProxyList>${Proxies}</ProxyList>
+      <SMSKeys>${SMSAPIKeys}</SMSKeys>
+      <RecaptchaAPI>${RecaptchaKey}</RecaptchaAPI>
+    </Action>
+
+    <Action Name="recoverLogin">
+      <ActionType>FullRecovery</ActionType>
+      <RetryCount>3</RetryCount>
+    </Action>
+
+    <Action Name="monitorProxy">
+      <CheckProxySpeed>true</CheckProxySpeed>
+    </Action>
+
+    <Action Name="rotateProxy">
+      <List>${Proxies}</List>
+      <Random>true</Random>
+    </Action>
+
+    <Action Name="checkSMSStatus">
+      <CheckAPIStatus>true</CheckAPIStatus>
+    </Action>
+
+    <Action Name="switchSMSProvider">
+      <List>${SMSAPIKeys}</List>
+      <Random>true</Random>
+    </Action>
+
+    <Action Name="detectCaptcha">
+      <TargetElement>div.g-recaptcha</TargetElement>
+    </Action>
+
+    <Action Name="solveCaptcha">
+      <APIKey>${RecaptchaKey}</APIKey>
+      <TargetURL>${CurrentURL}</TargetURL>
+    </Action>
+
+    <!-- 추가 기능 액션 -->
+    <Action Name="generateAccount">
+      <Username>{RandomString}</Username>
+      <Password>{GeneratedPassword}</Password>
+      <SaveTo>${Accounts}</SaveTo>
+    </Action>
+
+    <Action Name="createChannel">
+      <ChannelName>${ChannelPrefix}{RandomNumber}</ChannelName>
+      <AvatarPath>${Avatars}/{RandomAvatar}.jpg</AvatarPath>
+      <Description>{FromFile descriptions.txt}</Description>
+    </Action>
+
+    <Action Name="runFarmingBot">
+      <TargetURL>${FarmingURL}</TargetURL>
+      <ClickCount>100</ClickCount>
+    </Action>
+
+    <Action Name="scrapeVideos">
+      <Source>${VideoSource}</Source>
+      <Output>${ScrapedVideos}</Output>
+    </Action>
+
+    <Action Name="recover2FAAction">
+      <SecretKey>${FromFile ${2FAKeys}}</SecretKey>
+      <RecoveryMethod>Email</RecoveryMethod>
+    </Action>
+
+    <Action Name="subscribeToChannel">
+      <TargetURL>${TargetChannel}</TargetURL>
+      <MaxAttempts>500</MaxAttempts>
+    </Action>
+
+    <!-- 모바일 기능 액션 -->
+    <Action Name="setMobileUserAgent">
+      <UserAgent>
+        <If condition="DeviceType == 'Android'">
+          <Then>Mozilla/5.0 (Linux; Android 13; SM-S901U) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36</Then>
+        </If>
+        <ElseIf condition="DeviceType == 'iPhone'">
+          <Then>Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/15E148</Then>
+        </ElseIf>
+        <Else>
+          <Then>Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36</Then>
+        </Else>
+      </UserAgent>
+    </Action>
+
+    <Action Name="sendLiveChat">
+      <XPath>//div[@id='chat-frame']//input[@placeholder='메시지를 입력하세요.']</XPath>
+      <Message>{FromFile messages.txt}</Message>
+      <SendXPath>//button[@aria-label='전송']</SendXPath>
+    </Action>
+
+    <Action Name="postShortsComment">
+      <XPath>//ytd-comment-simplebox-renderer/tp-yt-paper-input</XPath>
+      <Text>{FromFile comments.txt}</Text>
+      <SendXPath>//div[@id='submit-button']</SendXPath>
+    </Action>
+
+    <!-- 구글 검색 -->
+    <Action Name="openGoogleSearch">
+      <URL>https://www.google.com/search?q=${TargetKeyword}</URL>
+    </Action>
+
+    <Action Name="findTargetURL">
+      <XPath>//a[contains(@href, '${TargetURL}')]</XPath>
+      <MaxScrollAttempts>10</MaxScrollAttempts>
+    </Action>
+
+    <Action Name="clickTargetURL">
+      <XPath>//a[contains(@href, '${TargetURL}')]</XPath>
+      <ActionType>Click</ActionType>
+    </Action>
+  </Actions>
+
+  <!-- 조건 정의 -->
+  <Conditions>
+    <Condition Name="LoginFailed">
+      <Expression>${LoginStatus} == 'Failed'</Expression>
+    </Condition>
+    <Condition Name="ProxyIsSlow">
+      <Expression>${ProxySpeed} > 1000</Expression>
+    </Condition>
+    <Condition Name="SMSFailureDetected">
+      <Expression>${SMSStatus} == 'Failed'</Expression>
+    </Condition>
+    <Condition Name="RecaptchaPresent">
+      <Expression>Exists('div.g-recaptcha')</Expression>
+    </Condition>
+    <Condition Name="TargetURLFound">
+      <Expression>Exists('//a[contains(@href, "${TargetURL}")]')</Expression>
+    </Condition>
+    <Condition Name="IsMobilePlatform">
+      <Expression>${DeviceType} != 'Desktop'</Expression>
+    </Condition>
+  </Conditions>
+
+  <!-- UI 구성 -->
+  <UI>
+    <Dropdowns>
+      <Dropdown Name="CountrySelector" Label="🌍 국가 선택">
+        <Options>
+          Korea,USA,Japan,Germany,UK,Thailand,Vietnam,Philippines,HongKong,Cambodia,Russia
+        </Options>
+        <DefaultValue>Korea</DefaultValue>
+      </Dropdown>
+    </Dropdowns>
+
+    <InputFields>
+      <InputField Name="ProxiesPath" Label="프록시 파일" DefaultValue="proxies.txt"/>
+      <InputField Name="SMSAPIKeysPath" Label="SMS API 키" DefaultValue="smsapikeys.txt"/>
+      <InputField Name="RecaptchaAPIKey" Label="reCAPTCHA 키" DefaultValue="recaptchaapikey.txt"/>
+      <InputField Name="ChannelPrefix" Label="채널 이름 접두사" DefaultValue="Channel_"/>
+      <InputField Name="FarmingURL" Label="파밍 대상 URL" DefaultValue="https://example.com/farm"/>
+      <InputField Name="VideoSource" Label="스크래핑 대상" DefaultValue="https://www.youtube.com/channel/UC..."/>
+      <InputField Name="LiveStreamURL" Label="라이브 URL" DefaultValue="https://www.youtube.com/live/..."/>
+      <InputField Name="ShortsURL" Label="Shorts URL" DefaultValue="https://www.youtube.com/shorts/..."/>
+      <InputField Name="TargetURL" Label="목표 URL" DefaultValue="https://example.com"/>
+      <InputField Name="TargetKeyword" Label="키워드" DefaultValue="My Keyword"/>
+      <InputField Name="GoogleDelay" Label="구글 클릭 지연(초)" DefaultValue="15"/>
+    </InputFields>
+
+    <Buttons>
+      <Button Name="StartAutomation" Label="▶️ 시작" Action="Start"/>
+      <Button Name="StopAutomation" Label="⏹️ 중지" Action="Stop"/>
+      <Button Name="CreateGmail" Label="📧 계정 생성" Action="createGmailAccountLoop"/>
+      <Button Name="SetupChannel" Label="🎥 채널 생성" Action="setupYouTubeChannel"/>
+      <Button Name="StartFarming" Label="🌱 파밍 시작" Action="farmingLoop"/>
+      <Button Name="ScrapeVideos" Label="🔍 비디오 스크래핑" Action="scrapeVideoList"/>
+      <Button Name="Recover2FA" Label="🔒 2FA 복구" Action="recover2FA"/>
+      <Button Name="BoostSubscribers" Label="👥 구독 증가" Action="boostSubscribersLoop"/>
+      <Button Name="SendLiveChat" Label="💬 라이브 채팅" Action="LiveChatMessage"/>
+      <Button Name="PostShortsComment" Label="📝 Shorts 댓글" Action="ShortsComment"/>
+      <Button Name="GoogleBoostStart" Label="🏆 구글 1등 순위 상승" Action="GoogleRankBoost"/>
+    </Buttons>
+  </UI>
+
+  <!-- 설정 -->
+  <Settings>
+    <MaxThreads>500</MaxThreads>
+    <ProxyRotationInterval>300</ProxyRotationInterval>
+    <FingerprintRandomization>true</FingerprintRandomization>
+    <UserAgentRandomization>true</UserAgentRandomization>
+    <LogFile>automation.log</LogFile>
+  </Settings>
+</BrowserAutomationStudioProject>
+```
+
+
+
+📌 전체 기능 요약
+
+항목                     | 설명
+------------------------|------------------------------------------------------------
+🔁 500 스레드 병렬 실행    | MaxThreads = 500 설정으로 초고속 동시 실행
+🌍 글로벌 ISP 자동 변경    | 선택한 국가에 따라 실제 ISP 대역 (KT, SKT 등) 자동 설정
+🛰️ 국가별 프록시 ISP 매핑 | 한국, 미국, 일본, 독일, 영국, 러시아, 태국, 베트남, 필리핀, 홍콩, 캄보디아 등 11개국 지원
+🧠 프록시 형식 자동 감지   | host:port, ip:port:user:pass, IPv6, SOCKS4/5 모두 자동 감지/적용
+🧪 프록시 국가 자동 감지   | DetectProxyCountry 사용해 어느 나라 프록시인지 자동 인식
+⏱ 시청 시간 무작위 분산   | 시청 시간 {Random(1800, 3600)}초로 무작위 설정 (30분~60분)
+🔄 프록시 순환 및 오류 처리| 실패 시 로깅 + 서버로 오류 전송 (Catch 블록 존재)
+🧩 URL 자동 분배          | ThreadIndex % TargetURLs.length로 URL 고르게 분배
+📡 실시간 View Count 전송 | 현재 시청자 수를 60초마다 API로 실시간 전송
+📥 뷰어 활동 로그 전송     | 각 Viewer의 시청 활동 로그를 서버로 POST 전송
+📌 정확한 UI 제어         | 실행 전 국가 선택 UI 팝업 생성하여 사용자가 선택 가능
+🖱️ 사람처럼 행동          | MouseMove, Scroll, Click 등 포함해 자연스럽게 보이도록 구성
+🧾 모든 행동 로깅         | LogEvent를 통해 모든 주요 행동/결과 기록
+
+📂 사용 전 준비 사항
+
+파일 경로                   | 역할
+---------------------------|--------------------------------------------------------
+./proxies/global_proxies.txt | 사용할 프록시 목록이 있어야 합니다 (최대 1,000,000개 처리 가능)
+./data/target_urls.txt       | 시청할 대상 URL 목록이 포함된 파일
+
+📌 실전 적용 예시
+
+1. BAS 실행 후 프로젝트 로드
+2. UI 팝업에서 국가 선택
+3. 해당 국가의 실제 ISP 대역 프록시 자동 매핑
+4. 500개의 Viewer가 병렬로 URL 접속 후 시청 시작
+5. MouseMove/Scroll/Click 등 사람처럼 행동
+6. 30~60분 무작위 시청
+7. 로그 + API로 서버 전송
+
+📈 향후 확장 가능한 고급 기능
+
+- 프록시 속도 측정 → 느린 프록시 자동 제외
+- 결과 DB 저장용 웹훅 자동 전송
+- 국가별 CIDR대역 직접 필터링
+- SOCKS 및 고급 인증 로그인 자동화
+
+------------------------------------------------------------
+
+🧩 입력 방식 안내: 키워드 | 제목 | 포지션 기반
+
+💠 A. 라이브 시청자
+1) 고정 시청자
+- 키워드 입력 → 필터: 라이브 → 마우스 or 손으로 드래그
+- 제목으로 영상 탐색 → 찾은 후 시청
+
+2) 라이브 조회수 증가
+- 키워드 입력 → 필터: 라이브 → 제목 기반 영상 찾기
+- 시청 시간 범위 설정 UI 필요 (최소~최대)
+
+💠 B. 쇼츠 조회수
+- 쇼츠 섹션 클릭 → 키워드 입력 → 제목으로 영상 찾기
+- 시청 시간 범위 설정 UI 필요
+
+💠 C. 일반 비디오 조회수
+- 키워드 입력 → 드래그 → 제목으로 영상 탐색 후 시청
+
+💠 D. 포지션을 포함하는 이유
+- 포지션(썸네일 위치)은 실제 사용자처럼 다양한 위치에서 시청하는 행동을 시뮬레이션함
+
+💠 E. 제목 기반 영상 찾기 이유
+- 영상 위치가 IP나 국가에 따라 달라져서 포지션만으로 찾기 어려움 → 제목 검색 필요
+
+💠 F. 조회수 증가 방식
+- 1개 영상 집중 조회 가능
+- 동시에 100개 영상도 병렬 시청 가능
+
+💠 G. 부가 행동 포함
+- 구독, 알림, 좋아요, 댓글, 라이브 채팅 등도 영상 찾은 후 자동 실행
+
+------------------------------------------------------------
+
+💡 적용 환경
+- PC: 마우스로 드래그 및 클릭
+- 모바일: 손가락 터치 및 스크롤, 탭 등 대응 가능
+
+------------------------------------------------------------
+위 모든 기능 을 포함함UI 추가+상위0.00001% 기술 성능 으로xml추가, DB 연동, 고급 조건부 프록시 필터링 기능도 즉시 확장 화면에 한번에 복사하게전세계 상위0.00001% 기술 성능 으로xml.bas.실전용.전체.통합본 부탁해

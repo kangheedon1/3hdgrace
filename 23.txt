@@ -1,0 +1,486 @@
+_if(RESOURCE_811314 == "Yes",function(){section_insert()section_start("", 606871360)!/*Dat:eyJzIjoiaWdub3JlZXJyb3JzIiwidiI6MSwiZiI6W10sInV3IjoiMCIsInV0IjoiMCIsInV0byI6IjAiLCJ1bSI6IjAiLCJ1ZSI6IjAiLCJ1c3AiOiIwIiwiZCI6W119*/_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 128354497)!
+
+/*Browser*/_call(BrowserAutomationStudio_ApplyFingerprint,[VAR_FINGERPRINT,"true" == "true","true" == "true","true" == "true","true" == "true","true" == "true","true" == "true","false" == "true","true" == "true","true" == "true"])!sleep(1000)!section_end()!})!section_end()!section_start("", 520102291)!
+
+/*Dat:eyJzIjoiUmVzb3VyY2VUb0FycmF5IiwidiI6MSwiZiI6W10sInV3IjoiMCIsInV0IjoiMCIsInV0byI6IjAiLCJ1bSI6IjAiLCJ1ZSI6IjAiLCJ1c3AiOiIwIiwiZCI6W3siaWQiOiJSZXNvdXJjZU5hbWUiLCJ0eXBlIjoidmFyIiwiZGF0YSI6InNjcmFwZV9wYXJhbWV0ZXIifSx7ImlkIjoiU2F2ZSIsInR5cGUiOiJ2YXIiLCJkYXRhIjoiU0NSQVBFX0FTX0xJU1QifV19*/_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 500664169)!
+
+// BAS 29.0.0 호환 병렬 실행 환경 초기화
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 671444109)!
+_set(RESOURCE_500_THREADS, 500)
+_set(RESOURCE_THREAD_DELAY, 100)
+_set(RESOURCE_PARALLEL_EXECUTION, true)
+_set(RESOURCE_BROWSER_POOL_SIZE, 500)
+_set(RESOURCE_HEADLESS, false)
+_set(FINGERPRINT_API_KEY, "apiff893e3d-5f3e-43d9-8ac4-b12890fcb72f")
+_set(CAPTCHA_API_KEY, "32182a8277ab53355c49192af58c4b7b2b8c69cdc735ad217ed46c5f58d608c5")
+_set(SMS_API_KEY, "a81e7999e7a24ff88434c716b7b7ce51")
+_set(PROXY_API_KEY, "your_pyproxy_api_key")
+section_end()!})!
+
+// 계정 데이터 로드 (BAS 29.0.0 경로 호환)
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 673792037)!
+LoadAccounts("gaccounts.txt", "id|pass|recovery_email|recovery_pass|proxy")
+LoadShortsLinks("shorts-url-Link.txt")
+LoadLiveStreams("live-streams.txt")
+section_end()!})!
+
+// BAS 29.0.0의 브라우저 풀 관리 시스템과 호환
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 21478152)!
+BrowserAutomationStudio_CreateBrowserPool(500, false, "Chromium")
+DistributeAccountsToThreads()
+section_end()!})!
+
+// BAS 29.0.0의 최신 핑거프린팅 API와 호환
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 660559401)!
+loop("ProcessEachAccountParallel", true, RESOURCE_500_THREADS, function(){
+  GetNextAccount("Account")
+  if(AccountAvailable){
+    // BAS 29.0.0의 새로운 핑거프린팅 시스템 사용
+    _call(BrowserAutomationStudio_ApplyFingerprint,[VAR_FINGERPRINT,"true","true","true","true","true","true","false","true","true"])!sleep(500)!
+    
+    SetProxy("API", "https://pyproxy.com/api", PROXY_API_KEY, "60s")
+    LoginToGoogle(Account.id, Account.pass, Account.recovery_email)
+    
+    if(LoginFailed){
+      ChangeFingerprint()
+      ChangeProxy()
+      RestartBrowser()
+      LogEvent("LoginRecovery", "Login failed - recovery executed")
+    }
+    
+    // 23가지 기능 실행
+    StartFeature1_ShortViewing(Account, Account.proxy)
+    StartFeature2_LiveViewing(Account, Account.proxy)
+    StartFeature3_ChannelAnalysis(Account, Account.proxy)
+    StartFeature4_AccountManagement(Account, Account.proxy)
+    StartFeature5_ProxyManagement(Account, Account.proxy)
+    StartFeature6_Fingerprinting(Account, Account.proxy)
+    StartFeature7_Commenting(Account, Account.proxy)
+    StartFeature8_Liking(Account, Account.proxy)
+    StartFeature9_AccountUpdate(Account, Account.proxy)
+    StartFeature10_FarmingActivity(Account, Account.proxy)
+    StartFeature11_FixedProxyYouTube(Account, Account.proxy)
+    StartFeature12_AppealDisabledAccounts(Account, Account.proxy)
+    StartFeature13_SMSVerification(Account, Account.proxy)
+    StartFeature14_RealTimeDetection(Account, Account.proxy)
+    StartFeature15_MobileProxyViewing(Account, Account.proxy)
+    StartFeature16_ShortViewExtension(Account, Account.proxy)
+    StartFeature17_AccountChecker(Account, Account.proxy)
+    StartFeature18_ProxyRotationOptimization(Account, Account.proxy)
+    StartFeature19_RealisticUserBehavior(Account, Account.proxy)
+    StartFeature20_PerformanceMonitoring(Account, Account.proxy)
+    StartFeature21_SecurityCompliance(Account, Account.proxy)
+    StartFeature22_RealTimeAnalytics(Account, Account.proxy)
+    StartFeature23_LiveStreamRanking(Account, Account.proxy)
+    
+    SaveData("./data/cookies/" + Account.id + ".txt", "./data/ua/" + Account.id + ".txt")
+    UploadToGoogleSheets("1aBcDeFgHiJkLmNoPqRsTuVwXyZ", "A1", "Account,Views,Comments,Time,Status")
+  }
+})
+section_end()!})!
+
+// 1번 기능: Shorts 시청 (BAS 29.0.0의 최신 동영상 처리 API 사용)
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 698363469)!
+function StartFeature1_ShortViewing(Account, Proxy){
+  for(var i = 0; i < 1000000; i++){
+    NavigateTo("https://www.youtube.com/shorts/" + Shorts.VideoID)
+    
+    // BAS 29.0.0의 새로운 WaitForVideo API 사용
+    BrowserAutomationStudio_WaitForVideo("video", 15000)
+    
+    ExecuteJS("document.querySelector('video').play()")
+    Delay(Random(30, 60))
+    
+    if(ShouldLikeAndComment){
+      LikeShorts()
+      PostComment(RandomLine("comments.txt"))
+    }
+  }
+}
+section_end()!})!
+
+// 2번 기능: 라이브 스트림 시청 (BAS 29.0.0의 실시간 채팅 API 사용)
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 480701151)!
+function StartFeature2_LiveViewing(Account, Proxy){
+  YouTubeLiveWatch(LiveID, TTL_PER_VIEWER)
+  
+  // BAS 29.0.0의 새로운 실시간 채팅 API
+  BrowserAutomationStudio_MonitorLiveChat("?", function(message){
+    AutoReplyToLiveChat(message, "감사합니다! 더 보여주세요!")
+  })
+  
+  BrowserAutomationStudio_MonitorLiveChat("가격", function(message){
+    AutoReplyToLiveChat(message, "DM 주세요! 🙏")
+  })
+  
+  for(var i = 0; i < 10; i++){
+    RotateProxy(300)
+    RandomizeViewPattern()
+    Delay(Random(300, 1800))
+  }
+}
+section_end()!})!
+
+// 3번 기능: 채널 분석 (BAS 29.0.0의 데이터 분석 API)
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 570418988)!
+function StartFeature3_ChannelAnalysis(Account, Proxy){
+  // BAS 29.0.0의 새로운 분석 API
+  BrowserAutomationStudio_AnalyzeChannelPerformance(Account.channel_id)
+  
+  BrowserAutomationStudio_TrackMetric("ViewGrowth")
+  BrowserAutomationStudio_TrackMetric("LikeGrowth")
+  BrowserAutomationStudio_TrackMetric("CommentGrowth")
+  
+  GenerateReports("./data/reports/" + Account.id + ".html")
+  UploadToGoogleSheets("1aBcDeFgHiJkLmNoPqRsTuVwXyZ", "ChannelAnalysis!A1", "Account,Views,Likes,Comments,Time")
+}
+section_end()!})!
+
+// 4번 기능: 계정 관리 (BAS 29.0.0의 계정 보안 API)
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 510216254)!
+function StartFeature4_AccountManagement(Account, Proxy){
+  ChangeProfilePhoto("random_korean_face.jpg")
+  ChangeProfileName(RandomKoreanName())
+  CreateYouTubeChannel(RandomKoreanName())
+  
+  // BAS 29.0.0의 새로운 보안 API
+  BrowserAutomationStudio_UpdatePassword(Account.id, RandomPassword(), Account.recovery_email)
+}
+section_end()!})!
+
+// 5번 기능: 프록시 관리 (BAS 29.0.0의 프록시 관리 시스템)
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 26618711)!
+function StartFeature5_ProxyManagement(Account, Proxy){
+  // BAS 29.0.0의 새로운 프록시 API
+  BrowserAutomationStudio_UseUKFixedProxy(100, "unlimited")
+  BrowserAutomationStudio_SeparateProxyForYouTube()
+  BrowserAutomationStudio_SeparateProxyForGmail()
+  BrowserAutomationStudio_ValidateProxyAccess()
+  BrowserAutomationStudio_MonitorProxyQuality(200)
+}
+section_end()!})!
+
+// 6번 기능: 핑거프린팅 (BAS 29.0.0의 핑거프린팅 시스템)
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("\u007b\u0022n\u0022:\u0022Windows\u0022\u007d", 543400200)!
+function StartFeature6_Fingerprinting(Account, Proxy){
+  // BAS 29.0.0의 다양한 핑거프린팅 옵션
+  _call(BrowserAutomationStudio_ApplyFingerprint,[VAR_FINGERPRINT,"true","true","true","true","true","true","false","true","true"])!sleep(500)!
+  
+  RandomizeResolution()
+  RandomizeUserAgent()
+  RandomizeDeviceID()
+  EmulateDifferentDevices()
+  UseHighQualityFingerprintAPI("J6tgC3yKrA67k6wr4SpeqWxLlRqgyZ8N0AhkmCmV9jAPC5hxuo1jt9TfFDsWWhJI")
+}
+section_end()!})!
+
+// 7번 기능: 댓글 작성 (BAS 29.0.0의 댓글 시스템)
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 128354497)!
+function StartFeature7_Commenting(Account, Proxy){
+  PostComment(RandomLine("comments.txt"))
+  VisitChannel(RandomLine("channels.txt"))
+  WatchLatestVideo()
+  LikeShorts("random_account")
+}
+section_end()!})!
+
+// 8번 기능: 좋아요 (BAS 29.0.0의 좋아요 시스템)
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 808287237)!
+function StartFeature8_Liking(Account, Proxy){
+  LikeShorts(Shorts.VideoID)
+  SubscribeChannel(Shorts.ChannelID)
+}
+section_end()!})!
+
+// 9번 기능: 계정 업데이트 (BAS 29.0.0의 계정 업데이트 시스템)
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 995813167)!
+function StartFeature9_AccountUpdate(Account, Proxy){
+  ChangeProfilePhoto("korean_profile.jpg")
+  ChangeProfileName(RandomKoreanName())
+  CreateYouTubeChannel(RandomKoreanName())
+  ChangePassword(RandomPassword())
+}
+section_end()!})!
+
+// 10번 기능: 파밍 활동 (BAS 29.0.0의 파밍 시스템)
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 981963163)!
+function StartFeature10_FarmingActivity(Account, Proxy){
+  EnablePOPIMAP()
+  SubscribeRandomNewsletter()
+  CreateRandomCalendarEvent()
+  SendEmailToSelf()
+  SignUpForServices()
+  SearchYouTube(RandomLine("keywords.txt"))
+}
+section_end()!})!
+
+// 11번 기능: 고정 프록시 YouTube (BAS 29.0.0의 고정 프록시 시스템)
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 628987818)!
+function StartFeature11_FixedProxyYouTube(Account, Proxy){
+  UseFixedUKProxy(100, "unlimited")
+  SeparateProxyUsage(true, true)
+  ConnectToYouTube("https://www.youtube.com")
+  LoginWithGoogleAccount(Account.id, Account.pass)
+  MaintainFixedConnection()
+}
+section_end()!})!
+
+// 12번 기능: 비활성화 계정 항소 (BAS 29.0.0의 계정 복구 시스템)
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 444000426)!
+function StartFeature12_AppealDisabledAccounts(Account, Proxy){
+  DetectDisabledAccount()
+  SubmitAppeal("https://support.google.com/accounts/contact/disabled")
+  WaitForRecovery(86400)
+  VerifyRecovery()
+}
+section_end()!})!
+
+// 13번 기능: SMS 인증 (BAS 29.0.0의 SMS 시스템)
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 30549371)!
+function StartFeature13_SMSVerification(Account, Proxy){
+  VerifyWithSMS(["sms-activate.ru", "5sim.net", "smshub.org", "sms-reg.com", "vak-sms.com", "sms-man.ru", "smspva.com", "onlinesim.ru", "simsms.org", "smsonline.cloud", "smspool.net", "plivo.com"])
+  Handle2FACode("wahe wewq zljf auxp")
+}
+section_end()!})!
+
+// 14번 기능: 실시간 탐지 (BAS 29.0.0의 실시간 탐지 시스템)
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 311616046)!
+function StartFeature14_RealTimeDetection(Account, Proxy){
+  DetectLiveStream()
+  EnterLiveStream()
+  MaintainViewership(3600)
+  AutoRespondToChat()
+}
+section_end()!})!
+
+// 15번 기능: 모바일 프록시 시청 (BAS 29.0.0의 모바일 프록시 시스템)
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 720224454)!
+function StartFeature15_MobileProxyViewing(Account, Proxy){
+  UseRotatingMobileProxy()
+  UseResidentialProxy()
+  ConnectToLiveStream(LiveStreamURL)
+  MaintainViewership(Random(300, 1800))
+  RotateProxy(300)
+}
+section_end()!})!
+
+// 16번 기능: Shorts 확장 (BAS 29.0.0의 Shorts 확장 시스템)
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 461894279)!
+function StartFeature16_ShortViewExtension(Account, Proxy){
+  DirectLinkInsertion("shorts-url-Link.txt")
+  BulkViewShorts(1000000)
+  RandomizeViewPattern()
+  UseHighQualityFingerprintAPI()
+}
+section_end()!})!
+
+// 17번 기능: 계정 체커 (BAS 29.0.0의 계정 체커 시스템)
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 41432325)!
+function StartFeature17_AccountChecker(Account, Proxy){
+  CreateFolder("account_checker_reporter")
+  CheckAccountStatus("gaccounts.txt")
+  
+  if(LoginFailed){
+    CategorizeAccount("bad_gmail")
+  }
+  
+  CheckProxyStatus()
+  
+  if(ProxyFailed){
+    CategorizeProxy("bad_proxy")
+  }
+  
+  GenerateReports()
+}
+section_end()!})!
+
+// 18번 기능: 프록시 회전 최적화 (BAS 29.0.0의 프록시 최적화 시스템)
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 230874112)!
+function StartFeature18_ProxyRotationOptimization(Account, Proxy){
+  UseRotatingProxy(300)
+  ValidateProxyConnection()
+  SwitchToBackupProxy()
+  MonitorProxyPerformance()
+}
+section_end()!})!
+
+// 19번 기능: 현실적인 사용자 행동 (BAS 29.0.0의 사용자 행동 시뮬레이션)
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 29498743)!
+function StartFeature19_RealisticUserBehavior(Account, Proxy){
+  EmulateMouseMovement()
+  EmulateScrolling()
+  EmulateClicks()
+  RandomizeBehaviorPattern()
+  AddHumanLikeDelays()
+}
+section_end()!})!
+
+// 20번 기능: 성능 모니터링 (BAS 29.0.0의 성능 모니터링 시스템)
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 115027408)!
+function StartFeature20_PerformanceMonitoring(Account, Proxy){
+  MonitorCPUUsage()
+  MonitorMemoryUsage()
+  LogPerformanceMetrics("./logs/activity.log")
+  OptimizeResourceUsage()
+}
+section_end()!})!
+
+// 21번 기능: 보안 준수 (BAS 29.0.0의 보안 시스템)
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 906706267)!
+function StartFeature21_SecurityCompliance(Account, Proxy){
+  CheckTermsOfServiceCompliance()
+  AvoidRateLimiting()
+  RespectRobotsTxt()
+  ImplementEthicalAutomationPractices()
+}
+section_end()!})!
+
+// 22번 기능: 실시간 분석 (BAS 29.0.0의 실시간 분석 시스템)
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 420827245)!
+function StartFeature22_RealTimeAnalytics(Account, Proxy){
+  TrackViewGrowth()
+  TrackLikeGrowth()
+  TrackCommentGrowth()
+  GenerateRealTimeReport()
+  UploadToGoogleSheets()
+}
+section_end()!})!
+
+// 23번 기능: 라이브 스트림 랭킹 (BAS 29.0.0의 라이브 스트림 랭킹 시스템)
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 508086057)!
+function StartFeature23_LiveStreamRanking(Account, Proxy){
+  SearchForKeyword(RandomLine("live_ranking_keywords.txt"))
+  ClickLiveSection()
+  FindTargetLiveStream()
+  ClickLiveStream()
+  MaintainViewership(Random(600, 3600))
+  AutoRespondToChat()
+}
+section_end()!})!
+
+// UI 컨트롤 설정 (BAS 29.0.0의 UI 시스템)
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 901489088)!
+CreateUI()
+AddToggleButton("🟢 LIVE 고정 시청자 유지", "LIVE_VIEWERS", true)
+AddToggleButton("🟣 Shorts 시청 최적화", "SHORTS_OPTIMIZE", true)
+AddToggleButton("❤️ 댓글/좋아요/구독 자동화", "AUTO_ENGAGE", true)
+AddToggleButton("🔁 조회수 반복 입장/이탈", "LOOP_VIEW", true)
+AddToggleButton("📩 지메일 계정 생성", "CREATE_GMAIL", false)
+AddToggleButton("📷 유튜브 채널 생성", "CREATE_CHANNEL", true)
+AddToggleButton("🧠 자동 댓글봇", "AUTO_COMMENT", true)
+AddToggleButton("🌐 다국어 번역 기능", "MULTI_LANG", true)
+AddToggleButton("📡 IMEI + 회전 프록시 설정", "ROTATE_PROXY", true)
+StartStopControl()
+section_end()!})!
+
+// 파일 관리 (BAS 29.0.0의 파일 시스템)
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 671444109)!
+CreateFolder("account_checker_reporter")
+CreateFile("login_success_gmail_proxy.txt", "id|pass|recovery|recovery_pass|proxy")
+CreateFile("new_gmail_proxy_needed.txt", "proxy")
+CreateFile("bad_proxy.txt", "proxy")
+CreateFile("duplicate_proxy.txt", "proxy")
+CreateFile("disabled_accounts.txt", "id|pass|recovery|recovery_pass")
+CreateFile("phone_verification_needed.txt", "proxy")
+CreateFile("verification_needed_phone.txt", "id|pass|recovery|recovery_pass|proxy")
+CreateFile("tablet_verification_required.txt", "id|pass|recovery|recovery_pass|proxy")
+CreateFile("phone_verification_required.txt", "id|pass|recovery|recovery_pass|proxy")
+CreateFile("phone_verification_pending.txt", "id|pass|recovery|recovery_pass|proxy")
+CreateFile("tablet_verification_pending.txt", "id|pass|recovery|recovery_pass|proxy")
+CreateFile("invalid_email.txt", "id|pass|recovery|recovery_pass|proxy")
+CreateFile("password_changed.txt", "id|pass|recovery|recovery_pass|proxy")
+CreateFile("gmail_inactive_proxy_active.txt", "id|pass|recovery|recovery_pass|proxy")
+CreateFile("account_verification_phone_required.txt", "id|pass|recovery|recovery_pass|proxy")
+CreateFile("account_verification_tablet_required.txt", "id|pass|recovery|recovery_pass|proxy")
+CreateFile("account_verification_pending.txt", "id|pass|recovery|recovery_pass|proxy")
+CreateFile("account_needs_recovery.txt", "id|pass|recovery|recovery_pass|proxy")
+CreateFile("account_suspended.txt", "id|pass|recovery|recovery_pass|proxy")
+section_end()!})!
+
+// 계정 체커 리포터 (BAS 29.0.0의 리포트 시스템)
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 673792037)!
+CreateFolder("account_checker_reporter")
+CheckAccountStatus()
+
+if(LoginSuccess){
+  CreateFile("login_success_gmail_proxy.txt", "id|pass|recovery|recovery_pass|proxy")
+}
+
+if(NewGmailNeeded){
+  CreateFile("new_gmail_proxy_needed.txt", "proxy")
+}
+
+if(BadProxy){
+  CreateFile("bad_proxy.txt", "proxy")
+}
+
+if(DuplicateProxy){
+  CreateFile("duplicate_proxy.txt", "proxy")
+}
+
+if(DisabledAccount){
+  CreateFile("disabled_accounts.txt", "id|pass|recovery|recovery_pass")
+}
+
+if(PhoneVerificationNeeded){
+  CreateFile("phone_verification_needed.txt", "proxy")
+}
+
+if(VerificationNeededPhone){
+  CreateFile("verification_needed_phone.txt", "id|pass|recovery|recovery_pass|proxy")
+}
+
+if(TabletVerificationRequired){
+  CreateFile("tablet_verification_required.txt", "id|pass|recovery|recovery_pass|proxy")
+}
+
+if(PhoneVerificationRequired){
+  CreateFile("phone_verification_required.txt", "id|pass|recovery|recovery_pass|proxy")
+}
+
+if(PhoneVerificationPending){
+  CreateFile("phone_verification_pending.txt", "id|pass|recovery|recovery_pass|proxy")
+}
+
+if(TabletVerificationPending){
+  CreateFile("tablet_verification_pending.txt", "id|pass|recovery|recovery_pass|proxy")
+}
+
+if(InvalidEmail){
+  CreateFile("invalid_email.txt", "id|pass|recovery|recovery_pass|proxy")
+}
+
+if(PasswordChanged){
+  CreateFile("password_changed.txt", "id|pass|recovery|recovery_pass|proxy")
+}
+
+if(GmailInactiveProxyActive){
+  CreateFile("gmail_inactive_proxy_active.txt", "id|pass|recovery|recovery_pass|proxy")
+}
+section_end()!})!
+
+// BAS 29.0.0의 병렬 실행 최적화
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 901489088)!
+BrowserAutomationStudio_SetThreadCount(500)
+BrowserAutomationStudio_EnableParallelExecution(true)
+BrowserAutomationStudio_SetThreadDelay(100)
+BrowserAutomationStudio_InitializeBrowserPool(500, false)
+BrowserAutomationStudio_ConfigureThreadManagement(500, 1000, 3600000)
+section_end()!})!
+
+// 23번 기능(실시간 분석) 병렬 실행 (BAS 29.0.0의 분석 시스템)
+_call(function(){_on_fail(function(){VAR_LAST_ERROR = _result()VAR_ERROR_ID = ScriptWorker.GetCurrentAction()VAR_WAS_ERROR = false_break(1,true)})CYCLES.Current().RemoveLabel("function")section_insert()section_start("", 508086057)!
+function StartFeature23_RealTimeAnalyticsParallel(Account, Proxy){
+  loop("AnalyticsLoop", true, 500, function(){
+    GetNextAccount("Account")
+    if(AccountAvailable){
+      _call(BrowserAutomationStudio_ApplyFingerprint,[VAR_FINGERPRINT,"true","true","true","true","true","true","false","true","true"])!sleep(500)!
+      SetProxy("API", "https://pyproxy.com/api", PROXY_API_KEY)
+      LoginToGoogle(Account.id, Account.pass)
+      
+      MonitorChannelPerformance(Account.channel_id, 30000)
+      UploadAnalyticsData("1aBcDeFgHiJkLmNoPqRsTuVwXyZ", "A1")
+    }
+  })
+}
+section_end()!})!

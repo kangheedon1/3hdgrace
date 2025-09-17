@@ -1,0 +1,195 @@
+<macro name="AssignGenderToEduEmail">
+  <action name="SetVariable">
+    <Variable>UserGender</Variable>
+    <Value>{RandomItem('남성', '여성')}</Value>
+  </action>
+  <action name="SetVariable">
+    <Variable>GenderAvatarFolder</Variable>
+    <Value>./data/avatars/{UserGender}/</Value>
+  </action>
+  <action name="SetVariable">
+    <Variable>GenderDisplayName</Variable>
+    <Value>{RandomKoreanName({UserGender})}</Value>
+  </action>
+  <action name="Navigate">
+    <Url>https://myaccount.google.com/profile</Url>
+  </action>
+  <action name="WaitFor">
+    <Selector>#profile-name</Selector>
+    <Timeout>10000</Timeout>
+  </action>
+  <action name="Type">
+    <Selector>#profile-name input</Selector>
+    <Text>{GenderDisplayName}</Text>
+  </action>
+  <action name="Click">
+    <Selector>#profile-photo-button</Selector>
+  </action>
+  <action name="Delay">
+    <Min>1000</Min>
+    <Max>2000</Max>
+  </action>
+  <action name="SetVariable">
+    <Variable>SelectedAvatar</Variable>
+    <Value>{RandomLine('{GenderAvatarFolder}*.jpg')}</Value>
+  </action>
+  <action name="UploadFile">
+    <Selector>input[type='file']</Selector>
+    <Path>{SelectedAvatar}</Path>
+  </action>
+  <action name="LogEvent">
+    <Type>GenderProfile</Type>
+    <Details>에듀지메일 → {UserGender} 프로필 적용됨: {GenderDisplayName}</Details>
+  </action>
+</macro>
+
+<macro name="Report_GenerateFiles">
+  <action name="CreateFolder">
+    <Name>account_checker_reporter</Name>
+  </action>
+  <If condition="LoginSuccess">
+    <Then>
+      <action name="CreateFile">
+        <Name>login_success_gmail_proxy.txt</Name>
+        <Header>id|pass|recovery|recovery_pass|proxy</Header>
+        <Data>{Account.id}|{Account.pass}|{Account.recovery_email}|{Account.recovery_pass}|{CURRENT_PROXY}</Data>
+      </action>
+    </Then>
+  </If>
+  <If condition="BadProxy">
+    <Then>
+      <action name="CreateFile">
+        <Name>bad_proxy.txt</Name>
+        <Header>proxy</Header>
+        <Data>{CURRENT_PROXY}</Data>
+      </action>
+    </Then>
+  </If>
+  <If condition="DisabledAccount">
+    <Then>
+      <action name="CreateFile">
+        <Name>disabled_accounts.txt</Name>
+        <Header>id|pass|recovery|recovery_pass</Header>
+        <Data>{Account.id}|{Account.pass}|{Account.recovery_email}|{Account.recovery_pass}</Data>
+      </action>
+    </Then>
+  </If>
+  <If condition="PhoneVerificationNeeded">
+    <Then>
+      <action name="CreateFile">
+        <Name>phone_verification_needed.txt</Name>
+        <Header>id|pass|recovery|recovery_pass|proxy</Header>
+        <Data>{Account.id}|{Account.pass}|{Account.recovery_email}|{Account.recovery_pass}|{CURRENT_PROXY}</Data>
+      </action>
+    </Then>
+  </If>
+  <If condition="InvalidEmail">
+    <Then>
+      <action name="CreateFile">
+        <Name>invalid_email.txt</Name>
+        <Header>id|pass|recovery|recovery_pass</Header>
+        <Data>{Account.id}|{Account.pass}|{Account.recovery_email}|{Account.recovery_pass}</Data>
+      </action>
+    </Then>
+  </If>
+</macro>
+<!-- === [이모지 UI] 핵심 기능 버튼 === -->
+<action name="AddSeparator"/>
+<action name="AddLabel">
+  <Text>🔧 핵심 기능 제어</Text>
+  <FontSize>12</FontSize>
+  <Color>0x0000FF</Color>
+</action>
+
+<!-- 성별 프로필 적용 -->
+<action name="AddButton">
+  <Label>👤 프로필 성별 적용</Label>
+  <OnClick>
+    <call macro="AssignGenderToEduEmail"/>
+  </OnClick>
+</action>
+
+<!-- SMS 인증 요청 -->
+<action name="AddButton">
+  <Label>📱 SMS 인증 요청</Label>
+  <OnClick>
+    <call macro="Gmail_RequestSMSVerification"/>
+  </OnClick>
+</action>
+
+<!-- 연령 제한 우회 -->
+<action name="AddButton">
+  <Label>🔞 성인 콘텐츠 우회</Label>
+  <OnClick>
+    <call macro="BypassAgeRestriction"/>
+  </OnClick>
+</action>
+
+<!-- 구독 유지 전략 -->
+<action name="AddButton">
+  <Label>📌 구독 유지 전략</Label>
+  <OnClick>
+    <call macro="PreventSubscriptionRemoval"/>
+  </OnClick>
+</action>
+
+<!-- 인간 행동 시뮬레이션 -->
+<action name="AddButton">
+  <Label>🧍 인간 행동 시뮬레이션</Label>
+  <OnClick>
+    <call macro="UltraHumanViewSimulation"/>
+  </OnClick>
+</action>
+
+<!-- 보안 검사 처리 -->
+<action name="AddButton">
+  <Label>🛡️ 보안 검사 자동 처리</Label>
+  <OnClick>
+    <call macro="Gmail_CheckSecurityPrompt"/>
+  </OnClick>
+</action>
+
+<!-- 계정 정지 항소 -->
+<action name="AddButton">
+  <Label>⚖️ 계정 정지 항소</Label>
+  <OnClick>
+    <call macro="Gmail_AppealDisabledAccount"/>
+  </OnClick>
+</action>
+
+<!-- 활동 로그 유지 -->
+<action name="AddButton">
+  <Label>📊 활동 기록 유지</Label>
+  <OnClick>
+    <call macro="ForceMaintainActivityLogs"/>
+  </OnClick>
+</action>
+
+<!-- 파일 생성 리포트 -->
+<action name="AddButton">
+  <Label>📁 오류 파일 생성</Label>
+  <OnClick>
+    <call macro="Report_GenerateFiles"/>
+  </OnClick>
+</action>
+<!-- === [이모지 설명 팝업] === -->
+<action name="AddInfoMessage">
+  <Message>👤 프로필 성별 적용: 계정을 남성/여성 프로필로 자연스럽게 설정합니다.</Message>
+  <Title>ℹ️ 기능 설명</Title>
+</action>
+<action name="AddInfoMessage">
+  <Message>📱 SMS 인증 요청: SMS-Activate를 통해 휴대전화 인증을 자동 처리합니다.</Message>
+  <Title>ℹ️ 기능 설명</Title>
+</action>
+<action name="AddInfoMessage">
+  <Message>🔞 성인 콘텐츠 우회: YouTube 연령 제한을 우회하여 시청 가능하게 합니다.</Message>
+  <Title>ℹ️ 기능 설명</Title>
+</action>
+<action name="AddInfoMessage">
+  <Message>📌 구독 유지 전략: 구독 후 바로 시청하여 구독 해제를 방지합니다.</Message>
+  <Title>ℹ️ 기능 설명</Title>
+</action>
+<action name="AddInfoMessage">
+  <Message>🧍 인간 행동 시뮬레이션: 마우스 이동, 스크롤, 일시정지 등을 통해 인간처럼 보입니다.</Message>
+  <Title>ℹ️ 기능 설명</Title>
+</action>

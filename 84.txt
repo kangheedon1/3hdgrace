@@ -1,0 +1,479 @@
+명령한다
+
+
+나는 리팩토링 과정에서 기능을 삭제하거나 죽이는 걸 절대 원하지 않습니다.  
+모든 기존 기능 + 124개 신규 기능을 하나도 빠짐없이 전부 살려서,  
+실행 가능한 상태로 바스29.0.0 버젼 에서 정상 작동 하도록 리팩토링해야 합니다.  
+
+=== 리팩토링 원칙 ===
+1. 기존 기능 100% 보존  
+   - 원본 XML(HDGRACE-BAS_-2025-8-18-수정전XML.txt)에 있는 기능들은 오류가 있더라도 절대 삭제하지 말고,  
+     태그 불일치/잘못된 시작 태그/닫힘 없는 태그 등 모든 오류를 수정해서 정상 작동하도록 복원해야 합니다.
+
+2. 신규 기능 124개 전부 통합  
+   - “124개기능.txt”에 있는 모든 기능을 반드시 추가합니다.  
+   - 기존 기능과 충돌할 경우, 기존 기능을 살려두고 신규 기능을 병합하여 두 기능 모두 실행 가능하게 구성해야 합니다.  
+   - 어떤 기능도 누락되면 안 됩니다.
+
+3. 안 되는 기능도 무조건 살린다  
+   - 현재 오류가 있거나 실행되지 않는 기능이라도, 리팩토링 과정에서 반드시 수정하여 정상 동작하도록 만들어야 합니다.  
+   - 절대 주석 처리하거나 삭제하지 말고, 반드시 살려서 완전하게 동작하도록 보완해야 합니다.
+
+4. UI 버튼/이모지/카테고리 반영  
+   - “기존+추가 UI 버튼_이모지_큰_카테고리별.txt”에 정의된 대로,  
+     모든 기능을 카테고리별로 정리하고, UI 버튼/이모지에 연결시켜야 합니다.  
+   - 최종 결과물에서 모든 기능이 UI 상에서 접근 가능해야 합니다.
+
+5. 최종 산출물  
+   - production-ready bas.xml (주석 포함, 모든 기능 반영)  
+   - bas.min.xml (옵션: 공백/주석 최소화)  
+   - Reports/validation_{timestamp}.json (수정 전/후 오류 통계 및 검증 결과)  
+   - execution_summary.txt, metadata.json (최종 실행 요약 및 메타데이터)  
+   - 모든 124기능이 동작 가능해야 하며, “제외/삭제/비활성화된 기능”이 있으면 안 됩니다.
+
+=== 오류 현황 (원본 기준) ===
+- 총 오류: 59,246건  
+  • mismatched_tag(여닫이 불일치): 36,737건  
+  • malformed_starttag(잘못된 시작 태그): 22,505건  
+  • stray_closing_tag(짝 없는 닫힘 태그): 4건  
+
+이 오류들은 전부 수정해서 기능을 살린 상태로 반영해야 합니다.
+
+=== 목표 ===
+- 기존 기능: 100% 복원 및 정상 작동  
+- 신규 기능: 124개 전부 통합 및 실행 가능  
+- UI: 기존+추가 버튼/이모지 카테고리 전부 반영  
+- 최종 결과물: 모든 기능이 정상 작동하는 production-ready bas.xml
+
+=== 중요 요구사항 ===
+- 기능 삭제 금지  
+- 기능 주석 처리 금지  
+- 실행 불가 기능 방치 금지  
+- 모든 기능을 무조건 살려서 정상 작동하도록 리팩토링
+
+
+
+
+=======================
+
+기능 리스트-실전 연구용- 100프로 실전용 으로 작동하도록 해야 합니다
+
+---
+
+## ✅ **HDGRACE YouTube Booster – 124개 기능 상세 목록
+
+---
+
+### 🟢 1. 라이브 스트리밍 관리 (12개)
+
+1. 고정 시청자 500명 유지 – 500개 브라우저로 24시간 라이브 시청자 유지
+2. 조회수 반복 입장/이탈 – 조회수 증가를 위한 반복 시청/이탈
+3. 라이브 방송 자동 시청 – 특정 라이브 방송 자동 시청
+4. 동시시청자 유지 – 여러 라이브 방송 동시 시청
+5. 조회수 + 시청자 동시 증가 – 조회수와 시청자 수 동시 향상
+6. 라이브 스트림 조회수 증가 – 라이브 조회수 알고리즘 기반 증가
+7. LIVE 고정 시청자 유지 – 라이브 시청자 자동 유지
+8. Shorts 시청 최적화 – 쇼츠 시청 최적화 알고리즘
+9. 댓글/좋아요/구독 자동화 – 라이브 방송 내 자동 상호작용
+10. 키워드 1등 만들기 – 키워드 검색 시 1등 순위로 노출
+11. 고정 시청자 시스템_ElitePlus – 고급 고정 시청자 시스템
+12. 조회수 유입 알고리즘 – 자연스러운 조회수 유입 시뮬레이션
+
+---
+
+### 📱 2. 쇼츠 및 동영상 관리 (10개)
+
+13. Shorts 시청 최적화 – 쇼츠 자동 시청 최적화
+14. 모바일프록시 자동 전환 – 모바일 디바이스 유형으로 프록시 전환
+15. 고정 프록시 및 Google 계정 없이 – 프록시 고정 사용
+16. IMEI + 회전 프록시 설정 – IMEI 기반 프록시 회전
+17. 영상 반복 재생 알고리즘 – 동영상 반복 재생
+18. 키워드 기반 검색 및 유입 시청 – 키워드 검색 후 자동 시청
+19. 키워드 순위 개선 – 키워드 순위 상승
+20. 일반 영상 자동 시청 – 일반 유튜브 영상 자동 시청
+21. 쇼츠 자동 시청 – 쇼츠 영상 자동 시청
+22. 타겟 채널 방문 – 특정 채널 자동 방문
+
+---
+
+### 📧 3. 지메일 계정 관리 (12개)
+
+23. 지메일 계정 생성 – Gmail 자동 계정 생성
+24. 지메일 보안 설정 – 2단계 인증, 복구 이메일 설정
+25. 지메일 복구 이메일 설정 – 복구 이메일 자동 등록
+26. 지메일 비밀번호 변경 – 비밀번호 자동 변경
+27. 계정 복구 이메일/전화번호 설정 – 복구 정보 설정
+28. 지메일 보안 설정 (2차 인증 등) – 보안 강화 설정
+29. 지메일 프로필 이미지/채널명 설정 – 프로필 사진 및 이름 변경
+30. 유튜브 채널 생성 – 유튜브 채널 자동 생성
+31. 계정 생성 후 초기화 프로필 – 계정 생성 후 프로필 설정
+32. 계정 비활성화 항소 – 비활성화된 계정 자동 항소
+33. SMS 인증 자동화 – SMS 인증 코드 자동 입력
+34. 계정 정보 파싱 및 검증 – 계정 데이터 형식 검증
+
+---
+
+### 🛠 4. 자동화 및 상호작용 (10개)
+
+35. 자동 댓글봇 – 랜덤 댓글 자동 작성
+36. 자동 구독 관리 – 채널 자동 구독
+37. 스케줄된 시청 시간 – 특정 시간대 시청 예약
+38. 자동 재시작 설정 – 오류 발생 시 자동 재시작
+39. 좋아요/댓글/구독 자동화 – 자동 상호작용
+40. 자동 시청 시간 설정 – 시청 시간 랜덤화
+41. 자동 활동 저장 – 활동 기록 자동 저장
+42. 자동 신고 기능 – 경쟁 채널 자동 신고
+43. 자동 다운로드 기능 – 영상 자동 다운로드
+44. 자동 업로드 기능 – 영상 자동 업로드
+
+---
+
+### 🌐 5. 프록시 및 네트워크 (14개)
+
+45. IMEI + 회전 프록시 설정 – IMEI 기반 프록시 회전
+46. 회전 프록시 관리 – 프록시 자동 회전
+47. 고정 프록시 사용 – 특정 프록시 고정 사용
+48. 세션 중 IP 변경 금지 – 세션 유지 중 IP 고정
+49. IP 연결 상태 확인 – IP 연결 상태 실시간 확인
+50. ISP별 프록시 할당 – ISP(통신사)별 프록시 선택
+51. 무료 프록시 할당 – 국가별 무료 프록시 할당
+52. 필리핀 무료 프록시 선택 – 필리핀 지역 무료 프록시
+53. 영국 무료 프록시 선택 – 영국 지역 무료 프록시
+54. 베트남 무료 프록시 선택 – 베트남 지역 무료 프록시
+55. 태국 무료 프록시 선택 – 태국 지역 무료 프록시
+56. 프록시 연결 상태 확인 – 프록시 연결 테스트
+57. 프록시 풀 새로고침 – 외부 API에서 프록시 새로 가져오기
+58. CIDR 필터링 – CIDR 대역대 기반 프록시 필터링
+
+---
+
+### 🔒 6. 보안 및 탐지 방지 (12개)
+
+59. 탐지 방지 모드 – 지문 스푸핑 + WebDriver 숨김
+60. 블랙리스트 회피 – 감지 시 프록시/지문 변경
+61. 보안 상태 모니터링 – 실시간 보안 상태 확인
+62. 예외 처리 설정 – 오류 발생 시 예외 처리
+63. AI 보호 모드 – AI 기반 탐지 회피
+64. 지문 무작위화 – Canvas, WebGL, AudioContext 무작위화
+65. 터치 이벤트 조작 – 터치 이벤트 시뮬레이션
+66. 타임존 조작 – 타임존 랜덤 변경
+67. 랜덤 해상도 및 User-Agent – 화면 해상도 및 UA 변경
+68. 캡차 감지 및 해결 – 캡차 자동 감지 및 해결
+69. 계정 상태 실시간 모니터링 – 계정 로그인 상태 확인
+70. 프록시 품질 테스트 – 프록시 속도 및 안정성 테스트
+
+---
+
+
+---
+
+## ✅ HDGRACE YouTube Booster – 124개 기능 상세 목록 (계속)
+
+---
+
+### 📊 7. 데이터 분석 및 모니터링 (10개)
+
+71. 실시간 분석 차트 – 활동 시청자, 계정 수, 프록시 수 실시간 표시
+72. 성과 보고서 생성 – 실행 결과 요약 보고서 자동 생성
+73. 데이터 시각화 – 그래프 및 차트로 데이터 표현
+74. 성능 모니터링 – 시스템 성능 실시간 확인
+75. 구글 순위 상승 시작 – 키워드 순위 상승 모니터링
+76. 계정 상태 실시간 모니터링 – 계정 로그인 상태 확인
+77. 프록시 품질 실시간 모니터링 – 프록시 속도 및 안정성 확인
+78. 브라우저 성능 모니터링 – 메모리/CPU 사용률 확인
+79. 오류 로그 분석 – 오류 발생 패턴 분석
+80. 시스템 리소스 모니터링 – 전체 시스템 자원 사용 현황
+
+---
+
+### ⚙️ 8. 시스템 설정 및 UI (14개)
+
+81. 시스템 설정 UI – 토글, 입력 필드 포함된 설정 화면
+82. PyProxy 설정 – PyProxy API 키 및 호스트 설정
+83. 언어 선택 – 다국어 지원 (한국어, 영어, 일본어, 베트남어)
+84. 테마 설정 – 다크모드/라이트모드 선택
+85. 폰트 크기 조절 – UI 폰트 크기 조절
+86. 단축키 설정 – 사용자 정의 단축키
+87. UI 레이아웃 커스터마이징 – 탭 위치 및 크기 조절
+88. 자동 활동 로그 강제 유지 – 활동 로그 자동 삭제 방지
+89. 자동 활동 로그 자동 삭제 비활성화 – 로그 보관 설정
+90. 백스페이스 키로 뒤로 가기 – 키보드 내비게이션
+91. 시작 시 자동 로그인 – 저장된 계정으로 자동 로그인
+92. UI 버튼 기반 시작 / 종료 기능 – 버튼으로 작업 제어
+93. 모듈별 켜고 끌 수 있는 세팅 – 기능별 활성화/비활성화
+94. 쓰레드와 창이 보이는 디자인 – 병렬 처리 상태 시각화
+
+---
+
+### 🔄 9. 실행 제어 및 오류 처리 (12개)
+
+95. 모든 기능 시작 – 선택된 모든 기능 일괄 실행
+96. 자동 재시작 설정 – 오류 발생 시 자동 재시작
+97. 오류 복구 시스템 – 오류 발생 시 자동 복구
+98. 캡차 감지 및 해결 – 캡차 자동 감지 및 2captcha 연동
+99. SMS 인증 자동화 – SMS 인증 코드 자동 입력
+100. 계정 비활성화 항소 – 비활성화된 계정 자동 항소
+101. IP 연결 상태 확인 – IP 연결 상태 실시간 확인
+102. 프록시 연결 상태 확인 – 프록시 연결 테스트
+103. 시스템 크래시 자동 복구 – 프로그램 다운 시 자동 재시작
+104. 작업 일시정지/재개 – 실행 중 일시정지 및 재개 기능
+105. 스케줄된 작업 실행 – 특정 시간에 작업 자동 실행
+106. 실행 흐름 제어 – 매크로 실행 순서 및 조건 설정
+
+Ytn0120, [2025-08-18 오후 5:39]
+---
+
+### 🧪 10. 고급 기능 및 테스트 (10개)
+
+107. 마스터 실행 컨트롤러 – 모든 기능 통합 실행 및 관리
+108. 공통 행동 – 재사용 가능한 공통 매크로 블록
+109. 데이터베이스 통합 – SQLite 또는 외부 DB 연동
+110. Excel에서 가져오기 – 엑셀 파일 읽기 및 데이터 처리
+111. 품질 보증 / QA 자동화 – 테스트 및 검증 자동화
+112. 최종 통합 테스트 – 모든 기능 통합 테스트
+113. 고급 보고 / 시스템 헬스 모니터 – 고급 분석 및 보고
+114. AnalyticsDataCollection – 분석 데이터 수집
+115. API 통합 관리자 – 다양한 API 키/서비스 통합 관리
+116. 프록시 고급 기능 – FetchFreeProxiesFromRange 등
+
+---
+
+### 🎨 11. UI/UX 고급 기능 (8개)
+
+117. 사용자 인터페이스 – 이모티콘 지원 및 대화형 UI
+118. 다크모드 토글 – 다크모드 전환 버튼
+119. 폰트 크기 조절 슬라이더 – 실시간 폰트 크기 변경
+120. 테마 커스터마이징 – 사용자 정의 색상 테마
+121. 단축키 매핑 – 키보드 단축키 설정
+122. 탭 드래그 앤 드롭 – 탭 위치 자유롭게 이동
+123. UI 애니메이션 효과 – 버튼 클릭 시 애니메이션
+124. 상태바 실시간 업데이트 – 시스템 상태 실시간 표시
+
+---
+
+✅ 124개 기능 리스트 출력 완료
+
+
+[가이드] BAS 29.00 실전(프로덕션) 연구용 – 준비물 & 코드 스켈레톤
+
+────────────────────────────────────────
+1) 폴더 구조(권장)
+
+project-root/
+├─ project.xml                # BAS 실전 통합 코드 (아래 템플릿)
+├─ config/
+│  ├─ prod.json               # 운영 설정(입출력 경로, 스레드, 정책)
+│  └─ secrets.json            # 키/비번/토큰(하드코딩 금지, 여기서 로드)
+├─ input/                     # 원본 파일/데이터 위치
+├─ output/                    # 산출물(머지/로그/리포트)
+├─ logs/                      # 실행/오류/감사 로그
+└─ README.txt                 # 실행/복구/문제해결/AC 체크리스트
+
+※ 운영에서 파일이 19MB↑면, 연구 산출물을 19MB 이하로 분할(zip) + 재조립 안내 포함.
+────────────────────────────────────────
+2) 필수 체크(실전 요구사항 요약)
+
+- BAS 버전: 29.00 (정확히 명시)
+- 실행 모드: 병렬(Parallel) 기본, 스레드·딜레이·리소스 가드 명시
+- 보안: 모든 민감정보는 secrets.json에서 로드(코드에 하드코딩 금지)
+- 에러 처리: Try/Catch 또는 If/Then/Else + 재시도 + 백오프
+- 로깅: 실행 로그(INFO/ERROR) + 감사 로그(상태변경) 분리 저장
+- 중복 제거: “완전히 동일한 줄”만 제거(유사 문구는 유지)
+- 테스트 코드: 파일명/주석에 test/demo/sample 있으면 제외(옵션)
+- UI: 한국어 라벨 + 이모지 버튼(▶️ 실행, 🔎 검증, 🧾 로그)
+- 문법 안정: 태그 닫힘, 속성 따옴표, 중첩 구조 점검
+- 원본 라인 보존: 라벨/주석은 “앞줄”에만 추가(원본 변경 금지)
+────────────────────────────────────────
+3) config/prod.json (복붙 후 값만 수정)
+
+{
+  "inputFolder": "./input/",
+  "outputFolder": "./output/",
+  "logFolder": "./logs/",
+  "maxThreads": 16,
+  "threadDelayMs": 50,
+  "parallel": true,
+  "removeExactDupLines": true,
+  "skipTestModules": true,
+  "excludePatterns": ["test", "테스트", "_demo", "_sample"]
+}
+
+────────────────────────────────────────
+4) config/secrets.json (예시 – 실제 키는 여기서만 관리)
+
+{
+  "apiKeys": {
+    "serviceA": "REPLACE_ME",
+    "serviceB": "REPLACE_ME"
+  },
+  "db": {
+    "host": "127.0.0.1",
+    "port": 5432,
+    "name": "prod",
+    "user": "appuser",
+    "pass": "REPLACE_ME"
+  }
+}
+
+────────────────────────────────────────
+5) BAS 29.00 – 실전용 project.xml 스켈레톤 (복붙)
+
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="prod-integrated-project" version="29.00">
+
+  <!-- SETTINGS -->
+  <settings>
+    <MaxThreads>16</MaxThreads>
+    <ThreadDelay>50</ThreadDelay>
+    <ParallelExecution>true</ParallelExecution>
+
+    <InputFolder>./input/</InputFolder>
+    <OutputFolder>./output/</OutputFolder>
+    <LogFolder>./logs/</LogFolder>
+
+    <ConfigFile>./config/prod.json</ConfigFile>
+    <SecretsFile>./config/secrets.json</SecretsFile>
+
+    <RemoveExactDuplicateLines>true</RemoveExactDuplicateLines>
+    <SkipTestModules>true</SkipTestModules>
+  </settings>
+
+  <!-- UI (이모지+디자인) -->
+  <ui>
+    <label id="title" text="🧩 실전 통합 런처 (BAS 29.00)" style="font-size*
+
+
+=======================================================
+
+누락된 디자인 코드가 있다면    고급,럭셔리 디자인 코드로 만들어 주세요
+==========================================================
+
+
+🔧 BAS XML 토글 설정리스트 (필수 위치 및 존재)
+
+1. 관리토글 (3개)
+
+위치: 설정 > 프록시 설정
+필요한 경우: 3개
+이유: HTTP/SOCKS5/직접연결 선택
+XML
+<ProxyEnabled>true</ProxyEnabled>
+<ProxyRotation>true</ProxyRotation>
+<ProxyValidation>true</ProxyValidation>
+2. 사용자 에이전트 토글 (2개)
+
+위치: 설정 > UserAgentSettings
+필요하다면: 2개
+이유: 회전/고정 모드 선택
+XML
+<RotateUserAgent>true</RotateUserAgent>
+<RandomizeUserAgent>true</RandomizeUserAgent>
+3. 브라우저 설정 토글 (4개)
+
+위치: 설정 > 브라우저 설정
+필요하다면: 4개
+이유: 헤드리스/이미지로딩/자바 설명/플래시 제어
+XML
+<HeadlessMode>false</HeadlessMode>
+<LoadImages>true</LoadImages>
+<EnableJavaScript>true</EnableJavaScript>
+<EnableFlash>false</EnableFlash>
+4. 오류 처리 토글 (3개)
+
+위치: 함수 > 오류 처리
+필요한 경우: 3개
+이유 : 재시도/로깅/무시 옵션
+XML
+<RetryOnError>true</RetryOnError>
+<LogErrors>true</LogErrors>
+<IgnoreErrors>false</IgnoreErrors>
+5. 보안 기능 토글(5개)
+
+위치: 기능 > 보안 설정
+필요하다면: 5개
+이유: 선택을 거부하세요
+XML
+<AntiDetection>true</AntiDetection>
+<BypassCaptcha>true</BypassCaptcha>
+<SpoofFingerprint>true</SpoofFingerprint>
+<HideWebDriver>true</HideWebDriver>
+<DisableNotifications>true</DisableNotifications>
+6. 행동하는 인간토글 (4개)
+
+위치: 함수 > HumanBehavior
+필요하다면: 4개
+이유: 행위 형태
+XML
+<RandomDelays>true</RandomDelays>
+<MouseMovements>true</MouseMovements>
+<ScrollPatterns>true</ScrollPatterns>
+<TypingVariation>true</TypingVariation>
+7. 유튜브 우승토글 (6개)
+
+위치: 기능 > YouTube설정
+필요하다면: 6개
+이유: YouTube 특화 기능
+XML
+<AutoLogin>true</AutoLogin>
+<AutoLike>true</AutoLike>
+<AutoComment>true</AutoComment>
+<AutoSubscribe>true</AutoSubscribe>
+<ViewerBoost>true</ViewerBoost>
+<KeywordOptimization>true</KeywordOptimization>
+📊 총 토글: 27개
+
+
+===============================================
+
+ 사용자가 브라우져 창을 확인 하도록  반영해 주세요 = 디자인 은 별도 고급유지 
+🎨 BAS 브라우저 쓰레드 및 창 디자인 코드
+
+브라우저레드와 믿을 수 있는 디자인 코드가 적합합니다:
+
+1. 브라우저 창 표시 설정
+
+XML
+<BrowserSettings>
+<ShowBrowser>true</ShowBrowser>
+<WindowWidth>1200</WindowWidth>
+<WindowHeight>800</WindowHeight>
+<WindowPosition>center</WindowPosition>
+</BrowserSettings>
+2. 쓰레드 모니터링 UI 코드
+
+XML
+<ThreadMonitor>
+<ShowThreads>true</ShowThreads>
+<ThreadCount>5</ThreadCount>
+<ThreadDisplay>
+<ShowStatus>true</ShowStatus>
+<ShowProgress>true</ShowProgress>
+<ShowErrors>true</ShowErrors>
+</ThreadDisplay>
+</ThreadMonitor>
+3.현재상태표시 HTML
+
+HTML
+<div class="browser-thread-monitor">
+<div class="thread-status">
+<h3>브라우저 쓰레드 상태</h3>
+<div class="thread-list">
+<div class="thread active">쓰레드 1: 실행중</div>
+<div class="thread waiting">쓰레드 2: 대기중</div>
+<div class="thread active">쓰레드 3: 실행중</div>
+</div>
+</div>
+<div class="browser-windows">
+<h3>브라우저 창 상태</h3>
+<div class="window-grid">
+<div class="browser-window">창 1: YouTube</div>
+<div class="browser-window">창 2: Gmail</div>
+</div>
+</div>
+</div>
+
+====================================================
+위 모든 사항 이 완료된  xml을
+모든게 완성된  바스 124기능 완전 통합  실전용을 사용자가 윈도우 에서=파이썬 -이나 -git 설치 없이 
+사용자가
+다운로드 받을수 잇도록 zip압축집 제공해라. 실수하면 죽이겠다

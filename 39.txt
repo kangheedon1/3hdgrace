@@ -1,0 +1,179 @@
+
+<macro name="ProxySettingsUI">
+  <action name="CreatePopup">
+    <Title>프록시 설정</Title>
+    <Message>프록시 형식을 선택하고, ISP 변경을 진행하세요.</Message>
+  </action>
+
+  <!-- 프록시 형식 선택 -->
+  <action name="CreatePopup">
+    <Title>프록시 형식 선택</Title>
+    <Message>사용할 프록시 형식을 선택하세요:
+1. host:port:username:password
+2. username:password@host:port
+3. host:port</Message>
+  </action>
+  <action name="AddChoice">
+    <Option>host:port:username:password</Option>
+  </action>
+  <action name="AddChoice">
+    <Option>username:password@host:port</Option>
+  </action>
+  <action name="AddChoice">
+    <Option>host:port</Option>
+  </action>
+  <action name="ShowPopup"/>
+  <action name="GetUserChoice">
+    <Variable>SelectedProxyFormat</Variable>
+  </action>
+  <action name="SetVariable">
+    <Variable>PROXY_FORMAT</Variable>
+    <Value>{SelectedProxyFormat}</Value>
+  </action>
+  <action name="Log">
+    <Message>선택된 프록시 형식: {SelectedProxyFormat}</Message>
+  </action>
+</macro>
+
+<macro name="SetKoreanISPProxy">
+  <action name="SetList">
+    <List>KOREAN_ISP_LIST</List>
+    <Values>SKTelecom,KT,LGUplus</Values>
+  </action>
+  <action name="RandomListItem">
+    <List>KOREAN_ISP_LIST</List>
+    <Variable>SELECTED_ISP</Variable>
+  </action>
+  <action name="SetVariable">
+    <Variable>CURRENT_ISP</Variable>
+    <Value>{SELECTED_ISP}</Value>
+  </action>
+  <action name="Log">
+    <Message>선택된 한국 ISP: {SELECTED_ISP}</Message>
+  </action>
+</macro>
+
+<macro name="OptimizeThreadsForViewers">
+  <action name="SetThreadCount">
+    <Count>500</Count>
+  </action>
+  <action name="EnableParallelExecution">
+    <Value>true</Value>
+  </action>
+  <action name="SetThreadDelay">
+    <Delay>100</Delay>
+  </action>
+  <action name="Log">
+    <Message>병렬 시청자 쓰레드 최적화 완료 (500 Threads)</Message>
+  </action>
+</macro>
+
+==== ✅ 1. 프록시 형식 선택 UI ====
+
+<macro name="ProxySettingsUI">
+  <action name="CreatePopup">
+    <Title>프록시 형식 선택</Title>
+    <Message>사용할 프록시 형식을 선택하세요:
+
+1. host:port:username:password
+
+2. username:password@host:port
+
+3. host:port</Message>
+  </action>
+  <action name="AddChoice"><Option>host:port:username:password</Option></action>
+  <action name="AddChoice"><Option>username:password@host:port</Option></action>
+  <action name="AddChoice"><Option>host:port</Option></action>
+  <action name="ShowPopup"/>
+  <action name="GetUserChoice"><Variable>SelectedProxyFormat</Variable></action>
+  <action name="SetVariable"><Variable>PROXY_FORMAT</Variable><Value>{SelectedProxyFormat}</Value></action>
+  <action name="Log"><Message>선택된 프록시 형식: {SelectedProxyFormat}</Message></action>
+</macro>
+
+==== ✅ 2. 한국 ISP 자동 선택 ====
+
+<macro name="SetKoreanISPProxy">
+  <action name="SetList">
+    <List>KOREAN_ISP_LIST</List>
+    <Values>SKTelecom,KT,LGUplus</Values>
+  </action>
+  <action name="RandomListItem">
+    <List>KOREAN_ISP_LIST</List>
+    <Variable>SELECTED_ISP</Variable>
+  </action>
+  <action name="SetVariable">
+    <Variable>CURRENT_ISP</Variable>
+    <Value>{SELECTED_ISP}</Value>
+  </action>
+  <action name="Log">
+    <Message>선택된 한국 ISP: {SELECTED_ISP}</Message>
+  </action>
+</macro>
+
+==== ✅ 3. 병렬 시청자 실행 최적화 (500 Threads) ====
+
+<macro name="OptimizeThreadsForViewers">
+  <action name="SetThreadCount"><Count>500</Count></action>
+  <action name="EnableParallelExecution"><Value>true</Value></action>
+  <action name="SetThreadDelay"><Delay>100</Delay></action>
+  <action name="Log">
+    <Message>병렬 시청자 쓰레드 최적화 완료 (500 Threads)</Message>
+  </action>
+</macro>
+
+==============================
+✅ BAS 핵심 기능 3가지
+==============================
+
+📌 1. 프록시 형식 선택 UI
+------------------------------
+<macro name="ProxySettingsUI">
+  <action name="CreatePopup">
+    <Title>프록시 형식 선택</Title>
+    <Message>사용할 프록시 형식을 선택하세요:
+
+1. host:port:username:password
+
+2. username:password@host:port
+
+3. host:port</Message>
+  </action>
+  <action name="AddChoice"><Option>host:port:username:password</Option></action>
+  <action name="AddChoice"><Option>username:password@host:port</Option></action>
+  <action name="AddChoice"><Option>host:port</Option></action>
+  <action name="ShowPopup"/>
+  <action name="GetUserChoice"><Variable>SelectedProxyFormat</Variable></action>
+  <action name="SetVariable"><Variable>PROXY_FORMAT</Variable><Value>{SelectedProxyFormat}</Value></action>
+  <action name="Log"><Message>선택된 프록시 형식: {SelectedProxyFormat}</Message></action>
+</macro>
+
+📌 2. 한국 ISP 자동 선택 (SKT, KT, LGU+)
+------------------------------
+<macro name="SetKoreanISPProxy">
+  <action name="SetList">
+    <List>KOREAN_ISP_LIST</List>
+    <Values>SKTelecom,KT,LGUplus</Values>
+  </action>
+  <action name="RandomListItem">
+    <List>KOREAN_ISP_LIST</List>
+    <Variable>SELECTED_ISP</Variable>
+  </action>
+  <action name="SetVariable">
+    <Variable>CURRENT_ISP</Variable>
+    <Value>{SELECTED_ISP}</Value>
+  </action>
+  <action name="Log">
+    <Message>선택된 한국 ISP: {SELECTED_ISP}</Message>
+  </action>
+</macro>
+
+📌 3. 병렬 시청자 실행 최적화 (500 Threads)
+------------------------------
+<macro name="OptimizeThreadsForViewers">
+  <action name="SetThreadCount"><Count>500</Count></action>
+  <action name="EnableParallelExecution"><Value>true</Value></action>
+  <action name="SetThreadDelay"><Delay>100</Delay></action>
+  <action name="Log">
+    <Message>병렬 시청자 쓰레드 최적화 완료 (500 Threads)</Message>
+  </action>
+</macro>

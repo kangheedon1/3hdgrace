@@ -1,0 +1,1090 @@
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<BrowserAutomationStudioProject>
+  <!-- 리소스 관리 -->
+  <Resources>
+    <Resource Name="Proxies" Path="proxies.txt"/>
+    <Resource Name="SMSAPIKeys" Path="smsapikeys.txt"/>
+    <Resource Name="RecaptchaKey" Path="recaptchaapikey.txt"/>
+    <Resource Name="Accounts" Path="accounts.txt"/>
+    <Resource Name="Avatars" Path="avatars/"/>
+    <Resource Name="ScrapedVideos" Path="scraped_videos.txt"/>
+    <Resource Name="2FAKeys" Path="2fa_keys.txt"/>
+    <Resource Name="TargetChannels" Path="target_channels.txt"/>
+    <Resource Name="SKTProxies" Path="proxies/skt_proxies.txt"/>
+    <Resource Name="KTProxies" Path="proxies/kt_proxies.txt"/>
+    <Resource Name="LGUProxies" Path="proxies/lgu_proxies.txt"/>
+    <Resource Name="USProxies" Path="proxies/us_proxies.txt"/>
+    <Resource Name="JPProxies" Path="proxies/jp_proxies.txt"/>
+    <Resource Name="VideoKeywords" Path="keywords/video_keywords.txt"/>
+    <Resource Name="LiveKeywords" Path="keywords/live_keywords.txt"/>
+    <Resource Name="ShortsKeywords" Path="keywords/shorts_keywords.txt"/>
+    <Resource Name="Comments" Path="comments.txt"/>
+    <Resource Name="Messages" Path="messages.txt"/>
+  </Resources>
+
+  <!-- 매크로 정의 -->
+  <Macros>
+    <!-- 메인 루프 -->
+    <Macro Name="Start">
+      <action name="loadResources"/>
+      <action name="mainloop"/>
+    </Macro>
+
+    <!-- 메인 작업 루프 -->
+    <Macro Name="mainloop">
+      <action name="checkloginstatus"/>
+      <If condition="LoginFailed">
+        <Then>
+          <action name="recoverLogin"/>
+          <action name="logevent">
+            <Type>LoginRecovery</Type>
+            <Details>Login failed - recovery executed</Details>
+          </action>
+        </Then>
+      </If>
+      <action name="monitorProxy"/>
+      <If condition="ProxyIsSlow">
+        <Then>
+          <action name="rotateProxy"/>
+          <action name="logevent">
+            <Type>ProxyRotation</Type>
+            <Details>Proxy changed due to slow response</Details>
+          </action>
+        </Then>
+      </If>
+      <action name="checkSMSStatus"/>
+      <If condition="SMSFailureDetected">
+        <Then>
+          <action name="switchSMSProvider"/>
+          <action name="logevent">
+            <Type>SMSRecovery</Type>
+            <Details>Switched SMS API due to failure</Details>
+          </action>
+        </Then>
+      </If>
+      <action name="detectCaptcha"/>
+      <If condition="RecaptchaPresent">
+        <Then>
+          <action name="solveCaptcha"/>
+          <action name="logevent">
+            <Type>CaptchaBypassed</Type>
+            <Details>2Captcha used to solve ReCaptcha</Details>
+          </action>
+        </Then>
+      </If>
+      <action name="delay">
+        <Timeout>150</Timeout>
+      </action>
+      <action name="mainloop"/>
+    </Macro>
+
+    <!-- 키워드 기반 동영상 검색 -->
+    <Macro Name="SearchYouTubeVideo">
+      <Parameter Name="SearchKeyword"/>
+      <Parameter Name="VideoTitle"/>
+      <Parameter Name="Position"/>
+      
+      <!-- YouTube 검색 페이지 열기 -->
+      <action name="OpenURL">
+        <URL>https://www.youtube.com/results?search_query={SearchKeyword}</URL>
+      </action>
+      
+      <!-- 페이지 로딩 대기 -->
+      <action name="WaitForElement">
+        <XPath>//ytd-video-renderer</XPath>
+        <Timeout>15000</Timeout>
+      </action>
+      
+      <!-- 제목으로 필터링 -->
+      <If condition="VideoTitle != ''">
+        <Then>
+          <action name="SetVariable">
+            <Variable>FoundVideo</Variable>
+            <Value>false</Value>
+          </action>
+          
+          <!-- 100개 영상까지 검색 -->
+          <loop name="VideoSearchLoop" count="100">
+            <action name="GetText">
+              <XPath>(//ytd-video-renderer[{CurrentIteration}]//yt-formatted-string[@id='video-title'])[1]</XPath>
+              <Variable>CurrentTitle</Variable>
+            </action>
+            
+            <action name="Trim">
+              <Text>${CurrentTitle}</Text>
+              <Variable>CurrentTitle</Variable>
+            </action>
+            
+            <If condition="Contains(${CurrentTitle}, ${VideoTitle})">
+              <Then>
+                <action name="SetVariable">
+                  <Variable>FoundVideo</Variable>
+                  <Value>true</Value>
+                </action>
+                <action name="SetVariable">
+                  <Variable>VideoPosition</Variable>
+                  <Value>{CurrentIteration}</Value>
+                </action>
+                <Break/>
+              </Then>
+            </If>
+          </loop>
+          
+          <!-- 영상 찾지 못한 경우 -->
+          <If condition="FoundVideo == 'false'">
+            <Then>
+              <action name="LogEvent">
+                <Type>Error</Type>
+                <Details>Video not found: {VideoTitle}</Details>
+              </action>
+              <Return>
+                <Value>false</Value>
+              </Return>
+            </Then>
+          </If>
+        </Then>
+      </If>
+      
+      <!-- 포지션 기반 선택 (제목이 없는 경우) -->
+      <If condition="VideoTitle == ''">
+        <Then>
+          <action name="SetVariable">
+            <Variable>VideoPosition</Variable>
+            <Value>{Position}</Value>
+          </action>
+        </Then>
+      </If>
+      
+      <!-- 영상 클릭 -->
+      <action name="Click">
+        <XPath>(//ytd-video-renderer[${VideoPosition}]//a[@id='thumbnail'])[1]</XPath>
+      </action>
+      
+      <!-- 페이지 로딩 대기 -->
+      <action name="WaitForElement">
+        <XPath>//div[@id='movie_player']</XPath>
+        <Timeout>20000</Timeout>
+      </action>
+      
+      <action name="LogEvent">
+        <Type>VideoFound</Type>
+        <Details>Video found at position {VideoPosition}</Details>
+      </action>
+      
+      <Return>
+        <Value>true</Value>
+      </Return>
+    </Macro>
+
+    <!-- 라이브 방송 검색 및 시청 -->
+    <Macro Name="SearchYouTubeLive">
+      <Parameter Name="SearchKeyword"/>
+      <Parameter Name="LiveTitle"/>
+      <Parameter Name="Position"/>
+      
+      <!-- YouTube 검색 페이지 열기 -->
+      <action name="OpenURL">
+        <URL>https://www.youtube.com/results?search_query={SearchKeyword}&sp=EgJAAQ%3D%3D</URL>
+      </action>
+      
+      <!-- 페이지 로딩 대기 -->
+      <action name="WaitForElement">
+        <XPath>//ytd-video-renderer[contains(@class, 'live')]</XPath>
+        <Timeout>15000</Timeout>
+      </action>
+      
+      <!-- 제목으로 필터링 -->
+      <If condition="LiveTitle != ''">
+        <Then>
+          <action name="SetVariable">
+            <Variable>FoundLive</Variable>
+            <Value>false</Value>
+          </action>
+          
+          <!-- 100개 라이브 방송까지 검색 -->
+          <loop name="LiveSearchLoop" count="100">
+            <action name="GetText">
+              <XPath>(//ytd-video-renderer[contains(@class, 'live')][{CurrentIteration}]//yt-formatted-string[@id='video-title'])[1]</XPath>
+              <Variable>CurrentTitle</Variable>
+            </action>
+            
+            <action name="Trim">
+              <Text>${CurrentTitle}</Text>
+              <Variable>CurrentTitle</Variable>
+            </action>
+            
+            <If condition="Contains(${CurrentTitle}, ${LiveTitle})">
+              <Then>
+                <action name="SetVariable">
+                  <Variable>FoundLive</Variable>
+                  <Value>true</Value>
+                </action>
+                <action name="SetVariable">
+                  <Variable>LivePosition</Variable>
+                  <Value>{CurrentIteration}</Value>
+                </action>
+                <Break/>
+              </Then>
+            </If>
+          </loop>
+          
+          <!-- 라이브 방송 찾지 못한 경우 -->
+          <If condition="FoundLive == 'false'">
+            <Then>
+              <action name="LogEvent">
+                <Type>Error</Type>
+                <Details>Live stream not found: {LiveTitle}</Details>
+              </action>
+              <Return>
+                <Value>false</Value>
+              </Return>
+            </Then>
+          </If>
+        </Then>
+      </If>
+      
+      <!-- 포지션 기반 선택 (제목이 없는 경우) -->
+      <If condition="LiveTitle == ''">
+        <Then>
+          <action name="SetVariable">
+            <Variable>LivePosition</Variable>
+            <Value>{Position}</Value>
+          </action>
+        </Then>
+      </If>
+      
+      <!-- 라이브 방송 클릭 -->
+      <action name="Click">
+        <XPath>(//ytd-video-renderer[contains(@class, 'live')][${LivePosition}]//a[@id='thumbnail'])[1]</XPath>
+      </action>
+      
+      <!-- 페이지 로딩 대기 -->
+      <action name="WaitForElement">
+        <XPath>//div[@id='movie_player']</XPath>
+        <Timeout>20000</Timeout>
+      </action>
+      
+      <action name="LogEvent">
+        <Type>LiveFound</Type>
+        <Details>Live stream found at position {LivePosition}</Details>
+      </action>
+      
+      <Return>
+        <Value>true</Value>
+      </Return>
+    </Macro>
+
+    <!-- 쇼츠 검색 및 시청 -->
+    <Macro Name="SearchYouTubeShorts">
+      <Parameter Name="SearchKeyword"/>
+      <Parameter Name="ShortsTitle"/>
+      <Parameter Name="Position"/>
+      
+      <!-- YouTube 쇼츠 페이지 열기 -->
+      <action name="OpenURL">
+        <URL>https://www.youtube.com/shorts</URL>
+      </action>
+      
+      <!-- 페이지 로딩 대기 -->
+      <action name="WaitForElement">
+        <XPath>//ytd-reel-item-renderer</XPath>
+        <Timeout>15000</Timeout>
+      </action>
+      
+      <!-- 키워드 검색 (필요한 경우) -->
+      <If condition="SearchKeyword != ''">
+        <Then>
+          <action name="OpenURL">
+            <URL>https://www.youtube.com/results?search_query={SearchKeyword}&sp=EgIQAQ%253D%253D</URL>
+          </action>
+          
+          <!-- 페이지 로딩 대기 -->
+          <action name="WaitForElement">
+            <XPath>//ytd-video-renderer[contains(@class, 'shorts')]</XPath>
+            <Timeout>15000</Timeout>
+          </action>
+        </Then>
+      </If>
+      
+      <!-- 제목으로 필터링 -->
+      <If condition="ShortsTitle != ''">
+        <Then>
+          <action name="SetVariable">
+            <Variable>FoundShorts</Variable>
+            <Value>false</Value>
+          </action>
+          
+          <!-- 100개 쇼츠까지 검색 -->
+          <loop name="ShortsSearchLoop" count="100">
+            <action name="GetText">
+              <XPath>(//ytd-video-renderer[contains(@class, 'shorts')][{CurrentIteration}]//yt-formatted-string[@id='video-title'])[1]</XPath>
+              <Variable>CurrentTitle</Variable>
+            </action>
+            
+            <action name="Trim">
+              <Text>${CurrentTitle}</Text>
+              <Variable>CurrentTitle</Variable>
+            </action>
+            
+            <If condition="Contains(${CurrentTitle}, ${ShortsTitle})">
+              <Then>
+                <action name="SetVariable">
+                  <Variable>FoundShorts</Variable>
+                  <Value>true</Value>
+                </action>
+                <action name="SetVariable">
+                  <Variable>ShortsPosition</Variable>
+                  <Value>{CurrentIteration}</Value>
+                </action>
+                <Break/>
+              </Then>
+            </If>
+          </loop>
+          
+          <!-- 쇼츠 찾지 못한 경우 -->
+          <If condition="FoundShorts == 'false'">
+            <Then>
+              <action name="LogEvent">
+                <Type>Error</Type>
+                <Details>Shorts not found: {ShortsTitle}</Details>
+              </action>
+              <Return>
+                <Value>false</Value>
+              </Return>
+            </Then>
+          </If>
+        </Then>
+      </If>
+      
+      <!-- 포지션 기반 선택 (제목이 없는 경우) -->
+      <If condition="ShortsTitle == ''">
+        <Then>
+          <action name="SetVariable">
+            <Variable>ShortsPosition</Variable>
+            <Value>{Position}</Value>
+          </action>
+        </Then>
+      </If>
+      
+      <!-- 쇼츠 클릭 -->
+      <action name="Click">
+        <XPath>(//ytd-video-renderer[contains(@class, 'shorts')][${ShortsPosition}]//a[@id='thumbnail'])[1]</XPath>
+      </action>
+      
+      <!-- 페이지 로딩 대기 -->
+      <action name="WaitForElement">
+        <XPath>//div[@id='player']</XPath>
+        <Timeout>20000</Timeout>
+      </action>
+      
+      <action name="LogEvent">
+        <Type>ShortsFound</Type>
+        <Details>Shorts found at position {ShortsPosition}</Details>
+      </action>
+      
+      <Return>
+        <Value>true</Value>
+      </Return>
+    </Macro>
+
+    <!-- 라이브 고정 시청자 -->
+    <Macro Name="FixedViewerSystem_ElitePlus">
+      <action name="SetVariable">
+        <Variable>ViewerCount</Variable>
+        <Value>${MaxThreads}</Value>
+      </action>
+      
+      <action name="LogEvent">
+        <Type>System</Type>
+        <Details>Starting {ViewerCount} fixed viewers</Details>
+      </action>
+      
+      <!-- 라이브 방송 검색 -->
+      <action name="SetVariable">
+        <Variable>LiveFound</Variable>
+        <Value>{CallMacro(SearchYouTubeLive, ${LiveSearchKeyword}, ${LiveVideoTitle}, ${LivePosition})}</Value>
+      </action>
+      
+      <If condition="LiveFound == 'false'">
+        <Then>
+          <action name="LogEvent">
+            <Type>Error</Type>
+            <Details>Failed to find live stream</Details>
+          </action>
+          <Return/>
+        </Then>
+      </If>
+      
+      <!-- 고정 시청자 루프 -->
+      <loop name="FixedViewerLoop" count="${ViewerCount}">
+        <Try>
+          <Do>
+            <!-- 라이브 방송 페이지 열기 -->
+            <action name="OpenURL">
+              <URL>${CurrentURL}</URL>
+            </action>
+            
+            <!-- 페이지 로딩 대기 -->
+            <action name="WaitForElement">
+              <XPath>//div[@id='movie_player']</XPath>
+              <Timeout>20000</Timeout>
+            </action>
+            
+            <!-- 시청자 ID 설정 -->
+            <action name="SetVariable">
+              <Variable>ViewerID</Variable>
+              <Value>{Random(100000, 999999)}</Value>
+            </action>
+            
+            <!-- 시청 시간 설정 -->
+            <action name="SetVariable">
+              <Variable>MinViewTime</Variable>
+              <Value>${MinViewTime}</Value>
+            </action>
+            
+            <action name="SetVariable">
+              <Variable>MaxViewTime</Variable>
+              <Value>${MaxViewTime}</Value>
+            </action>
+            
+            <action name="SetVariable">
+              <Variable>ViewTime</Variable>
+              <Value>{Random(MinViewTime, MaxViewTime)}</Value>
+            </action>
+            
+            <!-- 인간 행동 시뮬레이션 -->
+            <action name="HumanViewSimulation"/>
+            
+            <!-- 시청 시간 대기 -->
+            <action name="Delay">
+              <Timeout>${ViewTime}</Timeout>
+            </action>
+            
+            <!-- 추가 작업 (구독, 좋아요 등) -->
+            <If condition="${EnableSubscribe} == 'true'">
+              <Then>
+                <action name="SubscribeToChannel"/>
+              </Then>
+            </If>
+            
+            <If condition="${EnableLike} == 'true'">
+              <Then>
+                <action name="LikeVideo"/>
+              </Then>
+            </If>
+            
+            <If condition="${EnableComment} == 'true'">
+              <Then>
+                <action name="CommentOnVideo"/>
+              </Then>
+            </If>
+            
+            <If condition="${EnableNotification} == 'true'">
+              <Then>
+                <action name="EnableVideoNotifications"/>
+              </Then>
+            </If>
+            
+            <If condition="${EnableLiveChat} == 'true'">
+              <Then>
+                <action name="SendLiveChatMessage"/>
+              </Then>
+            </If>
+            
+            <action name="LogEvent">
+              <Type>Viewer</Type>
+              <Details>Viewer {ViewerID} completed viewing</Details>
+            </action>
+          </Do>
+          <Catch>
+            <action name="LogEvent">
+              <Type>Error</Type>
+              <Details>Viewer {ViewerID} error: {Error}</Details>
+            </action>
+          </Catch>
+        </Try>
+      </loop>
+      
+      <action name="LogEvent">
+        <Type>System</Type>
+        <Details>💡 All fixed viewer loops completed</Details>
+      </action>
+    </Macro>
+
+    <!-- 인간 행동 시뮬레이션 -->
+    <Macro Name="HumanViewSimulation">
+      <!-- 마우스 이동 (PC) -->
+      <If condition="${DeviceType} == 'Desktop'">
+        <Then>
+          <action name="MouseMove">
+            <X>{Random(100, 800)}</X>
+            <Y>{Random(200, 600)}</Y>
+            <Duration>500</Duration>
+          </action>
+          
+          <!-- 스크롤 (PC) -->
+          <action name="Scroll">
+            <Distance>{Random(100, 500)}</Distance>
+            <Duration>1000</Duration>
+          </action>
+        </Then>
+      </If>
+      
+      <!-- 터치 이동 (모바일) -->
+      <If condition="${DeviceType} != 'Desktop'">
+        <Then>
+          <action name="TouchMove">
+            <X1>{Random(100, 300)}</X1>
+            <Y1>{Random(500, 700)}</Y1>
+            <X2>{Random(100, 300)}</X2>
+            <Y2>{Random(100, 300)}</Y2>
+            <Duration>500</Duration>
+          </action>
+        </Then>
+      </If>
+      
+      <!-- 30% 확률로 일시정지 -->
+      <If condition="{Random(1,100)} > 70">
+        <Then>
+          <action name="ExecuteJS">
+            <Code>document.querySelector('video').pause()</Code>
+          </action>
+          <action name="Delay">
+            <Min>5</Min>
+            <Max>15</Max>
+          </action>
+          <action name="ExecuteJS">
+            <Code>document.querySelector('video').play()</Code>
+          </action>
+        </Then>
+      </If>
+      
+      <!-- 10% 확률로 좋아요 -->
+      <If condition="{Random(1,100)} > 90">
+        <Then>
+          <action name="LikeVideo"/>
+        </Then>
+      </If>
+    </Macro>
+
+    <!-- 구독 -->
+    <Macro Name="SubscribeToChannel">
+      <action name="Click">
+        <XPath>//ytd-subscribe-button-renderer//button</XPath>
+      </action>
+      <action name="Delay">
+        <Min>1000</Min>
+        <Max>2000</Max>
+      </action>
+      <action name="LogEvent">
+        <Type>Subscription</Type>
+        <Details>Subscribed to channel</Details>
+      </action>
+    </Macro>
+
+    <!-- 알림 설정 -->
+    <Macro Name="EnableVideoNotifications">
+      <action name="Click">
+        <XPath>//button[@aria-label='알림 설정']</XPath>
+      </action>
+      <action name="Delay">
+        <Min>1000</Min>
+        <Max>2000</Max>
+      </action>
+      <action name="LogEvent">
+        <Type>Notification</Type>
+        <Details>Video notifications enabled</Details>
+      </action>
+    </Macro>
+
+    <!-- 좋아요 -->
+    <Macro Name="LikeVideo">
+      <action name="Click">
+        <XPath>//button[@aria-label='좋아요']</XPath>
+      </action>
+      <action name="Delay">
+        <Min>1000</Min>
+        <Max>2000</Max>
+      </action>
+      <action name="LogEvent">
+        <Type>Like</Type>
+        <Details>Video liked</Details>
+      </action>
+    </Macro>
+
+    <!-- 댓글 -->
+    <Macro Name="CommentOnVideo">
+      <action name="Click">
+        <XPath>//ytd-comment-simplebox-renderer//div[@id='placeholder']</XPath>
+      </action>
+      <action name="Delay">
+        <Min>1000</Min>
+        <Max>2000</Max>
+      </action>
+      <action name="TypeText">
+        <Text>{FromFile comments.txt}</Text>
+        <Speed>50</Speed>
+      </action>
+      <action name="Click">
+        <XPath>//div[@id='submit-button']</XPath>
+      </action>
+      <action name="Delay">
+        <Min>2000</Min>
+        <Max>3000</Max>
+      </action>
+      <action name="LogEvent">
+        <Type>Comment</Type>
+        <Details>Comment posted</Details>
+      </action>
+    </Macro>
+
+    <!-- 라이브 채팅 -->
+    <Macro Name="SendLiveChatMessage">
+      <action name="Click">
+        <XPath>//div[@id='chat-frame']//input[@placeholder='메시지를 입력하세요.']</XPath>
+      </action>
+      <action name="Delay">
+        <Min>1000</Min>
+        <Max>2000</Max>
+      </action>
+      <action name="TypeText">
+        <Text>{FromFile messages.txt}</Text>
+        <Speed>50</Speed>
+      </action>
+      <action name="Click">
+        <XPath>//div[@id='chat-frame']//button[@aria-label='전송']</XPath>
+      </action>
+      <action name="Delay">
+        <Min>2000</Min>
+        <Max>3000</Max>
+      </action>
+      <action name="LogEvent">
+        <Type>LiveChat</Type>
+        <Details>Live chat message sent</Details>
+      </action>
+    </Macro>
+
+    <!-- 쇼츠 조회수 증가 -->
+    <Macro Name="IncreaseShortsViews">
+      <action name="SetVariable">
+        <Variable>ShortsCount</Variable>
+        <Value>${MaxShorts}</Value>
+      </action>
+      
+      <action name="LogEvent">
+        <Type>System</Type>
+        <Details>Starting {ShortsCount} shorts views</Details>
+      </action>
+      
+      <!-- 쇼츠 섹션 클릭 -->
+      <action name="OpenURL">
+        <URL>https://www.youtube.com/shorts</URL>
+      </action>
+      
+      <!-- 페이지 로딩 대기 -->
+      <action name="WaitForElement">
+        <XPath>//ytd-reel-item-renderer</XPath>
+        <Timeout>15000</Timeout>
+      </action>
+      
+      <!-- 쇼츠 조회수 루프 -->
+      <loop name="ShortsViewLoop" count="${ShortsCount}">
+        <Try>
+          <Do>
+            <!-- 쇼츠 검색 -->
+            <If condition="${ShortsSearchKeyword} != ''">
+              <Then>
+                <action name="SetVariable">
+                  <Variable>ShortsFound</Variable>
+                  <Value>{CallMacro(SearchYouTubeShorts, ${ShortsSearchKeyword}, ${ShortsVideoTitle}, ${ShortsPosition})}</Value>
+                </action>
+              </Then>
+            </If>
+            
+            <!-- 쇼츠 클릭 -->
+            <action name="Click">
+              <XPath>(//ytd-reel-item-renderer)[{CurrentIteration}]</XPath>
+            </action>
+            
+            <!-- 페이지 로딩 대기 -->
+            <action name="WaitForElement">
+              <XPath>//div[@id='player']</XPath>
+              <Timeout>20000</Timeout>
+            </action>
+            
+            <!-- 시청 시간 설정 -->
+            <action name="SetVariable">
+              <Variable>MinViewTime</Variable>
+              <Value>${MinViewTime}</Value>
+            </action>
+            
+            <action name="SetVariable">
+              <Variable>MaxViewTime</Variable>
+              <Value>${MaxViewTime}</Value>
+            </action>
+            
+            <action name="SetVariable">
+              <Variable>ViewTime</Variable>
+              <Value>{Random(MinViewTime, MaxViewTime)}</Value>
+            </action>
+            
+            <!-- 인간 행동 시뮬레이션 -->
+            <action name="HumanViewSimulation"/>
+            
+            <!-- 시청 시간 대기 -->
+            <action name="Delay">
+              <Timeout>${ViewTime}</Timeout>
+            </action>
+            
+            <!-- 추가 작업 (구독, 좋아요 등) -->
+            <If condition="${EnableSubscribe} == 'true'">
+              <Then>
+                <action name="SubscribeToChannel"/>
+              </Then>
+            </If>
+            
+            <If condition="${EnableLike} == 'true'">
+              <Then>
+                <action name="LikeVideo"/>
+              </Then>
+            </If>
+            
+            <If condition="${EnableComment} == 'true'">
+              <Then>
+                <action name="CommentOnVideo"/>
+              </Then>
+            </If>
+            
+            <If condition="${EnableNotification} == 'true'">
+              <Then>
+                <action name="EnableVideoNotifications"/>
+              </Then>
+            </If>
+            
+            <action name="LogEvent">
+              <Type>ShortsView</Type>
+              <Details>Shorts view {CurrentIteration} completed</Details>
+            </action>
+            
+            <!-- 쇼츠 닫기 -->
+            <action name="PressKey">
+              <Key>ESC</Key>
+            </action>
+            <action name="Delay">
+              <Min>1000</Min>
+              <Max>2000</Max>
+            </action>
+          </Do>
+          <Catch>
+            <action name="LogEvent">
+              <Type>Error</Type>
+              <Details>Shorts view error: {Error}</Details>
+            </action>
+            <action name="PressKey">
+              <Key>ESC</Key>
+            </action>
+          </Catch>
+        </Try>
+      </loop>
+      
+      <action name="LogEvent">
+        <Type>System</Type>
+        <Details>💡 All shorts views completed</Details>
+      </action>
+    </Macro>
+
+    <!-- 일반 동영상 조회수 증가 -->
+    <Macro Name="IncreaseVideoViews">
+      <action name="SetVariable">
+        <Variable>VideoCount</Variable>
+        <Value>${MaxVideos}</Value>
+      </action>
+      
+      <action name="LogEvent">
+        <Type>System</Type>
+        <Details>Starting {VideoCount} video views</Details>
+      </action>
+      
+      <!-- 동영상 조회수 루프 -->
+      <loop name="VideoViewLoop" count="${VideoCount}">
+        <Try>
+          <Do>
+            <!-- 동영상 검색 -->
+            <action name="SetVariable">
+              <Variable>VideoFound</Variable>
+              <Value>{CallMacro(SearchYouTubeVideo, ${VideoSearchKeyword}, ${VideoTitle}, ${VideoPosition})}</Value>
+            </action>
+            
+            <If condition="VideoFound == 'false'">
+              <Then>
+                <action name="LogEvent">
+                  <Type>Error</Type>
+                  <Details>Video not found, skipping</Details>
+                </action>
+                <Continue/>
+              </Then>
+            </If>
+            
+            <!-- 시청 시간 설정 -->
+            <action name="SetVariable">
+              <Variable>MinViewTime</Variable>
+              <Value>${MinViewTime}</Value>
+            </action>
+            
+            <action name="SetVariable">
+              <Variable>MaxViewTime</Variable>
+              <Value>${MaxViewTime}</Value>
+            </action>
+            
+            <action name="SetVariable">
+              <Variable>ViewTime</Variable>
+              <Value>{Random(MinViewTime, MaxViewTime)}</Value>
+            </action>
+            
+            <!-- 인간 행동 시뮬레이션 -->
+            <action name="HumanViewSimulation"/>
+            
+            <!-- 시청 시간 대기 -->
+            <action name="Delay">
+              <Timeout>${ViewTime}</Timeout>
+            </action>
+            
+            <!-- 추가 작업 (구독, 좋아요 등) -->
+            <If condition="${EnableSubscribe} == 'true'">
+              <Then>
+                <action name="SubscribeToChannel"/>
+              </Then>
+            </If>
+            
+            <If condition="${EnableLike} == 'true'">
+              <Then>
+                <action name="LikeVideo"/>
+              </Then>
+            </If>
+            
+            <If condition="${EnableComment} == 'true'">
+              <Then>
+                <action name="CommentOnVideo"/>
+              </Then>
+            </If>
+            
+            <If condition="${EnableNotification} == 'true'">
+              <Then>
+                <action name="EnableVideoNotifications"/>
+              </Then>
+            </If>
+            
+            <action name="LogEvent">
+              <Type>VideoView</Type>
+              <Details>Video view {CurrentIteration} completed</Details>
+            </action>
+          </Do>
+          <Catch>
+            <action name="LogEvent">
+              <Type>Error</Type>
+              <Details>Video view error: {Error}</Details>
+            </action>
+          </Catch>
+        </Try>
+      </loop>
+      
+      <action name="LogEvent">
+        <Type>System</Type>
+        <Details>💡 All video views completed</Details>
+      </action>
+    </Macro>
+
+    <!-- 국가별 프록시 선택 -->
+    <Macro Name="SelectCountryProxy">
+      <action name="GetUserCountryChoice">
+        <Variable>SelectedCountry</Variable>
+      </action>
+      
+      <If condition="SelectedCountry == 'Korea'">
+        <Then>
+          <action name="AutoSelectKoreanISP"/>
+          <action name="ApplyKoreanProxy"/>
+        </Then>
+      </If>
+      
+      <If condition="SelectedCountry == 'USA'">
+        <Then>
+          <action name="SetProxyFile">
+            <File>${USProxies}</File>
+          </action>
+          <action name="ApplyUSProxy"/>
+        </Then>
+      </If>
+      
+      <If condition="SelectedCountry == 'Japan'">
+        <Then>
+          <action name="SetProxyFile">
+            <File>${JPProxies}</File>
+          </action>
+          <action name="ApplyJapanProxy"/>
+        </Then>
+      </If>
+      
+      <If condition="SelectedCountry == 'UK'">
+        <Then>
+          <action name="SelectRandomISP">
+            <ISPList>BT,TalkTalk,Sky</ISPList>
+            <Variable>SelectedISP</Variable>
+          </action>
+          <action name="SetProxyFile">
+            <File>${UKProxies}</File>
+          </action>
+        </Then>
+      </If>
+      
+      <If condition="SelectedCountry == 'Thailand'">
+        <Then>
+          <action name="SelectRandomISP">
+            <ISPList>3BB,True,AIS</ISPList>
+            <Variable>SelectedISP</Variable>
+          </action>
+          <action name="SetProxyFile">
+            <File>${ThailandProxies}</File>
+          </action>
+        </Then>
+      </If>
+      
+      <If condition="SelectedCountry == 'Vietnam'">
+        <Then>
+          <action name="SelectRandomISP">
+            <ISPList>Viettel,FPT,VNPT</ISPList>
+            <Variable>SelectedISP</Variable>
+          </action>
+          <action name="SetProxyFile">
+            <File>${VietnamProxies}</File>
+          </action>
+        </Then>
+      </If>
+      
+      <If condition="SelectedCountry == 'Philippines'">
+        <Then>
+          <action name="SelectRandomISP">
+            <ISPList>Globe,PLDT</ISPList>
+            <Variable>SelectedISP</Variable>
+          </action>
+          <action name="SetProxyFile">
+            <File>${PhilippinesProxies}</File>
+          </action>
+        </Then>
+      </If>
+      
+      <If condition="SelectedCountry == 'HongKong'">
+        <Then>
+          <action name="SelectRandomISP">
+            <ISPList>HKBN,HKT,CMI</ISPList>
+            <Variable>SelectedISP</Variable>
+          </action>
+          <action name="SetProxyFile">
+            <File>${HongKongProxies}</File>
+          </action>
+        </Then>
+      </If>
+      
+      <If condition="SelectedCountry == 'Cambodia'">
+        <Then>
+          <action name="SelectRandomISP">
+            <ISPList>EZECOM,Cellcard,Metfone</ISPList>
+            <Variable>SelectedISP</Variable>
+          </action>
+          <action name="SetProxyFile">
+            <File>${CambodiaProxies}</File>
+          </action>
+        </Then>
+      </If>
+      
+      <If condition="SelectedCountry == 'Russia'">
+        <Then>
+          <action name="SelectRandomISP">
+            <ISPList>Beeline,MTS,Megafon</ISPList>
+            <Variable>SelectedISP</Variable>
+          </action>
+          <action name="SetProxyFile">
+            <File>${RussiaProxies}</File>
+          </action>
+        </Then>
+      </If>
+      
+      <action name="LogProxyChange">
+        <Type>ProxyApplied</Type>
+        <Details>Country: ${SelectedCountry}, ISP: ${CurrentISP}, IP: ${CurrentProxy}</Details>
+      </action>
+    </Macro>
+
+    <!-- 한국 자동 랜덤 ISP 선택 -->
+    <Macro Name="AutoSelectKoreanISP">
+      <action name="SetVariable">
+        <Variable>CurrentISP</Variable>
+        <Value>{Random(SKT,KT,LGU+)}</Value>
+      </action>
+      
+      <action name="SetVariable">
+        <Variable>ProxyFile</Variable>
+        <Value>${CurrentISP}Proxies</Value>
+      </action>
+      
+      <action name="LogEvent">
+        <Type>ISPSelection</Type>
+        <Details>자동 선택된 ISP: ${CurrentISP}</Details>
+      </action>
+    </Macro>
+
+    <!-- 대역대별 프록시 분류 및 랜덤 적용 -->
+    <Macro Name="ApplyKoreanProxy">
+      <action name="ReadFile">
+        <File>${ProxyFile}</File>
+        <Variable>AllProxies</Variable>
+      </action>
+      
+      <!-- 대역대별 분류 -->
+      <action name="SetVariable">
+        <Variable>BandAProxies</Variable>
+        <Value>{Filter(AllProxies, '101.254.|112.172.|123.140.')}</Value>
+      </action>
+      <action name="SetVariable">
+        <Variable>BandBProxies</Variable>
+        <Value>{Filter(AllProxies, '125.141.|211.224.|203.249.')}</Value>
+      </action>
+      <action name="SetVariable">
+        <Variable>BandCProxies</Variable>
+        <Value>{Filter(AllProxies, '118.129.|110.10.|218.144.')}</Value>
+      </action>
+      
+      <!-- 대역대 랜덤 선택 (30% 확률로 각 대역대) -->
+      <action name="SetVariable">
+        <Variable>BandChoice</Variable>
+        <Value>{Random(1,10)}</Value>
+      </action>
+      
+      <If condition="BandChoice <= 3">
+        <Then>
+          <action name="SetVariable">
+            <Variable>SelectedBand</Variable>
+            <Value>BandA</Value>
+          </action>
+          <action name="SetVariable">
+            <Variable>BandProxies</Variable>
+            <Value>${BandAProxies}</Value>
+          </action>
+        </Then>
+      </If>
+      
+      <If condition="BandChoice > 3 AND BandChoice <= 6">
+        <Then>
+          <action name="SetVariable">
+            <Variable>SelectedBand</Variable>
+            <Value>BandB</Value>
+          </action>
+          <action name="SetVariable">
+            <Variable>BandProxies</Variable>
+            <Value>${BandBProxies}</Value>
+          </action>
+        </Then>
+      </If>
+      
+      <If condition="

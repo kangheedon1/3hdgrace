@@ -1,0 +1,355 @@
+1.
+
+예약 실행 기능 추가: 낮 시간대만 실행하도록 설정할 수 있는 기능 추가
+시청 유지율 계산 강화: 각 영상별로 맞춤형 시청 시간 비율 조정
+=====================================================
+2.
+
+전문 프록시 서비스 통합: BrightData, Smartproxy 등의 API와 연결하는 
+ui . 토글. 기능 추
+==================================================
+3.
+
+현재  ipv6  ipv4. socks 프록시 형식전체 프록시같은 대역대안 한국위치지만 다른나라 isp인 2500개로 . 하이프록시 유동 아이피200대역1600개 세션시간 짧음 이프록시
+  <!-- 한국 ISP 변경 기능 -->
+  <macro name="ChangeToKoreanISP">
+    <parameter name="Account"/>
+    <action name="SelectRandomISP"><ISPList>SKTelecom,KT,LGUplus</ISPList></action>
+    <action name="ChangeProxy"><ISP>{SelectedISP}</ISP><Proxy>{Account.proxy}</Proxy></action>
+    <action name="LogEvent"><Type>ISPChange</Type><Details>Changed to Korean ISP: {SelectedISP}</Details></action>
+  </macro>
+
+  <!-- 프록시 형식 선택 UI -->
+  <macro name="ShowProxyFormatSelection">
+    <action name="CreatePopup"><Title>프록시 형식 선택</Title><Message>다음 중 사용할 프록시 형식을 선택하세요:
+    
+1. host:port:username:password
+2. username:password:host:port  
+3. host:port
+
+IPv4, IPv6, SOCKS 모두 지원됩니다.</Message></action>
+    <action name="AddChoice"><Option>host:port:username:password</Option></action>
+    <action name="AddChoice"><Option>username:password:host:port</Option></action>
+    <action name="AddChoice"><Option>host:port</Option></action>
+    <action name="ShowPopup"/>
+  </macro>
+
+  <!-- 한국 ISP 변경 UI -->
+  <macro name="ShowKoreanISPChange">
+    <action name="CreatePopup"><Title>한국 ISP 변경</Title><Message>한국 프록시 대역대를 서로 다른 대역(KT, SKT, LGU+)으로 변경합니다.</Message></action>
+    <action name="AddButton"><Label>변경 시작</Label><Action>CallMacro</Action><Parameters><Name>ChangeToKoreanISP</Name></Parameters></action>
+    <action name="ShowPopup"/>
+  </macro>
+
+  <!-- 프록시 정상 형태 사용 설명 -->
+  <macro name="ShowProxyUsageExplanation">
+    <action name="CreatePopup"><Title>프록시 사용 설명</Title><Message>이 기능은 모든 프록시 형식을 정상적으로 사용할 수 있도록 합니다.
+    
+지원 형식:
+- IPv4: 192.168.1.1:8080:username:password
+- IPv6: [2001:db8::1]:8080:username:password
+- SOCKS4: socks4://192.168.1.1:1080
+- SOCKS5: socks5://192.168.1.1:1080:username:password
+
+프록시는 자동으로 회전 및 검증됩니다.</Message></action>
+    <action name="ShowPopup"/>
+  </macro>
+
+  <!-- 프록시 형식 선택 기능 -->
+  <macro name="SelectProxyFormat">
+    <action name="ShowProxyFormatSelection"/>
+    <action name="GetUserChoice"><Variable>SelectedFormat</Variable></action>
+    <action name="SetProxyFormat"><Format>{SelectedFormat}</Format></action>
+    <action name="LogEvent"><Type>ProxyFormatSelected</Type><Details>Selected proxy format: {SelectedFormat}</Details></action>
+  </macro>
+
+  <!-- UI 컨트롤 추가 -->
+  <macro name="AddProxyUIControls">
+    <action name="AddButton" label="프록시 형식 선택" action="CallMacro"><Name>SelectProxyFormat</Name></action>
+    <action name="AddButton" label="한국 ISP 변경" action="CallMacro"><Name>ChangeToKoreanISP</Name></action>
+    <action name="AddButton" label="프록시 사용 설명" action="CallMacro"><Name>ShowProxyUsageExplanation</Name></action>
+  </macro>
+
+  <!-- 메인 UI 설정 -->
+  <macro name="SetupCompleteUI">
+    <action name="CreateUI"/>
+    <action name="SetUIColorScheme"><Scheme>Dark</Scheme></action>
+    <action name="SetUIButtonStyle"><Style>Modern</Style></action>
+    
+
+    
+    <!-- 추가된 UI 버튼들 -->
+    <action name="AddProxyUIControls"/>
+    
+    <action name="StartStopControl"/>
+  </macro>
+
+  <!-- 병렬 실행 최적화 -->
+  <macro name="OptimizeParallelExecution">
+    <action name="SetThreadCount"><Count>500</Count></action>
+    <action name="EnableParallelExecution"><Value>true</Value></action>
+    <action name="SetThreadDelay"><Delay>100</Delay></action>
+    <action name="InitializeBrowserPool"><Size>500</Size><Headless>false</Headless></action>
+    <action name="ConfigureThreadManagement"><MaxConcurrent>500</MaxConcurrent><QueueSize>1000</QueueSize></action>
+  </macro>
+
+  <!-- 고성능 프록시 처리 -->
+  <macro name="HighPerformanceProxyHandling">
+    <parameter name="Account"/>
+    <action name="ParseProxyString"><Proxy>{Account.proxy}</Proxy></action>
+    <action name="ValidateProxyFormat"/>
+    <action name="CheckProxyConnectivity"/>
+    <action name="MeasureProxySpeed"/>
+    <if condition="ProxySpeed < 200ms">
+      <then>
+        <action name="UseFastProxy"><Proxy>{Account.proxy}</Proxy></action>
+      </then>
+      <else>
+        <action name="RotateToBackupProxy"/>
+      </else>
+    </if>
+  </macro>
+
+  <!-- 세계 최고 성능 최적화 -->
+  <macro name="WorldClassPerformanceOptimization">
+    <action name="OptimizeResourceUsage"/>
+    <action name="EnableMemoryPooling"/>
+    <action name="UseHighPerformanceAlgorithms"/>
+    <action name="ImplementCachingMechanism"/>
+    <action name="EnableHardwareAcceleration"/>
+    <action name="OptimizeNetworkStack"/>
+    <action name="UseEfficientDataStructures"/>
+    <action name="EnableCompression"/>
+    <action name="OptimizeRenderingPipeline"/>
+  </macro>
+
+  <!-- 전 세계 프록시 최적화 -->
+  <macro name="GlobalProxyOptimization">
+    <action name="LoadGlobalProxyList"><File>global_proxies.txt</File></action>
+    <action name="CategorizeProxiesByRegion"/>
+    <action name="TestProxyPerformance"/>
+    <action name="SelectBestPerformingProxies"><Count>1000</Count></action>
+    <action name="CreateOptimizedProxyPool"/>
+  </macro>
+
+  <!-- 최종 실행 설정 -->
+  <macro name="FinalExecutionSetup">
+    <action name="CallMacro"><Name>InitializeParallelEnvironment</Name></action>
+    <action name="CallMacro"><Name>LoadDataFiles</Name></action>
+    <action name="CallMacro"><Name>SetupCompleteUI</Name></action>
+    <action name="CallMacro"><Name>OptimizeParallelExecution</Name></action>
+    <action name="CallMacro"><Name>WorldClassPerformanceOptimization</Name></action>
+    <action name="CallMacro"><Name>GlobalProxyOptimization</Name></action>
+  </macro>
+
+  <!-- 메인 실행 흐름 -->
+  <macro name="MainExecutionFlow">
+    <action name="CallMacro"><Name>FinalExecutionSetup</Name></action>
+    
+    <loop name="ProcessAccountsParallel" parallel="true" max_threads="500">
+      <action name="GetNextAccount"><Variable>Account</Variable></action>
+      <if condition="AccountAvailable">
+        <then>
+          <action name="CallMacro"><Name>HighPerformanceProxyHandling</Name><Parameters><Account>{Account}</Account></Parameters></action>
+          <action name="CallMacro"><Name>ExecuteAll29Features</Name><Parameters><Account>{Account}</Account></Parameters></action>
+        </then>
+      </if>
+    </loop>
+  </macro>
+
+  <!-- 프로젝트 진입점 -->
+  <macro name="Main">
+    <action name="CallMacro"><Name>MainExecutionFlow</Name></action>
+  </macro>
+</project>
+```
+
+기 기능을 통해서
+
+중요한 요청사항
+전문 프록시 : BrightData, Smartproxy 등과 100프로 똑같은성능 효과기능이 되는 xml.ui. 만들어줘
+
+======================================
+4.
+브라우저 프로파일링: GoLogin 또는 Multilogin과의 통합 추가
+시청 후 다른 영상 클릭 시뮬레이션: HumanViewSimulation에 다음 동영상 클릭 로직 추가
+ui. 토글. 기능 추가 
+
+============================
+5.
+https://fp.bablosoft.com/#pricing
+바스핑거프린터 api
+J6tgC3yKrA67k6wr4SpeqWxLlRqgyZ8N0AhkmCmV9jAPC5hxuo1jt9TfFDsWWhJI
+
+  https://proxygeo.com/BrowserFingerprints  
+api
+
+ff893e3d-5f3e-43d9-8ac4-b12890fcb72f
+
+이두가지 api 키 로
+
+
+브라우저 프로파일링: GoLogin 또는 Multilogin과  100프로 똑같은성능 효과기능 똑같이 되는 전체통합 bas 실전용 xml.ui. 만들어줘
+---------------------------------------------------------------------------------------------
+📌 사용 방법
+위 코드들을 각각 복사하여 BAS에 별도 macro로 추가하세요.
+
+Main 매크로에서 순서대로 호출:
+<macro name="Main">
+  <action name="CallMacro"><Name>SelectCountryUI</Name></action>
+  <action name="CallMacro"><Name>SelectProxySourceUI</Name></action>
+  <action name="CallMacro"><Name>EnableProfileAndNextClickUI</Name></action>
+  <action name="CallMacro"><Name>LoadBrowserFingerprintProfile</Name></action>
+  <action name="CallMacro"><Name>FixedViewerSystem_ElitePlus</Name></action>
+</macro>
+
+-------------------------------------------------------------------------------------------------
+
+<macro name="SystemToggleUI">
+  <action name="CreatePopup"><Title>기능 선택</Title><Message>사용할 고급 기능을 선택하세요:</Message></action>
+  <action name="AddChoice"><Option>🕒 예약 실행 (06~18시)</Option></action>
+  <action name="AddChoice"><Option>📈 시청 유지율 개별 조정</Option></action>
+  <action name="AddChoice"><Option>🌐 전문 프록시 API 사용</Option></action>
+  <action name="AddChoice"><Option>🧬 브라우저 프로파일링 적용</Option></action>
+  <action name="AddChoice"><Option>📌 다음 영상 클릭 시뮬레이션</Option></action>
+  <action name="ShowPopup"/>
+  <action name="GetUserChoice"><Variable>SelectedFeatures</Variable></action>
+  <action name="LogEvent"><Type>UI</Type><Details>선택된 기능: {SelectedFeatures}</Details></action>
+</macro>
+<macro name="ApplyBrowserFingerprinting">
+  <action name="CallURL">
+    <URL>https://fp.bablosoft.com/api/fingerprint?token=J6tgC3yKrA67k6wr4SpeqWxLlRqgyZ8N0AhkmCmV9jAPC5hxuo1jt9TfFDsWWhJI</URL>
+    <Method>GET</Method>
+    <Variable>BrowserFingerprint</Variable>
+  </action>
+  <action name="SetFingerprintProfile"><Data>{BrowserFingerprint}</Data></action>
+
+  <action name="CallURL">
+    <URL>https://proxygeo.com/BrowserFingerprints?api_key=ff893e3d-5f3e-43d9-8ac4-b12890fcb72f</URL>
+    <Method>GET</Method>
+    <Variable>GeoProfile</Variable>
+  </action>
+  <action name="MergeFingerprint"><Base>{BrowserFingerprint}</Base><Geo>{GeoProfile}</Geo><Variable>FinalFingerprint</Variable></action>
+
+  <action name="ApplyFingerprint"><Profile>{FinalFingerprint}</Profile></action>
+  <action name="LogEvent"><Type>Fingerprint</Type><Details>브라우저 프로파일 적용 완료</Details></action>
+</macro>
+<macro name="CheckExecutionTime">
+  <action name="GetCurrentHour"><Variable>CurrentHour</Variable></action>
+  <if condition="{CurrentHour} &gt;= 6 && {CurrentHour} &lt;= 18">
+    <then><action name="SetVariable"><Variable>CanRun</Variable><Value>true</Value></action></then>
+    <else><action name="Exit"><Reason>예약 시간 외 실행 금지</Reason></action></else>
+  </if>
+</macro>
+<macro name="GetWatchTimeRatioUI">
+  <action name="CreatePopup"><Title>시청 유지율</Title><Message>영상 유지율 범위를 설정하세요 (%):</Message></action>
+  <action name="AddInput"><Label>최소 유지율</Label><DefaultValue>60</DefaultValue><Variable>MinRate</Variable></action>
+  <action name="AddInput"><Label>최대 유지율</Label><DefaultValue>100</DefaultValue><Variable>MaxRate</Variable></action>
+  <action name="ShowPopup"/>
+  <action name="CalculateDuration"><VideoLength>{VideoTotalLength}</VideoLength><Min>{MinRate}</Min><Max>{MaxRate}</Max><Variable>WatchDuration</Variable></action>
+</macro>
+<macro name="ClickNextVideo">
+  <action name="Wait"><Time>5</Time></action>
+  <action name="ScrollPage"/>
+  <action name="RandomClick"><Selector>.next-video-thumbnail</Selector></action>
+  <action name="LogEvent"><Type>Behavior</Type><Details>다음 영상 클릭 시뮬레이션</Details></action>
+</macro>
+<macro name="SelectProxySourceUI">
+  <action name="CreatePopup"><Title>프록시 공급자 선택</Title><Message>사용할 프록시 제공 업체를 선택하세요:</Message></action>
+  <action name="AddChoice"><Option>직접입력</Option></action>
+  <action name="AddChoice"><Option>BrightData</Option></action>
+  <action name="AddChoice"><Option>SmartProxy</Option></action>
+  <action name="ShowPopup"/>
+  <action name="GetUserChoice"><Variable>SelectedProxySource</Variable></action>
+
+  <if condition="{SelectedProxySource} == 'BrightData'">
+    <then>
+      <action name="SetVariable"><Variable>ProxyAPI</Variable><Value>https://api.brightdata.com/proxies?key=API_KEY</Value></action>
+    </then>
+  </if>
+
+  <if condition="{SelectedProxySource} == 'SmartProxy'">
+    <then>
+      <action name="SetVariable"><Variable>ProxyAPI</Variable><Value>https://proxy.smartproxy.com/v1/list?token=SMART_TOKEN</Value></action>
+    </then>
+  </if>
+
+  <action name="LogEvent"><Type>ProxySource</Type><Details>선택된 소스: {SelectedProxySource}</Details></action>
+</macro>
+<macro name="EnableProfileAndNextClickUI">
+  <action name="CreatePopup"><Title>브라우저 옵션</Title><Message>프로파일링과 사용자 행동 시뮬레이션 설정</Message></action>
+  <action name="AddCheckbox"><Option>브라우저 프로파일링 활성화</Option><Variable>EnableProfile</Variable></action>
+  <action name="AddCheckbox"><Option>다음 영상 클릭 시뮬레이션</Option><Variable>EnableNextClick</Variable></action>
+  <action name="ShowPopup"/>
+</macro>
+
+<macro name="ApplyProfileSimulation">
+  <if condition="{EnableProfile} == true">
+    <then>
+      <action name="ApplyFingerprintAPI">
+        <URL>https://fp.bablosoft.com/?key=J6tgC3yKrA67k6wr4SpeqWxLlRqgyZ8N0AhkmCmV9jAPC5hxuo1jt9TfFDsWWhJI</URL>
+      </action>
+    </then>
+  </if>
+
+  <if condition="{EnableNextClick} == true">
+    <then>
+      <action name="Wait"><Seconds>5</Seconds></action>
+      <action name="Click"><Selector>.next-button, .ytp-next-button</Selector></action>
+      <action name="WatchLiveStream"><URL>자동클릭된URL</URL><Duration>{Random(600, 1200)}</Duration></action>
+    </then>
+  </if>
+</macro>
+<macro name="FilterFastProxies">
+  <parameter name="InputList"/>
+  <action name="SetVariable"><Variable>FastProxies</Variable><Value>[]</Value></action>
+
+  <loop name="CheckLoop" from="0" to="{InputList.length - 1}">
+    <action name="MeasureProxySpeed">
+      <Proxy>{InputList[{CheckLoop}]}</Proxy>
+      <Timeout>1500</Timeout>
+      <Variable>PingResult</Variable>
+    </action>
+    <if condition="{PingResult} < 1000">
+      <then>
+        <action name="AddToList"><List>{FastProxies}</List><Item>{InputList[{CheckLoop}]}</Item></action>
+      </then>
+    </if>
+  </loop>
+
+  <action name="LogEvent"><Type>SpeedFilter</Type><Details>빠른 프록시 수: {FastProxies.length}</Details></action>
+</macro>
+<macro name="CIDRFilter">
+  <parameter name="ProxyList"/>
+  <parameter name="AllowedCIDRs"/>
+  <action name="SetVariable"><Variable>FilteredProxies</Variable><Value>[]</Value></action>
+
+  <loop name="CIDRLoop" from="0" to="{ProxyList.length - 1}">
+    <action name="GetIP"><Proxy>{ProxyList[{CIDRLoop}]}</Proxy><Variable>ProxyIP</Variable></action>
+    <action name="CheckIPInCIDR"><IP>{ProxyIP}</IP><CIDRs>{AllowedCIDRs}</CIDRs><Result>IsAllowed</Result></action>
+    <if condition="{IsAllowed} == true">
+      <then>
+        <action name="AddToList"><List>{FilteredProxies}</List><Item>{ProxyList[{CIDRLoop}]}</Item></action>
+      </then>
+    </if>
+  </loop>
+
+  <action name="LogEvent"><Type>CIDRFilter</Type><Details>CIDR 통과 프록시 수: {FilteredProxies.length}</Details></action>
+</macro>
+<macro name="SelectViewStrategyUI">
+  <action name="CreatePopup"><Title>시청 전략 선택</Title><Message>URL 시청 전략을 선택하세요:</Message></action>
+  <action name="AddChoice"><Option>집중 시청 (1개 URL)</Option></action>
+  <action name="AddChoice"><Option>분산 시청 (여러 URL)</Option></action>
+  <action name="ShowPopup"/>
+  <action name="GetUserChoice"><Variable>ViewStrategy</Variable></action>
+</macro>
+<macro name="Main">
+  <action name="CallMacro"><Name>SelectCountryUI</Name></action>
+  <action name="ReadFile"><File>./proxies/global_proxies.txt</File><Variable>ProxyList</Variable></action>
+  <action name="ReadFile"><File>./data/target_urls.txt</File><Variable>TargetURLs</Variable></action>
+  <action name="CallMacro"><Name>FilterFastProxies</Name><Parameters><InputList>{ProxyList}</InputList></Parameters></action>
+  <action name="CallMacro"><Name>CIDRFilter</Name><Parameters><ProxyList>{FastProxies}</ProxyList><AllowedCIDRs>1.1.1.0/24,2.2.2.0/24</AllowedCIDRs></Parameters></action>
+  <action name="CallMacro"><Name>SelectViewStrategyUI</Name></action>
+  <action name="SetVariable"><Variable>FinalProxyList</Variable><Value>{FilteredProxies}</Value></action>
+  <action name="CallMacro"><Name>FixedViewerSystem_ElitePlus</Name></action>
+</macro>

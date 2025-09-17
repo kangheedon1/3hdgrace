@@ -1,0 +1,824 @@
+<macro name="🇰🇷_Select_Korean_ISP">
+  <comment>
+    [한국 ISP 프록시 스위처]
+    - SKT, KT, LGU+ 중 선택
+    - 각 ISP에 맞는 프록시 파일에서 랜덤 선택
+    - 실제 한국 사용자처럼 보이게 함
+  </comment>
+
+  <action name="ShowMessage">
+    <Text>🌐 한국 ISP 선택:
+1️⃣ SKT (SK텔레콤)
+2️⃣ KT
+3️⃣ LG U+
+0️⃣ 랜덤</Text>
+    <Buttons>1,2,3,0</Buttons>
+    <Variable>UserChoice</Variable>
+  </action>
+
+  <If condition="UserChoice == '1'">
+    <Then>
+      <action name="SetVariable">
+        <Variable>SelectedISP</Variable>
+        <Value>SKT</Value>
+      </action>
+      <action name="SetVariable">
+        <Variable>ProxyFile</Variable>
+        <Value>./proxies/skt_proxies.txt</Value>
+      </action>
+      <action name="LogEvent">
+        <Type>ISPSelected</Type>
+        <Details>SKT 선택됨 🇰🇷📱</Details>
+      </action>
+    </Then>
+  </If>
+
+  <If condition="UserChoice == '2'">
+    <Then>
+      <action name="SetVariable">
+        <Variable>SelectedISP</Variable>
+        <Value>KT</Value>
+      </action>
+      <action name="SetVariable">
+        <Variable>ProxyFile</Variable>
+        <Value>./proxies/kt_proxies.txt</Value>
+      </action>
+      <action name="LogEvent">
+        <Type>ISPSelected</Type>
+        <Details>KT 선택됨 🇰🇷📡</Details>
+      </action>
+    </Then>
+  </If>
+
+  <If condition="UserChoice == '3'">
+    <Then>
+      <action name="SetVariable">
+        <Variable>SelectedISP</Variable>
+        <Value>LGU+</Value>
+      </action>
+      <action name="SetVariable">
+        <Variable>ProxyFile</Variable>
+        <Value>./proxies/lgu_proxies.txt</Value>
+      </action>
+      <action name="LogEvent">
+        <Type>ISPSelected</Type>
+        <Details>LG U+ 선택됨 🇰🇷🏠</Details>
+      </action>
+    </Then>
+  </If>
+
+  <If condition="UserChoice == '0'">
+    <Then>
+      <action name="SetVariable">
+        <Variable>RandomISP</Variable>
+        <Value>{Random(1,3)}</Value>
+      </action>
+      <If condition="RandomISP == 1">
+        <Then>
+          <action name="SetVariable"><Variable>SelectedISP</Variable><Value>SKT</Value></action>
+          <action name="SetVariable"><Variable>ProxyFile</Variable><Value>./proxies/skt_proxies.txt</Value></action>
+        </Then>
+      </If>
+      <If condition="RandomISP == 2">
+        <Then>
+          <action name="SetVariable"><Variable>SelectedISP</Variable><Value>KT</Value></action>
+          <action name="SetVariable"><Variable>ProxyFile</Variable><Value>./proxies/kt_proxies.txt</Value></action>
+        </Then>
+      </If>
+      <If condition="RandomISP == 3">
+        <Then>
+          <action name="SetVariable"><Variable>SelectedISP</Variable><Value>LGU+</Value></action>
+          <action name="SetVariable"><Variable>ProxyFile</Variable><Value>./proxies/lgu_proxies.txt</Value></action>
+        </Then>
+      </If>
+    </Then>
+  </If>
+
+  <!-- 프록시 파일에서 랜덤 선택 -->
+  <action name="ReadFile">
+    <File>{ProxyFile}</File>
+    <Variable>AllProxies</Variable>
+  </action>
+  <action name="ExtractText">
+    <Text>{AllProxies}</Text>
+    <Variable>ProxyList</Variable>
+    <Regex>\d+\.\d+\.\d+\.\d+:\d+:\w+:\w+</Regex>
+    <Multiple>true</Multiple>
+  </action>
+  <action name="SetVariable">
+    <Variable>ChosenProxy</Variable>
+    <Value>{RandomLine(ProxyList)}</Value>
+  </action>
+
+  <!-- 프록시 분리 -->
+  <action name="ExtractText">
+    <Text>{ChosenProxy}</Text>
+    <Variable>ProxyIP</Variable>
+    <Regex>(\d+\.\d+\.\d+\.\d+):\d+:\w+:\w+</Regex>
+  </action>
+  <action name="ExtractText">
+    <Text>{ChosenProxy}</Text>
+    <Variable>ProxyPort</Variable>
+    <Regex>\d+\.\d+\.\d+\.\d+:(\d+):\w+:\w+</Regex>
+  </action>
+
+  <!-- 브라우저에 프록시 설정 적용 -->
+  <action name="SetProxy">
+    <Type>HTTP</Type>
+    <IP>{ProxyIP}</IP>
+    <Port>{ProxyPort}</Port>
+    <Username>heedon0143</Username>
+    <Password>977306ka</Password>
+  </action>
+
+  <!-- 확인 메시지 -->
+  <action name="ShowMessage">
+    <Text>✅ 적용 완료!
+ISP: {SelectedISP}
+IP: {ProxyIP}
+Port: {ProxyPort}
+🌍 한국 전역 IP로 보이게 됩니다.</Text>
+  </action>
+
+  <action name="LogEvent">
+    <Type>ProxyApplied</Type>
+    <Details>ISP={SelectedISP}, IP={ProxyIP}:{ProxyPort}</Details>
+  </action>
+</macro>
+
+
+/proxies/
+├── skt_proxies.txt
+├── kt_proxies.txt
+└── lgu_proxies.txt
+
+
+101.254.120.10:10397:heedon0143:977306ka
+101.254.120.11:10784:heedon0143:977306ka
+101.254.120.12:10393:heedon0143:977306ka
+
+
+125.141.120.10:10555:heedon0143:977306ka
+125.141.120.11:10414:heedon0143:977306ka
+
+<macro name="🔄_Rotate_Proxy_If_Suspected">
+  <If condition="document.title.includes('캡차') or document.querySelector('img[src*='captcha']')">
+    <Then>
+      <call macro="🇰🇷_Select_Korean_ISP"/>
+      <action name="RestartBrowser"/>
+      <action name="LogEvent">
+        <Type>AntiRage</Type>
+        <Details>유튜브 캡차 감지 → 프록시 교체</Details>
+      </action>
+    </Then>
+  </If>
+</macro>
+
+[SKT]
+SK텔레콤 위치
+🇰🇷📱
+[KT]
+KT 위치
+🇰🇷📡
+[LGU+]
+LGU+ 위치
+🇰🇷🏠
+[랜덤]
+무작위 ISP 선택
+🎲🔁
+
+<macro name="🤖_AI_Protect_Korean_Proxy">
+  <comment>
+    [AI 기반 한국 ISP 자동 보호 시스템]
+    - 캡차, 제한, 로그인 실패 감지 시 자동 ISP 전환
+    - 사용자 행동 패턴 분석 (간단한 AI 로직)
+    - UI 알림 + 이모지로 상태 표시
+  </comment>
+
+  <!-- 현재 상태 감지 -->
+  <action name="SetVariable">
+    <Variable>TriggerCount</Variable>
+    <Value>{GET_VAR('AI_TRIGGER_COUNT') or 0}</Value>
+  </action>
+
+  <If condition="document.title.includes('캡차') or document.querySelector('img[src*='captcha']') or document.querySelector('h1')?.innerText.includes('계정 일시 중지')">
+    <Then>
+      <action name="SetVariable">
+        <Variable>TriggerCount</Variable>
+        <Value>{TriggerCount + 1}</Value>
+      </action>
+      <action name="SetVariable">
+        <Variable>AI_TRIGGER_COUNT</Variable>
+        <Value>{TriggerCount + 1}</Value>
+      </action>
+    </Then>
+  </If>
+
+  <!-- AI 판단: 2번 이상 트리거 → ISP 변경 -->
+  <If condition="TriggerCount >= 2">
+    <Then>
+      <call macro="🇰🇷_Select_Korean_ISP"/>
+      <action name="RestartBrowser"/>
+      <action name="SetVariable">
+        <Variable>AI_TRIGGER_COUNT</Variable>
+        <Value>0</Value>
+      </action>
+      <action name="ShowMessage">
+        <Text>🛡️ AI 보호 작동!
+자동으로 한국 ISP 변경 완료 ✅
+다음 감지까지 안전하게 이용하세요.</Text>
+      </action>
+    </Then>
+  </If>
+
+  <!-- 정상 상태 유지 시 카운트 감소 -->
+  <If condition="TriggerCount > 0 and not document.querySelector('captcha')">
+    <Then>
+      <action name="Delay">
+        <Min>300000</Min> <!-- 5분 후 재평가 -->
+      </action>
+      <action name="SetVariable">
+        <Variable>AI_TRIGGER_COUNT</Variable>
+        <Value>{TriggerCount - 1}</Value>
+      </action>
+    </Then>
+  </If>
+</macro>
+<macro name="🎛️_Korean_Proxy_UI_Menu">
+  <action name="ShowMessage">
+    <Text>🇰🇷 한국 ISP 선택 메뉴 🎛️
+
+📌 현재: {CURRENT_ISP or '자동'}
+
+1️⃣ 📱 SKT (SK텔레콤)
+2️⃣ 📡 KT
+3️⃣ 🏠 LG U+
+4️⃣ 🎲 랜덤 자동
+5️⃣ 🤖 AI 보호 모드
+
+🚫 취소: 0 입력</Text>
+    <Buttons>1,2,3,4,5,0</Buttons>
+    <Variable>UserChoice</Variable>
+  </action>
+
+  <If condition="UserChoice == '1'">
+    <Then>
+      <action name="SetVariable"><Variable>CURRENT_ISP</Variable><Value>SKT</Value></action>
+      <action name="SetVariable"><Variable>ProxyFile</Variable><Value>./proxies/skt_proxies.txt</Value></action>
+      <call macro="🔄_Apply_Proxy"/>
+    </Then>
+  </If>
+
+  <If condition="UserChoice == '2'">
+    <Then>
+      <action name="SetVariable"><Variable>CURRENT_ISP</Variable><Value>KT</Value></action>
+      <action name="SetVariable"><Variable>ProxyFile</Variable><Value>./proxies/kt_proxies.txt</Value></action>
+      <call macro="🔄_Apply_Proxy"/>
+    </Then>
+  </If>
+
+  <If condition="UserChoice == '3'">
+    <Then>
+      <action name="SetVariable"><Variable>CURRENT_ISP</Variable><Value>LGU+</Value></action>
+      <action name="SetVariable"><Variable>ProxyFile</Variable><Value>./proxies/lgu_proxies.txt</Value></action>
+      <call macro="🔄_Apply_Proxy"/>
+    </Then>
+  </If>
+
+  <If condition="UserChoice == '4'">
+    <Then>
+      <call macro="🇰🇷_Select_Korean_ISP"/>
+    </Then>
+  </If>
+
+  <If condition="UserChoice == '5'">
+    <Then>
+      <action name="ShowMessage">
+        <Text>🤖 AI 보호 모드 활성화!
+자동으로 ISP를 교체합니다.
+캡차 또는 제한 감지 시 즉시 반응 🔔</Text>
+      </action>
+      <call macro="🤖_AI_Protect_Korean_Proxy"/>
+    </Then>
+  </If>
+</macro>
+<macro name="🔄_Apply_Proxy">
+  <action name="ReadFile">
+    <File>{ProxyFile}</File>
+    <Variable>AllProxies</Variable>
+  </action>
+  <action name="ExtractText">
+    <Text>{AllProxies}</Text>
+    <Variable>ProxyList</Variable>
+    <Regex>\d+\.\d+\.\d+\.\d+:\d+:\w+:\w+</Regex>
+    <Multiple>true</Multiple>
+  </action>
+  <action name="SetVariable">
+    <Variable>ChosenProxy</Variable>
+    <Value>{RandomLine(ProxyList)}</Value>
+  </action>
+
+  <!-- IP, Port 추출 -->
+  <action name="ExtractText">
+    <Text>{ChosenProxy}</Text>
+    <Variable>ProxyIP</Variable>
+    <Regex>(\d+\.\d+\.\d+\.\d+):\d+:\w+:\w+</Regex>
+  </action>
+  <action name="ExtractText">
+    <Text>{ChosenProxy}</Text>
+    <Variable>ProxyPort</Variable>
+    <Regex>\d+\.\d+\.\d+\.\d+:(\d+):\w+:\w+</Regex>
+  </action>
+
+  <!-- 프록시 설정 적용 -->
+  <action name="SetProxy">
+    <Type>HTTP</Type>
+    <IP>{ProxyIP}</IP>
+    <Port>{ProxyPort}</Port>
+    <Username>heedon0143</Username>
+    <Password>977306ka</Password>
+  </action>
+
+  <!-- 브라우저 재시작 (IP 반영) -->
+  <action name="RestartBrowser"/>
+
+  <action name="LogEvent">
+    <Type>ProxyApplied</Type>
+    <Details>ISP={CURRENT_ISP}, IP={ProxyIP}:{ProxyPort}</Details>
+  </action>
+
+  <action name="ShowMessage">
+    <Text>✅ 성공! 새로운 한국 프록시 적용됨 🇰🇷
+📡 ISP: {CURRENT_ISP}
+🌐 IP: {ProxyIP}:{ProxyPort}
+🔒 이제 유튜브도 믿음 👍</Text>
+  </action>
+</macro>
+
+
+# classify_korean_proxies.py
+import re
+
+# 한국 ISP IP 대역 (CIDR)
+ISP_RANGES = {
+    'SKT':  ['101.254.', '112.172.', '123.140.'],
+    'KT':   ['125.141.', '211.224.', '203.249.'],
+    'LGU+': ['118.129.', '110.10.', '218.144.']
+}
+
+def classify_proxy(ip):
+    for isp, prefixes in ISP_RANGES.items():
+        if any(ip.startswith(p) for p in prefixes):
+            return isp
+    return 'UNKNOWN'
+
+# 프록시 파일 읽기
+with open('한국프록시.txt', 'r') as f:
+    proxies = f.read().strip().split()
+
+# 분류
+by_isp = {'SKT': [], 'KT': [], 'LGU+': [], 'UNKNOWN': []}
+
+for proxy in proxies:
+    ip = proxy.split(':')[0]
+    isp = classify_proxy(ip)
+    by_isp[isp].append(proxy)
+
+# 저장
+for isp, list_ in by_isp.items():
+    with open(f'./proxies/{isp.lower()}_proxies.txt', 'w') as f:
+        f.write('\n'.join(list_))
+
+print("✅ ISP별 프록시 분류 완료!")
+print(f"SKT: {len(by_isp['SKT'])}개")
+print(f"KT: {len(by_isp['KT'])}개")
+print(f"LGU+: {len(by_isp['LGU+'])}개")
+print(f"알 수 없음: {len(by_isp['UNKNOWN'])}개")
+[유튜브 방문] 
+    → 캡차 감지? → ✅ → 트리거 +1
+    → 또 감지? → ✅ → 트리거 2 → ISP 자동 변경
+    → 재시작 → 정상화
+	
+	<macro name="🌍_Proxy_Control_Center">
+  <action name="ShowMessage">
+    <Text>🌐 프록시 제어 센터 🛠️
+
+[필수] 국가 선택:
+🇰🇷 1. 한국 (필수)
+🇺🇸 2. 미국
+🇯🇵 3. 일본
+🇩🇪 4. 독일
+🌍 5. 랜덤 국가
+
+💡 클릭하면 설명 보기
+🔒 한국 선택 후 ISP/지역 설정</Text>
+    <Buttons>1,2,3,4,5</Buttons>
+    <Variable>UserChoice</Variable>
+  </action>
+
+  <!-- 클릭 시 설명 팝업 -->
+  <If condition="UserChoice == '1'">
+    <Then>
+      <action name="ShowMessage">
+        <Text>🇰🇷 한국 선택 설명 📚
+
+✅ 이 옵션은 반드시 선택해야 합니다.
+- 유튜브는 한국 IP를 우선 신뢰합니다.
+- 서울, 부산, 인천, 대구 등 전국 구/읍/리 단위 IP 사용
+- SKT, KT, LGU+ 통신사 기반
+- 5000번대 고정 포트 회피
+
+👉 다음에 ISP와 지역을 선택하세요!</Text>
+      </action>
+      <call macro="🇰🇷_Select_Korean_ISP_and_Area"/>
+    </Then>
+  </If>
+
+  <If condition="UserChoice == '2'">
+    <Then>
+      <action name="ShowMessage">
+        <Text>🇺🇸 미국 선택 설명 📚
+
+- 뉴욕, LA, 시카고 등 주요 도시 IP
+- Comcast, AT&T, Verizon 기반
+- IPv4 + 유동 포트 사용
+- 유튜브 콘텐츠 접근 용이</Text>
+      </action>
+      <call macro="🇺🇸_Apply_US_Proxy"/>
+    </Then>
+  </If>
+
+  <If condition="UserChoice == '3'">
+    <Then>
+      <action name="ShowMessage">
+        <Text>🇯🇵 일본 선택 설명 📚
+
+- 도쿄, 오사카, 후쿠오카 지역
+- NTT, SoftBank 기반
+- 고속 안정적 연결
+- 아시아 콘텐츠 접근에 유리</Text>
+      </action>
+      <call macro="🇯🇵_Apply_JP_Proxy"/>
+    </Then>
+  </If>
+
+  <If condition="UserChoice == '4'">
+    <Then>
+      <action name="ShowMessage">
+        <Text>🇩🇪 독일 선택 설명 📚
+
+- 베를린, 뮌헨, 프랑크푸르트
+- Deutsche Telekom, Vodafone 기반
+- 유럽 콘텐츠 접근용
+- GDPR 친화적 IP</Text>
+      </action>
+      <call macro="🇩🇪_Apply_DE_Proxy"/>
+    </Then>
+  </If>
+
+  <If condition="UserChoice == '5'">
+    <Then>
+      <action name="SetVariable">
+        <Variable>RandomCountry</Variable>
+        <Value>{RandomItem('🇰🇷', '🇺🇸', '🇯🇵', '🇩🇪')}</Value>
+      </action>
+      <action name="ShowMessage">
+        <Text>🎲 랜덤 국가 선택됨: {RandomCountry}</Text>
+      </action>
+      <If condition="RandomCountry == '🇰🇷'"><Then><call macro="🇰🇷_Select_Korean_ISP_and_Area"/></Then></If>
+      <If condition="RandomCountry == '🇺🇸'"><Then><call macro="🇺🇸_Apply_US_Proxy"/></Then></If>
+      <If condition="RandomCountry == '🇯🇵'"><Then><call macro="🇯🇵_Apply_JP_Proxy"/></Then></If>
+      <If condition="RandomCountry == '🇩🇪'"><Then><call macro="🇩🇪_Apply_DE_Proxy"/></Then></If>
+    </Then>
+  </If>
+</macro>
+<macro name="🇰🇷_Select_Korean_ISP_and_Area">
+  <action name="ShowMessage">
+    <Text>🇰🇷 한국 ISP 및 지역 선택 🗺️
+
+1️⃣ 📱 SKT (SK텔레콤)
+2️⃣ 📡 KT
+3️⃣ 🏠 LGU+
+
+📍 지역 선택:
+4️⃣ 🌆 서울 (강남구, 서초구)
+5️⃣ 🌊 부산 (해운대구, 수영구)
+6️⃣ 🌄 대구 (달서구, 수성구)
+7️⃣ 🌉 인천 (남동구, 연수구)
+8️⃣ 🌲 전국 랜덤</Text>
+    <Buttons>1,2,3,4,5,6,7,8</Buttons>
+    <Variable>UserChoice</Variable>
+  </action>
+
+  <!-- ISP 설정 -->
+  <If condition="UserChoice == '1' or UserChoice == '2' or UserChoice == '3'">
+    <Then>
+      <If condition="UserChoice == '1'">
+        <action name="SetVariable"><Variable>CURRENT_ISP</Variable><Value>SKT</Value></action>
+        <action name="SetVariable"><Variable>ProxyFile</Variable><Value>./proxies/skt_all.txt</Value></action>
+      </If>
+      <If condition="UserChoice == '2'">
+        <action name="SetVariable"><Variable>CURRENT_ISP</Variable><Value>KT</Value></action>
+        <action name="SetVariable"><Variable>ProxyFile</Variable><Value>./proxies/kt_all.txt</Value></action>
+      </If>
+      <If condition="UserChoice == '3'">
+        <action name="SetVariable"><Variable>CURRENT_ISP</Variable><Value>LGU+</Value></action>
+        <action name="SetVariable"><Variable>ProxyFile</Variable><Value>./proxies/lgu_all.txt</Value></action>
+      </If>
+      <call macro="🔁_Apply_Proxy"/>
+    </Then>
+  </If>
+
+  <!-- 지역 기반 프록시 파일 선택 -->
+  <If condition="UserChoice == '4'"><action name="SetVariable"><Variable>ProxyFile</Variable><Value>./proxies/seoul.txt</Value></action></If>
+  <If condition="UserChoice == '5'"><action name="SetVariable"><Variable>ProxyFile</Variable><Value>./proxies/busan.txt</Value></action></If>
+  <If condition="UserChoice == '6'"><action name="SetVariable"><Variable>ProxyFile</Variable><Value>./proxies/daegu.txt</Value></action></If>
+  <If condition="UserChoice == '7'"><action name="SetVariable"><Variable>ProxyFile</Variable><Value>./proxies/incheon.txt</Value></action></If>
+  <If condition="UserChoice == '8'"><action name="SetVariable"><Variable>ProxyFile</Variable><Value>./proxies/korea_random.txt</Value></action></If>
+
+  <If condition="UserChoice >= '4'">
+    <Then>
+      <action name="ShowMessage">
+        <Text>🎯 지역 기반 프록시 적용 준비 완료!
+지역: {ExtractText('4|5|6|7|8', '서울|부산|대구|인천|전국 랜덤', UserChoice)}
+이제 ISP를 선택하세요 👇</Text>
+      </action>
+      <call macro="🇰🇷_Select_Korean_ISP_and_Area"/> <!-- 재귀 호출 -->
+    </Then>
+  </If>
+</macro>
+<macro name="🔁_Apply_Proxy">
+  <action name="ReadFile">
+    <File>{ProxyFile}</File>
+    <Variable>AllProxies</Variable>
+  </action>
+  <action name="ExtractText">
+    <Text>{AllProxies}</Text>
+    <Variable>ProxyList</Variable>
+    <Regex>\d+\.\d+\.\d+\.\d+:\d+:\w+:\w+</Regex>
+    <Multiple>true</Multiple>
+  </action>
+  <action name="SetVariable">
+    <Variable>ChosenProxy</Variable>
+    <Value>{RandomLine(ProxyList)}</Value>
+  </action>
+
+  <!-- IP, Port 추출 -->
+  <action name="ExtractText">
+    <Text>{ChosenProxy}</Text>
+    <Variable>ProxyIP</Variable>
+    <Regex>(\d+\.\d+\.\d+\.\d+):\d+:\w+:\w+</Regex>
+  </action>
+  <action name="ExtractText">
+    <Text>{ChosenProxy}</Text>
+    <Variable>ProxyPort</Variable>
+    <Regex>\d+\.\d+\.\d+\.\d+:(\d+):\w+:\w+</Regex>
+  </action>
+
+  <!-- 프록시 설정 -->
+  <action name="SetProxy">
+    <Type>HTTP</Type>
+    <IP>{ProxyIP}</IP>
+    <Port>{ProxyPort}</Port>
+    <Username>heedon0143</Username>
+    <Password>977306ka</Password>
+  </action>
+
+  <!-- 브라우저 재시작 -->
+  <action name="RestartBrowser"/>
+
+  <action name="LogEvent">
+    <Type>ProxyApplied</Type>
+    <Details>국가=한국, ISP={CURRENT_ISP}, 지역={ExtractText(ProxyFile, '서울|부산|대구|인천|전국', 'seoul|busan|daegu|incheon|random')}, IP={ProxyIP}:{ProxyPort}</Details>
+  </action>
+
+  <action name="ShowMessage">
+    <Text>✅ 성공! 한국 프록시 적용됨 🇰🇷
+📡 ISP: {CURRENT_ISP}
+📍 지역: {ExtractText(ProxyFile, '서울|부산|대구|인천|전국', 'seoul|busan|daegu|incheon|random')}
+🌐 IP: {ProxyIP}:{ProxyPort}
+🔒 이제 유튜브도 믿음 👍</Text>
+  </action>
+</macro>
+<macro name="🤖_AI_Protect_Proxy">
+  <comment>
+    AI가 캡차, 로그인 실패, 제한 감지 시 자동 교체
+  </comment>
+  <action name="SetVariable">
+    <Variable>TriggerCount</Variable>
+    <Value>{GET_VAR('AI_TRIGGER_COUNT') or 0}</Value>
+  </action>
+
+  <If condition="document.title.includes('캡차') or document.querySelector('img[src*='captcha']') or document.querySelector('h1')?.innerText.includes('일시 중지')">
+    <Then>
+      <action name="SetVariable">
+        <Variable>AI_TRIGGER_COUNT</Variable>
+        <Value>{TriggerCount + 1}</Value>
+      </action>
+    </Then>
+  </If>
+
+  <If condition="AI_TRIGGER_COUNT >= 2">
+    <Then>
+      <action name="ShowMessage">
+        <Text>🛡️ AI 경고! 이상 활동 감지
+자동으로 프록시 변경 중...</Text>
+      </action>
+      <call macro="🇰🇷_Select_Korean_ISP_and_Area"/>
+      <action name="SetVariable">
+        <Variable>AI_TRIGGER_COUNT</Variable>
+        <Value>0</Value>
+      </action>
+    </Then>
+  </If>
+</macro>
+<macro name="🇺🇸_Apply_US_Proxy">
+  <action name="SetVariable">
+    <Variable>ProxyFile</Variable>
+    <Value>./proxies/us_proxies.txt</Value>
+  </action>
+  <call macro="🔁_Apply_Proxy"/>
+</macro>
+<action name="CallAPI">
+  <URL>https://ipwhois.app/json/{ProxyIP}</URL>
+  <Variable>IPInfo</Variable>
+</action>
+<If condition="IPInfo.isp not contains 'SK Telecom' or 'KT' or 'LG U+'">
+  <Then>
+    <call macro="🔁_Apply_Proxy"/> <!-- 다시 선택 -->
+  </Then>
+</If>
+<macro name="🔍_Verify_Proxy_ISP">
+  <comment>
+    [ASN 기반 ISP 검증]
+    - ipwhois.app API로 ISP 정보 확인
+    - SKT, KT, LGU+ 외에는 자동 재선택
+  </comment>
+
+  <action name="CallAPI">
+    <URL>https://ipwhois.app/json/{ProxyIP}</URL>
+    <Method>GET</Method>
+    <Variable>IPInfo</Variable>
+    <Timeout>10000</Timeout>
+  </action>
+
+  <If condition="IPInfo.status != 'success'">
+    <Then>
+      <action name="LogEvent">
+        <Type>ProxyError</Type>
+        <Details>IP 정보 조회 실패: {ProxyIP}</Details>
+      </action>
+      <call macro="🔁_Apply_Proxy"/> <!-- 재시도 -->
+    </Then>
+  </If>
+
+  <If condition="IPInfo.isp contains 'SK Telecom'">
+    <Then>
+      <action name="SetVariable">
+        <Variable>CURRENT_ISP</Variable>
+        <Value>SKT</Value>
+      </action>
+    </Then>
+  </If>
+  <ElseIf condition="IPInfo.isp contains 'KT' or IPInfo.org contains 'KT Corporation'">
+    <Then>
+      <action name="SetVariable">
+        <Variable>CURRENT_ISP</Variable>
+        <Value>KT</Value>
+      </action>
+    </Then>
+  </ElseIf>
+  <ElseIf condition="IPInfo.isp contains 'LG U+' or IPInfo.org contains 'LG Uplus'">
+    <Then>
+      <action name="SetVariable">
+        <Variable>CURRENT_ISP</Variable>
+        <Value>LGU+</Value>
+      </action>
+    </Then>
+  </ElseIf>
+  <Else>
+    <Then>
+      <action name="LogEvent">
+        <Type>ISP_Mismatch</Type>
+        <Details>비정상 ISP 감지: {IPInfo.isp} ({ProxyIP})</Details>
+      </action>
+      <call macro="🔁_Apply_Proxy"/> <!-- 다른 프록시 선택 -->
+    </Then>
+  </Else>
+
+  <action name="ShowMessage">
+    <Text>✅ ISP 검증 통과 🛡️
+🌐 IP: {ProxyIP}
+📡 ISP: {CURRENT_ISP}
+🏢 조직: {IPInfo.org}
+📍 국가: {IPInfo.country}</Text>
+  </action>
+</macro>
+<macro name="🚶_Simulate_Geographic_Movement">
+  <comment>
+    [사용자 이동 시뮬레이션]
+    - 오늘: 서울 → 내일: 부산 → 모레: 대구
+    - 마치 이동 중인 한국인이 시청하는 것처럼
+  </comment>
+
+  <action name="SetVariable">
+    <Variable>VisitHistory</Variable>
+    <Value>{GET_VAR('VisitHistory') or ''}</Value>
+  </action>
+  <action name="SetVariable">
+    <Variable>LastCity</Variable>
+    <Value>{GET_VAR('CURRENT_CITY') or '서울'}</Value>
+  </action>
+
+  <!-- 이동 확률 (30%) -->
+  <If condition="{Random(1,100)} <= 30">
+    <Then>
+      <action name="SetVariable">
+        <Variable>PossibleCities</Variable>
+        <Value>서울,부산,대구,인천,대전,광주,울산,세종</Value>
+      </action>
+      <action name="ExtractText">
+        <Text>{PossibleCities}</Text>
+        <Variable>NewCity</Variable>
+        <Regex>([^,]+)</Regex>
+        <Multiple>true</Multiple>
+        <Exclude>{LastCity}</Exclude>
+      </action>
+      <action name="SetVariable">
+        <Variable>CURRENT_CITY</Variable>
+        <Value>{RandomItem(NewCity)}</Value>
+      </action>
+
+      <!-- 도시에 따른 프록시 파일 선택 -->
+      <If condition="CURRENT_CITY == '서울'">
+        <action name="SetVariable"><Variable>ProxyFile</Variable><Value>./proxies/seoul.txt</Value></action>
+      </If>
+      <If condition="CURRENT_CITY == '부산'">
+        <action name="SetVariable"><Variable>ProxyFile</Variable><Value>./proxies/busan.txt</Value></action>
+      </If>
+      <If condition="CURRENT_CITY == '대구'">
+        <action name="SetVariable"><Variable>ProxyFile</Variable><Value>./proxies/daegu.txt</Value></action>
+      </If>
+      <If condition="CURRENT_CITY == '인천'">
+        <action name="SetVariable"><Variable>ProxyFile</Variable><Value>./proxies/incheon.txt</Value></action>
+      </If>
+
+      <action name="LogEvent">
+        <Type>CityMoved</Type>
+        <Details>지역 이동: {LastCity} → {CURRENT_CITY}</Details>
+      </action>
+
+      <action name="ShowMessage">
+        <Text>🚶‍♂️ 위치 변경됨!
+마치 {CURRENT_CITY}로 이동한 것처럼 보입니다.
+이제 {CURRENT_CITY} 지역 IP로 전환합니다.</Text>
+      </action>
+
+      <call macro="🔁_Apply_Proxy"/>
+      <call macro="🔍_Verify_Proxy_ISP"/>
+    </Then>
+  </If>
+  <Else>
+    <Then>
+      <action name="LogEvent">
+        <Type>Stayed</Type>
+        <Details>지역 유지: {LastCity}</Details>
+      </action>
+    </Then>
+  </Else>
+</macro>
+<macro name="🚀_Full_Proxy_Protection_System">
+  <comment>
+    [전체 보호 시스템]
+    1. 국가 및 ISP 선택
+    2. 프록시 적용
+    3. ASN 검증
+    4. 지리적 이동 시뮬레이션
+    5. AI 기반 모니터링
+  </comment>
+
+  <call macro="🌍_Proxy_Control_Center"/>
+
+  <!-- 프록시 적용 -->
+  <call macro="🔁_Apply_Proxy"/>
+
+  <!-- ISP 검증 -->
+  <call macro="🔍_Verify_Proxy_ISP"/>
+
+  <!-- 지리적 이동 -->
+  <call macro="🚶_Simulate_Geographic_Movement"/>
+
+  <!-- AI 보호 모드 백그라운드 실행 -->
+  <loop name="AI_Monitor" count="infinite">
+    <call macro="🤖_AI_Protect_Proxy"/>
+    <action name="Delay">
+      <Min>60000</Min>
+      <Max>120000</Max>
+    </action>
+  </loop>
+</macro>
+<If condition="{Hour} >= 22 or {Hour} <= 6">
+  <Then>
+    <action name="SetVariable"><Variable>CURRENT_CITY</Variable><Value>거주지</Value></action>
+  </Then>
+</If>

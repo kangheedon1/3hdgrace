@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project>
+  <settings>
+    <MaxThreads>500</MaxThreads>
+    <ParallelExecution>true</ParallelExecution>
+    <ThreadDelay>50</ThreadDelay>
+    <ProxyRotationInterval>300</ProxyRotationInterval>
+    <ViewerHealthCheckInterval>60</ViewerHealthCheckInterval>
+  </settings>
+
+  <!-- ISP 자동 변경 -->
+  <macro name="ChangeToISPByCountry">
+    <parameter name="Country"/>
+    <parameter name="Account"/>
+    <if condition="{Country} == 'Korea'"><then><action name="SelectRandomISP"><ISPList>KT,SKT,LGU+</ISPList><Variable>SelectedISP</Variable></action></then></if>
+    <if condition="{Country} == 'USA'"><then><action name="SelectRandomISP"><ISPList>Comcast,Verizon,AT&T,T-Mobile</ISPList><Variable>SelectedISP</Variable></action></then></if>
+    <if condition="{Country} == 'Japan'"><then><action name="SelectRandomISP"><ISPList>NTT,KDDI,SoftBank</ISPList><Variable>SelectedISP</Variable></action></then></if>
+    <if condition="{Country} == 'Germany'"><then><action name="SelectRandomISP"><ISPList>Vodafone,Telekom,O2</ISPList><Variable>SelectedISP</Variable></action></then></if>
+    <if condition="{Country} == 'UK'"><then><action name="SelectRandomISP"><ISPList>BT,TalkTalk,Sky</ISPList><Variable>SelectedISP</Variable></action></then></if>
+    <if condition="{Country} == 'Thailand'"><then><action name="SelectRandomISP"><ISPList>3BB,True,AIS</ISPList><Variable>SelectedISP</Variable></action></then></if>
+    <if condition="{Country} == 'Vietnam'"><then><action name="SelectRandomISP"><ISPList>Viettel,FPT,VNPT</ISPList><Variable>SelectedISP</Variable></action></then></if>
+    <if condition="{Country} == 'Philippines'"><then><action name="SelectRandomISP"><ISPList>Globe,PLDT</ISPList><Variable>SelectedISP</Variable></action></then></if>
+    <if condition="{Country} == 'HongKong'"><then><action name="SelectRandomISP"><ISPList>HKBN,HKT,CMI</ISPList><Variable>SelectedISP</Variable></action></then></if>
+    <if condition="{Country} == 'Cambodia'"><then><action name="SelectRandomISP"><ISPList>EZECOM,Cellcard,Metfone</ISPList><Variable>SelectedISP</Variable></action></then></if>
+    <if condition="{Country} == 'Russia'"><then><action name="SelectRandomISP"><ISPList>Beeline,MTS,Megafon</ISPList><Variable>SelectedISP</Variable></action></then></if>
+
+    <action name="SetVariable"><Variable>FinalProxy</Variable><Value>{Account.proxy}</Value></action>
+    <action name="ChangeProxy"><ISP>{SelectedISP}</ISP><Proxy>{FinalProxy}</Proxy></action>
+    <action name="LogEvent"><Type>ISPChange</Type><Details>{Country} → {SelectedISP} | {FinalProxy}</Details></action>
+  </macro>
+
+  <!-- 프록시 형식 자동 감지 -->
+  <macro name="ParseAndAssignProxy">
+    <parameter name="RawProxy"/>
+    <action name="DetectProxyFormat"><Input>{RawProxy}</Input><Variable>DetectedFormat</Variable></action>
+    <action name="AssignProxy"><Proxy>{RawProxy}</Proxy><Format>{DetectedFormat}</Format></action>
+    <action name="LogEvent"><Type>ProxyAssigned</Type><Details>형식: {DetectedFormat} | 프록시: {RawProxy}</Details></action>
+  </macro>
+
+  <!-- 국가 선택 UI -->
+  <macro name="SelectCountryUI">
+    <action name="CreatePopup"><Title>국가 선택</Title><Message>프록시 ISP 국가를 선택하세요:</Message></action>
+    <action name="AddChoice"><Option>Korea</Option></action>
+    <action name="AddChoice"><Option>USA</Option></action>
+    <action name="AddChoice"><Option>Japan</Option></action>
+    <action name="AddChoice"><Option>Germany</Option></action>
+    <action name="AddChoice"><Option>UK</Option></action>
+    <action name="AddChoice"><Option>Thailand</Option></action>
+    <action name="AddChoice"><Option>Vietnam</Option></action>
+    <action name="AddChoice"><Option>Philippines</Option></action>
+    <action name="AddChoice"><Option>HongKong</Option></action>
+    <action name="AddChoice"><Option>Cambodia</Option></action>
+    <action name="AddChoice"><Option>Russia</Option></action>
+    <action name="ShowPopup"/>
+    <action name="GetUserChoice"><Variable>SelectedCountry</Variable></action>
+    <action name="LogEvent"><Type>UI</Type><Details>선택된 국가: {SelectedCountry}</Details></action>
+  </macro>
+
+  <!-- 고정 시청자 시스템 통합 -->
+  <macro name="FixedViewerSystem_ElitePlus">
+    <action name="SetVariable"><Variable>ViewerCount</Variable><Value>500</Value></action>
+    <action name="CallMacro"><Name>SelectCountryUI</Name></action>
+    <action name="ReadFile"><File>./proxies/global_proxies.txt</File><Variable>ProxyList</Variable></action>
+    <action name="ReadFile"><File>./data/target_urls.txt</File><Variable>TargetURLs</Variable></action>
+
+    <!-- 실시간 모니터링 -->
+    <action name="SetInterval">
+      <Interval>60000</Interval>
+      <macro>
+        <action name="GetViewerCount"><Variable>ActiveViewers</Variable></action>
+        <action name="LogEvent"><Type>Monitor</Type><Details>현재 시청자 수: {ActiveViewers}</Details></action>
+        <action name="SendRequest">
+          <Method>POST</Method>
+          <Url>https://your-server.com/api/viewers</Url>
+          <ContentType>application/json</ContentType>
+          <Data>{"timestamp": "{Timestamp}", "active_viewers": "{ActiveViewers}"}</Data>
+        </action>
+      </macro>
+    </action>
+
+    <!-- 병렬 시청자 루프 -->
+    <loop name="EliteViewerLoop" count="{ViewerCount}">
+      <Try>
+        <Do>
+          <action name="SetVariable"><Variable>ViewerID</Variable><Value>{Random(100000, 999999)}</Value></action>
+          <action name="CallMacro"><Name>ParseAndAssignProxy</Name><Parameters><RawProxy>{ProxyList[{ThreadIndex}]}</RawProxy></Parameters></action>
+          <action name="CallMacro"><Name>ChangeToISPByCountry</Name><Parameters><Country>{SelectedCountry}</Country><Account><proxy>{ProxyList[{ThreadIndex}]}</proxy></Account></Parameters></action>
+          <action name="DetectProxyCountry"><Proxy>{ProxyList[{ThreadIndex}]}</Proxy><Variable>ProxyCountry</Variable></action>
+          <action name="SetVariable"><Variable>TargetURL</Variable><Value>{TargetURLs[{ThreadIndex} % TargetURLs.length]}</Value></action>
+          <action name="MouseMove"/><action name="ScrollPage"/>
+          <action name="Delay"><Min>500</Min><Max>1500</Max></action>
+          <action name="SetVariable"><Variable>WatchDuration</Variable><Value>{Random(1800, 3600)}</Value></action>
+          <action name="WatchLiveStream"><URL>{TargetURL}</URL><Duration>{WatchDuration}</Duration></action>
+          <action name="RandomClick"><Selector>.play-button, .like-button</Selector></action>
+          <action name="LogEvent"><Type>Viewer</Type><Details>[{ViewerID}] 시청 완료 - {TargetURL} ({WatchDuration}초, {ProxyCountry})</Details></action>
+          <action name="SendRequest"><Method>POST</Method><Url>https://your-server.com/api/logs</Url><ContentType>application/json</ContentType>
+            <Data>{"viewer_id":"{ViewerID}","target_url":"{TargetURL}","duration":"{WatchDuration}","country":"{ProxyCountry}","timestamp":"{Timestamp}"}</Data>
+          </action>
+        </Do>
+        <Catch>
+          <action name="LogEvent"><Type>Error</Type><Details>시청 실패 - ViewerID: {ViewerID}</Details></action>
+          <action name="SendRequest"><Method>POST</Method><Url>https://your-server.com/api/errors</Url><ContentType>application/json</ContentType>
+            <Data>{"viewer_id":"{ViewerID}","error":"시청 실패","timestamp":"{Timestamp}"}</Data>
+          </action>
+        </Catch>
+      </Try>
+    </loop>
+
+    <action name="LogEvent"><Type>System</Type><Details>✅ 모든 고정 시청자 루프 완료</Details></action>
+  </macro>
+
+  <!-- 실행 진입점 -->
+  <macro name="Main">
+    <action name="CallMacro"><Name>FixedViewerSystem_ElitePlus</Name></action>
+  </macro>
+</project>
